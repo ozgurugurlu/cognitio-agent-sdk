@@ -1,9 +1,93 @@
 ---
 title: "Models and prompts"
-description: "Choose a provider, supply credentials, and shape the agent's instructions."
+description: "Use Vercel AI SDK providers, choose a gateway or direct connection, and shape the agent's instructions."
 ---
 
-A model ID has the form `provider/model`, such as `openai/gpt-4.1-mini`. Cognitio runs the agent loop; the selected provider runs inference and accounts for its usage. Changing the provider requires that provider's credentials and a model your account can access.
+**Cognitio uses [Vercel AI SDK](https://ai-sdk.dev/docs/foundations/providers-and-models) to connect to language models.** Cognitio runs the agent loop, tools, and sessions; the bundled runtime resolves your model ID through an AI SDK provider adapter and streams the model's response.
+
+A model ID has the form `provider/model`, such as `openai/gpt-4.1-mini`. Changing providers requires that provider's credentials and a model your account can access. You do not need to install an `@ai-sdk/*` package in your application for the bundled integrations below.
+
+## Providers and gateways
+
+AI SDK is the model integration layer. It does not require a hosted gateway: `openai/...` and `anthropic/...` connect to their respective providers. You can instead choose a gateway such as OpenRouter or Vercel AI Gateway, or configure your own endpoint. Cognitio does not operate a hosted inference gateway, and requests do not automatically route through Vercel AI Gateway.
+
+Expand a group to find a provider ID. Use that ID before the model name in `model: "provider/model"`; the `models.*` helpers cover only a convenience subset of these providers.
+
+<AccordionGroup>
+  <Accordion title="Direct and cloud providers">
+
+    These integrations have provider adapters included in the runtime. Availability still depends on credentials, provider configuration, the runtime's model catalog, and your account's model access.
+
+    | Provider | Provider ID |
+    | --- | --- |
+    | Amazon Bedrock | `amazon-bedrock` |
+    | Anthropic | `anthropic` |
+    | Azure OpenAI | `azure` |
+    | Azure Cognitive Services | `azure-cognitive-services` |
+    | Cerebras | `cerebras` |
+    | Cohere | `cohere` |
+    | DeepInfra | `deepinfra` |
+    | GitHub Copilot | `github-copilot` |
+    | GitLab Duo | `gitlab` |
+    | Google Gemini | `google` |
+    | Google Vertex AI | `google-vertex` |
+    | Google Vertex AI with Anthropic | `google-vertex-anthropic` |
+    | Groq | `groq` |
+    | Mistral | `mistral` |
+    | OpenAI | `openai` |
+    | Perplexity | `perplexity` |
+    | Together AI | `togetherai` |
+    | v0 | `v0` |
+    | Venice AI | `venice` |
+    | xAI | `xai` |
+
+    Cloud integrations can require a region, project, resource name, or deployment ID in addition to authentication. GitLab Duo uses provider-specific authentication; its instance URL defaults to `https://gitlab.com` and can be configured for another instance. GitHub Copilot requires a supported Copilot authentication flow, and a GitHub token is not implicitly forwarded to isolated runtimes. Perplexity here is a model provider; this does not select the runtime's built-in web search provider.
+
+  </Accordion>
+  <Accordion title="Gateways">
+
+    | Gateway | Provider ID | Configuration |
+    | --- | --- | --- |
+    | OpenRouter | `openrouter` | `OPENROUTER_API_KEY` and an available routed model. |
+    | Vercel AI Gateway | `vercel` | `AI_GATEWAY_API_KEY` and an available routed model. |
+    | Cloudflare AI Gateway | `cloudflare-ai-gateway` | Cloudflare account ID, gateway ID, and gateway authentication/configuration. |
+
+    Gateway model names may contain another provider prefix. Keep the full provider-local model name after the first slash. The `vercel` ID selects Vercel AI Gateway; `v0` selects the separate v0 model integration.
+
+    Forward gateway credentials explicitly with `spawn.env` or `spawn.passEnv` when using a local isolated runtime. For a remote runtime, configure credentials on the server. Selecting a gateway changes routing and billing; consult that gateway's model and capability requirements.
+
+  </Accordion>
+  <Accordion title="OpenAI-compatible and custom providers">
+
+    The runtime also includes an OpenAI-compatible adapter. The model catalog configures additional providers through that adapter, including:
+
+    | Provider | Provider ID |
+    | --- | --- |
+    | Alibaba | `alibaba`, `alibaba-cn` |
+    | Cloudflare Workers AI | `cloudflare-workers-ai` |
+    | DeepSeek | `deepseek` |
+    | Fireworks AI | `fireworks-ai` |
+    | GitHub Models | `github-models` |
+    | Hugging Face | `huggingface` |
+    | LM Studio | `lmstudio` |
+    | Moonshot AI | `moonshotai`, `moonshotai-cn` |
+    | NVIDIA | `nvidia` |
+    | Ollama Cloud | `ollama-cloud` |
+    | Z.AI | `zai` |
+    | Zhipu AI | `zhipuai` |
+
+    This is a selection of catalog integrations, not a list of every OpenAI-compatible service. Provider-specific authentication and endpoint setup still apply. Ollama Cloud is separate from a locally hosted Ollama endpoint.
+
+    Other catalog entries reuse different bundled adapters: MiniMax (`minimax`, `minimax-cn`) and Kimi for Coding (`kimi-for-coding`) use Anthropic-compatible integrations. The configured adapter and model metadata determine how each request is sent.
+
+    For local Ollama or another private OpenAI-compatible endpoint, define your own provider ID, base URL, credentials, and model metadata in `spawn.config.provider`, as described in [Private providers and model catalogs](#private-providers-and-model-catalogs).
+
+  </Accordion>
+</AccordionGroup>
+
+The wider AI SDK ecosystem includes additional adapters. An adapter appearing in AI SDK's documentation does not mean it is bundled or configured in Cognitio. Model features also vary: check tool calling, structured output, reasoning, and input modalities for the particular provider and model you select.
+
+For local isolated runtimes, explicitly pass the credentials your integration needs through `spawn.env` or `spawn.passEnv`; only a reviewed subset of provider environment variables is inherited automatically. See [Defaults and isolation](/defaults-and-isolation). Remote runtimes resolve credentials on the server.
 
 ## Choose a model and write instructions
 
