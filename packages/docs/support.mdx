@@ -1,0 +1,34 @@
+---
+title: "Get help"
+description: "Ask a question, report a bug, or share a minimal reproduction."
+---
+
+For questions or problems with Cognitio Agent SDK, email **[ugurlu.oozgur@gmail.com](mailto:ugurlu.oozgur@gmail.com)**.
+
+You can also [open a GitHub issue](https://github.com/ozgurugurlu/cognitio-agent-sdk/issues). Check [troubleshooting](/troubleshooting) for installation, provider credentials, tool permissions, streaming, and cleanup fixes first.
+
+## Make an issue easy to reproduce
+
+Include:
+
+- The SDK version, Node.js or Bun version, and operating system/architecture.
+- The model ID and whether you use a local or remote runtime.
+- The smallest script that reproduces the behavior.
+- What you expected and what happened, including the terminal `subtype` or SDK error `kind` when available.
+
+These commands collect version information without printing provider credentials:
+
+```sh
+npm ls cognitio-agent-sdk
+node --version
+node -p "process.platform + ' ' + process.arch"
+```
+
+Remove API keys, authorization headers, personal data, and private project content before sharing a reproduction. Use email for reports that should not appear in a GitHub issue.
+
+## Useful starting points
+
+- [Run your first agent](/quickstart) for a complete minimal application.
+- [Cookbook projects](/cookbook/examples) for working examples and their GitHub source.
+- [SDK reference](/api-reference/index) for exported types, options, and methods.
+- [Changelog](/changelog) for version changes.

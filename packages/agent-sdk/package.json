@@ -86,5 +86,6 @@
     "type": "git",
     "url": "git+https://github.com/ozgurugurlu/cognitio-agent-sdk.git",
     "directory": "packages/agent-sdk"
-  }
+  },
+  "homepage": "https://cognitio-agent.mintlify.site"
 }

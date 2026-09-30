@@ -1,44 +1,83 @@
 ---
 title: "Hooks"
-description: "Observe and influence agent lifecycle events."
+description: "Observe tool calls and customize selected lifecycle decisions with local callbacks."
 ---
-Hooks are local callbacks registered by event name. Entries may specify a tool matcher, timeout and asynchronous notification behavior.
+
+For the TypeScript examples, use the [TypeScript setup](/installation#typescript-projects), including `"type": "module"` and the `tsx` runner.
+Hooks let your application observe a run or supply event-specific instructions. They execute in your JavaScript process, while the model and built-in tools run in the runtime. Use a tool's `execute` callback for the operation itself, a hook for lifecycle behavior, and [permissions](/concepts/permissions) for authorization.
+
+## Run a hook around a tool
+
+Complete the [quickstart](/quickstart) first: install `cognitio-agent-sdk`, configure `OPENAI_API_KEY`, and use Node.js 22 or newer. Save this as `hooks.ts` and run it with `node --env-file=.env --import tsx hooks.ts`.
 
 ```ts
+import { Agent, defineTool, shutdown } from "cognitio-agent-sdk"
+
 const agent = new Agent({
-  model: "anthropic/claude-sonnet-4-5",
+  model: "openai/gpt-4.1-mini",
+  tools: [defineTool({
+    name: "ping",
+    description: "Check whether this application is ready.",
+    inputJsonSchema: { type: "object", properties: {}, additionalProperties: false },
+    execute: () => ({ status: "ready" }),
+  })],
+  allowedTools: ["sdk_ping"],
+  maxTurns: 3,
   hooks: {
     PreToolUse: [{
-      matcher: /^bash$/,
+      matcher: /^sdk_ping$/,
+      timeoutMs: 2_000,
       callback(event) {
-        console.log(event.sessionId, event.toolCallId, event.data)
-        return { additionalContext: "Prefer read-only commands." }
+        console.log("Before tool", event.sessionId, event.toolCallId)
+        return { additionalContext: "Report the returned status accurately." }
       },
     }],
-    PreCompact: [() => ({ customInstructions: "Preserve requirements and unresolved questions." })],
+    PostToolUse: [{
+      matcher: /^sdk_ping$/,
+      callback(event) {
+        console.log("After tool", event.sessionId, event.toolCallId)
+      },
+    }],
   },
 })
+
+try {
+  const result = await agent.run("Call ping once, then tell me the status.", {
+    signal: AbortSignal.timeout(60_000),
+  })
+  if (result.subtype !== "success") throw new Error(`Run ended: ${result.subtype}`)
+  console.log(result.text)
+} finally {
+  await agent.close().finally(() => shutdown())
+}
 ```
 
-## Supported events
+When the model calls the tool, the callbacks print its lifecycle identifiers. Tool use is model-driven; a successful text response alone does not prove a particular hook ran. The matcher uses the runtime-visible tool name: direct Agent tools have the `sdk_` prefix. Avoid printing `event.data` indiscriminately because it can contain application data.
 
-| Area | Events |
+## Choose an event
+
+| Events | Typical use |
 | --- | --- |
-| Tools | `PreToolUse`, `PostToolUse` |
-| Prompt and run | `UserPromptSubmit`, `Notification`, `Stop`, `SubagentStop` |
-| Context | `PreCompact`, `PostCompact` |
-| Session | `SessionStart`, `SessionEnd`, `SessionStateChange` |
-| Shell | `BeforeShellExecution`, `AfterShellExecution` |
-| Permissions | `PermissionAsked`, `PermissionReplied` |
+| `PreToolUse`, `PostToolUse` | Inspect a tool operation before or after execution. |
+| `UserPromptSubmit` | Add context or stop submission of a prompt. |
+| `PreCompact`, `PostCompact` | Preserve important context and observe a completed summary. |
+| `SessionStart`, `SessionEnd`, `SessionStateChange` | Observe session lifecycle. |
+| `Stop`, `SubagentStop`, `Notification` | Observe completion and notifications. |
+| `BeforeShellExecution`, `AfterShellExecution` | Observe shell operations. |
+| `PermissionAsked`, `PermissionReplied` | Observe permission decisions. |
 
-The v2 hook names are Cognitio's contract. They are not a one-for-one alias list for all hooks in newer Claude SDK releases.
+These are the Cognitio v2 event names. Event data is typed for compaction; other event payloads use a record whose fields depend on the event. Inspect `event.event` before interpreting `event.data`. `toolCallId` is optional because many lifecycle events are not attached to a tool.
 
-## Results and deadlines
+## Return a result deliberately
 
-`HookResult` can carry continuation/stop decisions, permission decisions, updated input/output, system messages, additional context and compaction instructions. The fields honored depend on the event. `watchPaths` is reserved and has no watcher effect in v2.
+Callbacks can return nothing when they only observe. `HookResult` also supports fields such as `continue`, `stopReason`, `additionalContext`, `updatedInput`, `updatedToolOutput` and `permissionDecision`; only the fields supported by the particular event have an effect. For example, `PreCompact` honors `customInstructions`, while `PostCompact` is a notification of work already performed. See [compaction](/concepts/compaction) for a complete example.
 
-`timeoutMs` limits the callback request. Use `event.signal` to cancel work. An `async` notification hook cannot synchronously change a decision already made by the runtime. Do not rely on it for authorization.
+A returned replacement input still needs validation inside a custom tool before side effects. `watchPaths` is reserved and does not create filesystem watchers in v2.
 
-Regex matchers are normalized to serializable descriptors. Avoid stateful global/sticky regular expressions. `defineHook()` provides typed registration assistance; see its API reference.
+## Deadlines, cancellation and ownership
 
-Hooks inherited by a subagent route through the owning root session's control dispatcher. Closing the owner cancels its local callback machinery.
+`timeoutMs` bounds the callback request. Use `event.signal` for cancellable work such as `fetch(url, { signal: event.signal })`; cancellation does not forcibly stop arbitrary JavaScript or undo an external effect. Keep hooks short. A hook failure or timeout is not a reliable authorization denial: the runtime can continue without its modifications. Put unconditional restrictions in tool denylists or permission rules.
+
+Set `async: true` only for notifications that may finish independently. Their return values cannot synchronously change the operation, and application teardown can cancel unfinished callbacks. Do not use them as a durable job queue.
+
+Hooks inherited by a subagent route through the owning root session's dispatcher. Keep that Agent/client alive while its descendants work. Callback functions are not persisted in the transcript; re-register them when attaching from another process. See [lifecycle](/cookbook/lifecycle).

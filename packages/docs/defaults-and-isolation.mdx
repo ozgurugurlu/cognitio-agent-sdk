@@ -1,45 +1,77 @@
 ---
-title: "Defaults and isolation"
-description: "Understand what the SDK starts, forwards and loads."
+title: "Runtime defaults"
+description: "Know what happens automatically, and which settings you may want to change."
 ---
-## Local defaults
 
-`Agent`, `query()` and `createAgentClient()` use an isolated runtime by default. The child receives a temporary home and XDG directories, an explicit environment, and `COGNITIO_ISOLATED=1`. Host authentication files, global configuration, project instructions, plugins and skill files are not implicitly loaded. Supported provider environment variables are forwarded as described below. Sessions default to `settingSources: []`.
+**Isolation is already on.** You do not need to configure it to follow the quickstart or use the SDK in an application. This page is for understanding defaults and deliberately changing them.
 
-The default system prompt is neutral. The high-level facade disables title generation, language servers and formatters, and hides `question`, `todowrite` and `skill` tools unless you choose a different policy. Other built-in tools remain available subject to permissions. Set `allowedTools` explicitly for a narrow agent.
+## What happens automatically
 
-**Isolation concerns configuration and state.** Shell commands and tools still run with the runtime process's OS permissions. Use containers or your own sandbox when you need filesystem, process or network confinement. SDK tool callbacks execute in your application process.
+When you use `Agent`, `query()`, or a locally spawned `createAgentClient()`, the SDK starts a runtime with temporary configuration and state directories. It does not automatically read your personal authentication files or agent configuration. A session's `settingSources` is empty unless you choose otherwise.
 
-## Credentials
+| Default | What it means for your application |
+| --- | --- |
+| Isolated local runtime | Personal runtime configuration and stored credentials are not implicitly imported. |
+| Neutral agent instructions | You choose the agent's role; a coding persona is not forced on every task. |
+| Explicit settings discovery | Project instructions, filesystem plugins, and skills are not automatically loaded. Programmatic definitions still work. |
+| Provider environment forwarding | Supported provider variables, including `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`, are available to the runtime. |
+| Temporary state | The owned scratch directory is removed when its local runtime closes successfully. |
 
-Common provider keys such as `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are forwarded. `AWS_*`, `AZURE_*`, `GOOGLE_*`, `OTEL_*` and standard proxy variables have explicit forwarding rules. Arbitrary `*_API_KEY` variables and `GITHUB_TOKEN` are not implicitly forwarded.
+The high-level `Agent` and `query()` facade also disables title generation, language servers, and formatters by default. It hides the interactive `question`, `todowrite`, and `skill` tools unless your tool policy replaces those defaults. Other tools are subject to your selected tool list and permissions. See [built-in tools](/concepts/built-in-tools).
+
+## Configuration isolation is not a tool sandbox
+
+File, shell, and network tools run with the runtime process's operating-system access. `cwd` selects a working directory; it does not create a filesystem security boundary. Your custom tool callbacks run inside your application process.
+
+Choose [tool permissions](/concepts/permissions) for your workflow. If an application requires operating-system confinement, run it in a container or another sandbox you operate.
+
+## Supply credentials explicitly when needed
+
+A supported key in your environment is sufficient for the quickstart. For a different variable name or an application-managed credential, pass `spawn.auth`:
 
 ```ts
+import { Agent } from "cognitio-agent-sdk"
+
+const key = process.env.MY_OPENAI_KEY
+if (!key) throw new Error("Set MY_OPENAI_KEY before running this example.")
+
 const agent = new Agent({
-  model: "anthropic/claude-sonnet-4-5",
-  spawn: {
-    auth: { anthropic: { type: "api", key: process.env.MY_ANTHROPIC_KEY! } },
-    passEnv: ["MY_PROVIDER_REGION"],
-  },
+  model: "openai/gpt-4.1-mini",
+  disallowedTools: ["*"],
+  spawn: { auth: { openai: { type: "api", key } } },
 })
+
+try {
+  console.log((await agent.run("Say hello in one sentence.")).text)
+} finally {
+  await agent.close()
+}
 ```
 
-`spawn.auth` is a serializable credential map. Keep secrets outside source control. `spawn.env` supplies explicit child variables; reserved isolation/auth/config keys must be supplied through their dedicated options instead.
+Explicit `spawn` options give this Agent a dedicated runtime, so `close()` also stops that runtime. The example still uses the default isolated mode.
 
-## Deliberately use local configuration
+`spawn.passEnv` forwards named host variables; `spawn.env` supplies explicit child values. Arbitrary `*_API_KEY` names and `GITHUB_TOKEN` are not automatically forwarded. Standard proxy variables and `AWS_*`, `AZURE_*`, `GOOGLE_*`, and `OTEL_*` have forwarding rules. See [SpawnOptions](/api-reference/interfaces/SpawnOptions) for the options and reserved variables.
+
+## Deliberately use host configuration
+
+Use this only when the agent is intended to behave like a tool running in your existing local environment. The following options are a configuration fragment to pass to `new Agent()`:
 
 ```ts
-const agent = new Agent({
+import type { AgentOptions } from "cognitio-agent-sdk"
+
+const hostConfiguration = {
   spawn: { isolated: false },
   settingSources: ["user", "project", "local"],
   systemPrompt: { type: "preset", preset: "default" },
-})
+} satisfies AgentOptions
 ```
 
-Non-isolated mode restores host configuration discovery. The coding preset restores the built-in coding prompt. These choices are independent. Explicit runtime options and `spawn.config` remain programmatic configuration channels.
+These choices do different things: non-isolated spawn enables host configuration, `settingSources` selects discovered settings, and the preset chooses the coding-oriented system prompt. You do not need any of them for normal SDK use.
 
-## Cleanup
+## Choose the right state lifetime
 
-Closing a locally spawned `AgentClient` waits for its owned work and process termination before removing scratch state. `Agent.close()` also closes a dedicated client, but leaves the default process-wide client alive; call `shutdown()` at application teardown to close facade-owned runtimes. Injected clients remain their creator's responsibility. See [lifecycle](/cookbook/lifecycle).
+A session ID can be resumed while its backing runtime and database remain available. Default isolated scratch is temporary, so keeping the ID alone does not preserve a conversation after runtime shutdown.
 
-`spawn.keepScratch: true` preserves scratch for debugging; use `spawn.scratchDir` to select its parent directory. A process that cannot be confirmed dead keeps its scratch directory and reports an error.
+For a service that needs longer-lived sessions, operate a persistent runtime and connect in [remote mode](/cookbook/remote). For cleanup behavior in a script or service, see [lifecycle and cleanup](/cookbook/lifecycle).
+
+`spawn.keepScratch: true` preserves temporary state for debugging. It is not a persistence strategy. See [troubleshooting](/troubleshooting) before enabling it.

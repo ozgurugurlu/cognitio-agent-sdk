@@ -1,22 +1,121 @@
 ---
 title: "Troubleshooting"
-description: "Diagnose installation, credentials, lifecycle and runtime failures."
+description: "Find the cause of installation, credentials, tools, streaming, and session problems."
 ---
-| Symptom | Check |
-| --- | --- |
-| Runtime package not found | Reinstall with optional dependencies enabled; confirm supported OS/CPU/libc. |
-| Runtime version mismatch | Remove an unintended `COGNITIO_BIN_PATH` or PATH executable; reinstall matching SDK/platform packages. |
-| Missing API credentials | Isolated mode does not read host auth files. Use a supported provider variable or `spawn.auth`. |
-| No local instructions/skills | `settingSources` is empty by default; programmatic definitions work without filesystem discovery. |
-| Session cannot be resumed | Confirm the same persistent server/database still exists. Isolated scratch is deleted on shutdown. |
-| Remote tools time out | Keep event subscriptions alive for direct callbacks and check external MCP connectivity. SDK-owned HTTP MCP hosting requires local spawn. |
-| Unsupported effort/thinking | Select a model/provider that implements the requested setting or omit it. |
-| Permission waits | Return a concrete allow/deny decision from `canUseTool`, use `dontAsk` for unresolved requests, and set an application cancellation deadline. `ask()` or a timed-out callback can leave a user prompt pending. |
-| Stream appears duplicated | Do not concatenate full messages and partial deltas as if they were the same event type. |
-| Process stays alive | Finish/return/abort streams, close owned Agents/clients, and call `shutdown()` at application teardown for the default shared runtime. |
 
-For debugging, inspect `session.getAppliedSettings()`, preserve the terminal `subtype`, and include SDK/runtime versions and platform information in reports. Redact credentials and sensitive prompt/tool content.
+Start with the symptom below. If it is still unclear, send a minimal reproduction to [ugurlu.oozgur@gmail.com](mailto:ugurlu.oozgur@gmail.com) or [open an issue](https://github.com/ozgurugurlu/cognitio-agent-sdk/issues).
 
-Use `spawn.keepScratch: true` only for intentional investigation. The returned errors identify preserved state when the SDK cannot confirm child termination. Remove debugging state after investigation with care for any still-running process.
+## The runtime cannot be found
 
-From source, run `bun install --frozen-lockfile` before package checks. Never run the repository's test guard from the root; use `bun run --cwd packages/agent-sdk test` and the runtime's sharded test command.
+The local runtime is installed through an optional npm dependency. Confirm the SDK is installed in the project where you run the script:
+
+```sh
+node --version
+npm ls cognitio-agent-sdk
+node -p "process.platform + ' ' + process.arch"
+```
+
+Use Node.js 22+ and a [supported platform](/installation#supported-local-runtimes). Reinstall with optional dependencies included:
+
+```sh
+npm install cognitio-agent-sdk@2.0.0 --include=optional
+```
+
+Do not copy `node_modules` between operating systems or CPU architectures. In a minimal container without a local runtime, use [remote mode](/cookbook/remote).
+
+## The model rejects my API key
+
+1. Confirm that the key belongs to the provider in `model`. An OpenAI key goes with an `openai/...` model.
+2. Load the key in the process that runs the agent. With a `.env` file, use `node --env-file=.env agent.mjs`.
+3. Check that your provider account has access to the selected model and available quota. Installing the SDK does not grant provider access.
+4. If you use a custom environment-variable name, pass it through `spawn.auth`; see [runtime defaults](/defaults-and-isolation#supply-credentials-explicitly-when-needed).
+
+Check whether a key is present without printing its value:
+
+```sh
+node --env-file=.env -e 'console.log({ hasOpenAIKey: Boolean(process.env.OPENAI_API_KEY) })'
+```
+
+Your personal runtime login files are not automatically used by the isolated SDK runtime. The quickstart uses an explicit provider API key.
+
+## A model or option is unavailable
+
+A model ID has the form `provider/model`. The SDK's typed catalog offers completion; it does not prove that your provider account can use every entry. Verify the provider's model access and use a model you can call.
+
+If an effort or thinking setting is rejected, remove that optional setting first. Model features differ across providers. See [models and prompts](/concepts/models-and-prompts).
+
+## The agent cannot use a tool
+
+Check these in order:
+
+1. **Availability:** use the correct ID from [built-in tools](/concepts/built-in-tools). Some tools depend on the model or runtime configuration.
+2. **Selection:** a nonempty `allowedTools` list limits the tool inventory. Custom tools are exposed as `sdk_<name>`.
+3. **Denials:** remove the quickstart's `disallowedTools: ["*"]` when enabling tools. An empty `allowedTools` array does not disable tools.
+4. **Permissions:** a selected tool may still need approval. Review server permission rules and your `permissionMode`.
+5. **Callback:** validate custom tool input inside `execute`; the schema describes the tool but does not replace your validation.
+
+Use [permissions](/concepts/permissions) and the [custom-tool cookbook](/cookbook/custom-tool) for complete examples.
+
+## A run waits for permission
+
+An `ask` decision needs an application that can respond. For unattended jobs, choose a policy that returns concrete allow/deny decisions and rejects unresolved prompts. `canUseTool` handles unresolved approvals, not every tool invocation. A callback timeout can leave a permission request waiting; it is not an automatic denial.
+
+Avoid enabling the interactive `question` tool unless your application implements the corresponding input flow. See [permissions](/concepts/permissions) and [cancellation](/concepts/streaming).
+
+## A run returns an error without throwing
+
+Setup and connection errors can throw. A completed model run can instead return `isError: true` and a terminal `subtype`, such as `error_max_turns` or `error_aborted`. Check both channels:
+
+```ts
+import { Agent, isSdkError, shutdown } from "cognitio-agent-sdk"
+
+const agent = new Agent({
+  model: "openai/gpt-4.1-mini",
+  disallowedTools: ["*"],
+  maxTurns: 3,
+})
+
+try {
+  const result = await agent.run("Explain a database index in one sentence.")
+  if (result.isError) {
+    console.error("Run stopped:", result.subtype)
+  } else {
+    console.log(result.text)
+  }
+} catch (error) {
+  if (isSdkError(error)) console.error("SDK error:", error.kind, error.message)
+  else console.error(error)
+} finally {
+  await agent.close().finally(() => shutdown())
+}
+```
+
+Use `kind` for SDK setup/lifecycle errors and `subtype` for terminal run outcomes. See [SdkError](/api-reference/interfaces/SdkError) and [RunResult](/api-reference/interfaces/RunResult).
+
+## Structured output is missing
+
+Check the terminal result before reading structured data. The model must support the required tool/output behavior, the response must fit its output limit, and the `StructuredOutput` tool must remain available. A wildcard tool denylist disables it too.
+
+Use a simple provider-facing schema and validate your application's stronger constraints afterward. The [contact extraction cookbook](/cookbook/structured-extraction) shows the complete pattern.
+
+## The script does not exit
+
+Finish, abort, or return from active streams, and close resources you own. With the default `Agent` or `query()` runtime, call `shutdown()` when the whole application is done. An Agent created with explicit `spawn` options owns its dedicated runtime; a borrowed client must be closed by its creator.
+
+Do not call process-wide `shutdown()` after each request in a shared web service. See [lifecycle and cleanup](/cookbook/lifecycle) for complete script and service patterns.
+
+## A conversation loses its memory
+
+Each `agent.run()` starts a new session. Use one `await agent.createSession()` handle for messages that should share context. See [session memory](/cookbook/session-memory).
+
+Resuming an ID requires the same backing runtime/database. The default isolated runtime's scratch data is removed when it closes successfully. Use [a persistent remote runtime](/cookbook/remote) for conversations that must outlive the local process.
+
+## Streamed text appears twice
+
+Completed assistant messages contain full text; partial events contain increments. Display one representation for the same response instead of appending both. See [streaming](/concepts/streaming) for the event types and examples.
+
+## Collect useful diagnostics
+
+Include the SDK version (`npm ls cognitio-agent-sdk`), Node/Bun version, operating system and architecture, model ID, terminal subtype or SDK error kind, and a small script that reproduces the problem. `session.getAppliedSettings()` helps confirm resolved session configuration; review and redact it before sharing.
+
+Do not send API keys, auth headers, private files, or sensitive prompts. For a private report, use the [support contact](/support).

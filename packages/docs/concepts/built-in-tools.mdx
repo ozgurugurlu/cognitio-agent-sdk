@@ -1,0 +1,101 @@
+---
+title: "Built-in tools"
+description: "Read files, edit code, run commands, and fetch information with Cognitio's runtime tools."
+---
+
+Cognitio's bundled runtime implements tools for common agent work. You do not need to define callbacks for these tools: choose which ones to expose, give the agent a task, and the runtime executes its tool calls.
+
+Use the **lower-case Cognitio tool IDs** below in `allowedTools`, `disallowedTools`, and tool-event handling. These are the actual model-visible names, such as `read` and `bash`.
+
+## Read a file with an agent
+
+Use the [TypeScript example setup](/concepts/agents#run-the-examples). This complete example creates its own small workspace, lets the model read a note, and removes the workspace after closing the Agent. No existing project files are needed.
+
+```ts
+import { Agent } from "cognitio-agent-sdk"
+import { mkdtemp, writeFile, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+
+const apiKey = process.env.OPENAI_API_KEY
+if (!apiKey) throw new Error("Set OPENAI_API_KEY before running this example.")
+
+const workspace = await mkdtemp(join(tmpdir(), "cognitio-files-"))
+const agent = new Agent({
+  model: "openai/gpt-4.1-mini",
+  cwd: workspace,
+  spawn: { env: { OPENAI_API_KEY: apiKey } },
+  allowedTools: ["read", "glob", "grep"],
+  maxTurns: 3,
+  maxBudgetUsd: 0.03,
+})
+try {
+  await writeFile(join(workspace, "notes.txt"), "The project uses PostgreSQL.\n")
+  const result = await agent.run("Read notes.txt and tell me which database this project uses.", {
+    signal: AbortSignal.timeout(60_000),
+  })
+  if (result.isError) throw new Error(`Agent ended: ${result.subtype}`)
+  if (!result.text.includes("PostgreSQL")) throw new Error("The answer did not include the expected database.")
+  console.log(result.text)
+} finally {
+  await agent.close().finally(() => rm(workspace, { recursive: true, force: true }))
+}
+```
+
+`cwd` selects the workspace on the runtime's machine. With a local runtime, that is your machine; with a remote runtime, paths refer to the remote host. Local isolation protects runtime state and configuration, **not** the workspace from allowed file or shell operations.
+
+## File and command tools
+
+The model receives each tool's argument schema. Your application normally configures tools by name instead of constructing these arguments itself.
+
+| Tool ID       | What it does                                                 | Main arguments and behavior                                                                                                                                                  |
+| ------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read`        | Reads a file or lists a directory.                           | `filePath`; optional 1-based `offset` and line `limit`. Large text is truncated. Supported images/PDFs can be returned as attachments; model modality support still matters. |
+| `glob`        | Finds matching file paths.                                   | `pattern`, optional search `path`. Use it to discover filenames before reading.                                                                                              |
+| `grep`        | Searches file contents with a regular expression.            | `pattern`, optional `path` and filename `include` filter. Results can be truncated.                                                                                          |
+| `bash`        | Runs a command in the runtime host's configured shell.       | `command`, `description`, optional `workdir` and `timeout` in milliseconds. Commands can change files or contact services.                                                   |
+| `write`       | Writes a file's complete contents.                           | `filePath`, `content`. Available in the edit-tool profile described below.                                                                                                   |
+| `edit`        | Replaces matching text in a file.                            | `filePath`, `oldString`, `newString`, optional `replaceAll`. Available in the edit-tool profile.                                                                             |
+| `multiedit`   | Applies a sequence of edits.                                 | A `filePath` and ordered `edits` entries. Available in the edit-tool profile.                                                                                                |
+| `apply_patch` | Applies a patch that can add, update, move, or delete files. | `patchText`. Available in the patch-tool profile instead of `write`, `edit`, and `multiedit`.                                                                                |
+
+### Editing tools depend on the model
+
+For `openai/gpt-4.1-mini`, the runtime uses `write`, `edit`, and `multiedit`. It selects `apply_patch` when the provider-local model ID contains `gpt-` but contains neither `gpt-4` nor `oss`; those models do not also receive the three edit tools.
+
+For a model-independent editing profile, list all four tool IDs along with `read`; only the applicable tools become available. An allowlist does not override this model selection. File mutations are governed by the `edit` permission, while tool allowlists still use the individual tool IDs.
+
+## Web and delegation tools
+
+| Tool ID       | What it does                                                                         | Availability                                                                                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `webfetch`    | Fetches an HTTP(S) URL and returns text, Markdown, HTML, or supported image content. | Available subject to tool policy. `url`, optional `format`, and optional `timeout` in seconds, capped at 120. It fetches pages; it is not an interactive browser.                                                |
+| `task`        | Delegates work to a subagent and returns its result.                                 | Available subject to policy and the selected subagent. Arguments include `description`, `prompt`, and `subagent_type`; an existing `task_id` can continue a child session. See [subagents](/concepts/subagents). |
+| `skill`       | Loads a named skill's instructions and resources.                                    | Hidden by the high-level Agent default. Explicitly allow it and supply/discover skills before expecting useful results. See [skills](/concepts/skills-commands-plugins).                                         |
+| `todowrite`   | Replaces the session's todo list.                                                    | Hidden by the high-level Agent default. Explicitly allow it when the model should maintain tasks; use `session.getTodos()` to read them from your application.                                                   |
+| `tool_search` | Finds deferred tool schemas and makes selected tools available for later steps.      | Added when tool search is enabled and deferred tools exist. It cannot execute an otherwise denied tool. See [tool discovery](/concepts/tools#discover-a-large-tool-collection).                                  |
+
+Subagent work is awaited within the current turn. The `task` tool is not a durable detached-job queue.
+
+## Optional and specialized tools
+
+These tools are not all present in a default headless Agent. Listing one in `allowedTools` does not satisfy its runtime prerequisites.
+
+| Tool ID      | Purpose                                                                                              | Prerequisites                                                                                                                                                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `websearch`  | Searches the web through Exa.                                                                        | For ordinary provider configurations, explicitly set `COGNITIO_ENABLE_EXA: "1"` in `spawn.env`. Uses Exa's network service and its access limits.                                                                                |
+| `codesearch` | Searches external code/documentation context through Exa.                                            | Same Exa opt-in. This is not local repository search; use `grep` for that.                                                                                                                                                       |
+| `lsp`        | Looks up definitions, references, hover information, symbols, implementations, and call hierarchies. | Requires `COGNITIO_EXPERIMENTAL_LSP_TOOL: "1"`, enabled LSP configuration, and an available language server for the file. High-level Agents disable LSP by default.                                                              |
+| `question`   | Requests interactive answers from a user.                                                            | Hidden by default and normally absent in SDK mode. Requires `COGNITIO_ENABLE_QUESTION_TOOL: "1"`, permissive tool policy, and a runtime user-input integration. `canUseTool` handles permission decisions, not question answers. |
+| `plan_exit`  | Leaves an interactive planning workflow.                                                             | Registered only for a CLI runtime with experimental plan mode enabled; it is not a normal SDK tool.                                                                                                                              |
+| `invalid`    | Returns a tool-call validation/error explanation to the model.                                       | Runtime recovery support, not an application capability to request or depend on.                                                                                                                                                 |
+
+Pass optional runtime flags through `spawn.env`; parent `COGNITIO_*` variables are not inherited automatically by an isolated child. If using an Exa key, explicitly pass `EXA_API_KEY` through `spawn.env` or `spawn.passEnv`. You do not need any of these flags for the file-reading example above.
+
+## Defaults and tool policy
+
+High-level `Agent` and `query` hide `question`, `todowrite`, and `skill` when neither tool list is supplied. Explicitly setting `allowedTools` or `disallowedTools` replaces that default hidden-tool profile. For example, `allowedTools: ["read", "todowrite"]` enables a narrow reading-and-todos profile without exposing the shell.
+
+A nonempty allowlist limits tools to matching names; `allowedTools: []` does not disable tools. Use `disallowedTools: ["*"]` for text-only work. The synthetic **`StructuredOutput`** tool is added for schema output, keeps its exact capitalized name, and is also blocked by the wildcard deny. See [structured output](/concepts/structured-output) before combining schemas with tool restrictions.
+
+Tool visibility and operation authorization work together. For command/path rules and approval callbacks, continue with [permissions](/concepts/permissions). To implement application-specific actions, use [custom tools](/concepts/tools).

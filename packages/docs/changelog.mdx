@@ -1,0 +1,47 @@
+---
+title: "Changelog"
+description: "Public SDK releases and documentation updates."
+---
+
+## Documentation update — September 30, 2026
+
+These are documentation and example improvements for the existing **2.0.0** package; they do not require an SDK upgrade.
+
+- Reworked the [quickstart](/quickstart) into a complete Node.js project with credentials, code, and a run command.
+- Added a [built-in tools catalog](/concepts/built-in-tools), including tool IDs, model-specific availability, and permission guidance.
+- Expanded the [cookbooks](/cookbook/examples) with complete source code, expected output, and GitHub links.
+- Clarified session ownership, cancellation, cleanup, and the distinction between default configuration isolation and an operating-system sandbox.
+- Separated the [SDK reference](/api-reference/index) from the advanced [runtime HTTP protocol](/http-api/overview).
+- Added detailed [troubleshooting](/troubleshooting) and [support](/support).
+- Corrected the session-memory example to use `Session.send(prompt)` and documented `Session.interrupt()` for cancellation.
+
+## 2.0.0 — First public Cognitio release
+
+Install the release from npm:
+
+```sh
+npm install cognitio-agent-sdk@2.0.0
+```
+
+Cognitio Agent SDK is built on OpenCode and packages the agent runtime with the JavaScript/TypeScript SDK. No separate OpenCode installation is required.
+
+### Included capabilities
+
+- **Agent APIs:** reusable `Agent` instances, streamed `query()` tasks, and explicit `createAgentClient()` ownership.
+- **Tools:** built-in file and shell tools, application callbacks, hosted MCP tools, and external MCP connections.
+- **Conversations:** sessions, resume, fork, streaming events, and cancellation.
+- **Control:** permission rules and callbacks, lifecycle hooks, and subagent delegation.
+- **Output and state:** structured output, eligible-file checkpoints and rewind, and context compaction.
+- **Operations:** multi-provider model selection, usage/cost reporting, and local or remote runtime connections.
+
+### Installation and defaults
+
+The package includes matching runtime packages for supported macOS, Linux, and Windows platforms. It supports Node.js 22+ and Bun, and starts locally with isolated configuration and temporary state by default. The bundled runtime compatibility version is `1.14.19+cognitio.runtime.4`.
+
+Read [installation](/installation) for platform details, [runtime defaults](/defaults-and-isolation) for state lifetime, and the [v2 migration guide](/migration/v2) when moving an existing application.
+
+### Compatibility
+
+Cognitio has its own public API and supports multiple model providers. The [Claude Agent SDK migration guide](/migration/claude-agent-sdk) maps concepts and explains differences; it is not a drop-in package replacement.
+
+For release questions or regressions, contact [ugurlu.oozgur@gmail.com](mailto:ugurlu.oozgur@gmail.com).

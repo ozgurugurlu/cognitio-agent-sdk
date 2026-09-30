@@ -1,30 +1,77 @@
 ---
 title: "Subagents"
-description: "Delegate focused work with session-scoped definitions."
+description: "Delegate a bounded task to a specialist and observe its lifecycle."
 ---
+
+For the TypeScript examples, use the [TypeScript setup](/installation#typescript-projects), including `"type": "module"` and the `tsx` runner.
+A subagent is a child session with a focused prompt and tool policy. The parent model delegates through the `task` tool and receives the child's result. Use it to separate a review or investigation from the parent conversation; defining a subagent alone does not execute it.
+
+## Delegate a text review
+
+Use the [quickstart](/quickstart) setup with `OPENAI_API_KEY`. Save this as `subagents.ts` and run `node --env-file=.env --import tsx subagents.ts`.
+
 ```ts
-import { Agent, defineAgent } from "cognitio-agent-sdk"
+import { Agent, defineAgent, shutdown } from "cognitio-agent-sdk"
+
 const agent = new Agent({
-  model: "anthropic/claude-sonnet-4-5",
+  model: "openai/gpt-4.1-mini",
+  allowedTools: ["task"],
+  maxTurns: 5,
   agents: {
     reviewer: defineAgent({
-      description: "Review a change for correctness.",
-      prompt: "Return concrete defects with file references.",
-      tools: ["read", "grep", "glob"],
+      description: "Review a short passage for clarity.",
+      prompt: "Identify unclear wording and return one concrete rewrite. Do not use tools.",
+      model: "openai/gpt-4.1-mini",
+      tools: [],
       permissionMode: "dontAsk",
-      steps: 5,
+      steps: 2,
       spawnMode: "fresh",
     }),
   },
 })
+try {
+  for await (const message of agent.stream(
+    "Delegate this sentence to reviewer, then summarize its advice: 'The system does the thing quickly.'",
+    { signal: AbortSignal.timeout(90_000) },
+  )) {
+    if (message.type === "subagent.start" || message.type === "subagent.stop") {
+      console.log(message.type)
+    }
+    if (message.type === "result") {
+      if (message.result.subtype !== "success") throw new Error(`Run ended: ${message.result.subtype}`)
+      console.log(message.result.text)
+    }
+  }
+} finally {
+  await agent.close().finally(() => shutdown())
+}
 ```
 
-Definitions are scoped to the parent session. They can select a model, prompt, tool policy, permissions, step budget, temperature and external MCP servers. The `task` tool dispatches to an available subagent; tool policy must allow it.
+A delegated run emits `subagent.start` and `subagent.stop`. The model decides whether to delegate, so inspect those events if your application requires proof that the specialist ran. The final text is the parent's response and can vary between runs.
 
-`spawnMode: "fresh"` starts with new context. `"inherit"` branches the parent's context. A child with its own prompt does not inherit the parent's custom prompt text as an accidental second identity. Parent policy and callback ownership still constrain execution.
+## Choose context and tools
 
-Watch `subagent.start` and `subagent.stop` messages for lifecycle and outcomes. Child SDK tools route through the root control channel, so keep the owning Agent/client alive.
+| Option | Effect |
+| --- | --- |
+| `prompt` | Specialist instructions; required by `defineAgent`. |
+| `model` | Optional child model override. |
+| `spawnMode: "fresh"` | New child context containing the delegated task. |
+| `spawnMode: "inherit"` | Branch the parent's conversation context. |
+| `tools` | Restrict child tool names; `[]` explicitly disables child tools. |
+| `disallowedTools` | Additional child denials. |
+| `steps` | Child assistant-turn limit, further constrained by the parent limit. |
+| `mcpServers` | External MCP endpoints or subprocesses available to the child. |
 
-`session.setAgents(map)` replaces the session's runtime agent map. Pass every definition you want retained. It does not register a global agent for all other sessions.
+`AgentDefinition.tools: []` has a specific child-agent meaning. Do not confuse it with top-level `allowedTools: []`, which adds no allowlist restriction.
 
-V2 tasks run to completion within their parent turn (`backgroundTaskPolicy: { mode: "foreground" }`). Task progress events exist, but durable detached jobs, cron and cross-session team orchestration are outside v2.
+Child permissions remain constrained by the parent. In v2, nonempty parent and child allowlists are intersected using normalized rule strings; do not assume arbitrary wildcard expressions are expanded during that intersection. To let a reviewer read files, include the same intended names, such as `read`, `grep` and `glob`, in both its `tools` and the parent's `allowedTools`, alongside the parent's `task` permission.
+
+A child with its own prompt does not receive the parent's custom system prompt as a second identity. Inherited conversation context, permission restrictions and callback ownership still matter. Custom SDK tools execute in your application, so keep the owning root Agent/client alive until all child work finishes.
+
+## Replace definitions on an existing session
+
+`session.setAgents(map)` replaces the session's runtime agent map. Call it while the session is idle and include every definition you want retained. Definitions are session-scoped; this does not install a global agent or alter unrelated sessions.
+
+## Execution boundaries
+
+V2 child tasks run within their parent turn. `backgroundTaskPolicy: { mode: "foreground" }` is the supported policy. Task lifecycle events do not imply durable detached jobs, scheduling, or cross-session team orchestration. A child may consume additional provider calls and cost; monitor the parent result and [usage accounting](/concepts/observability).

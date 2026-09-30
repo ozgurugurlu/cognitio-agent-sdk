@@ -1,35 +1,89 @@
 ---
 title: "Structured output"
-description: "Return validated data with bounded schema retries."
+description: "Request a schema-shaped result, validate it locally and handle bounded retries."
 ---
-This example uses Zod 4. Add it to your application's dependencies with `npm install zod@4`, or pass JSON Schema directly to `defineOutputFormat`.
+
+For the TypeScript examples, use the [TypeScript setup](/installation#typescript-projects), including `"type": "module"` and the `tsx` runner.
+Use structured output when the next step needs an object rather than conversational text: extracting a contact, classifying a ticket or preparing a typed report. The runtime asks the model to call its `StructuredOutput` tool and validates the submitted object against JSON Schema.
+
+## Extract and validate a contact
+
+Start with the [quickstart](/quickstart), set `OPENAI_API_KEY`, and install Zod:
+
+```sh
+npm install cognitio-agent-sdk zod@4
+```
+
+Save this as `extract.ts` and run `node --env-file=.env --import tsx extract.ts`.
 
 ```ts
 import { Agent, defineOutputFormat, shutdown } from "cognitio-agent-sdk"
 import { z } from "zod"
 
-const format = defineOutputFormat(z.object({
-  summary: z.string(),
-  labels: z.array(z.string()),
-}), { maxRetries: 2 })
+const contactSchema = z.object({
+  name: z.string().min(1),
+  email: z.email(),
+  company: z.string().min(1),
+})
+// Keep the model-facing shape portable; enforce email semantics locally.
+const modelSchema = contactSchema.extend({
+  email: z.string().describe("Email address exactly as written in the input"),
+})
+const format = defineOutputFormat(modelSchema, { maxRetries: 1 })
 const agent = new Agent({
-  model: "anthropic/claude-sonnet-4-5",
+  model: "openai/gpt-4.1-mini",
   outputFormat: format,
   allowedTools: ["StructuredOutput"],
+  maxTurns: 3,
 })
 try {
-  const result = await agent.run("Summarize: A database migration adds an index.")
-  if (result.isError) throw new Error(`Agent ended: ${result.subtype}`)
-  console.log(result.structuredOutput)
+  const result = await agent.run(
+    "Extract this contact: Mina Patel works at Acme Labs. Email: mina@example.com.",
+    { signal: AbortSignal.timeout(60_000) },
+  )
+  if (result.isError || result.subtype !== "success") {
+    throw new Error(`Extraction failed: ${result.subtype}: ${result.error?.message ?? "No details"}`)
+  }
+  const contact = contactSchema.parse(result.structuredOutput)
+  console.log(contact.name, contact.email, contact.company)
 } finally {
   await agent.close().finally(() => shutdown())
 }
 ```
 
-`defineOutputFormat` accepts Zod or JSON Schema. `OutputOf<typeof format>` extracts its compile-time output type. Runtime results expose `structuredOutput`; validate or narrow it as required by your application's type boundary.
+Read `result.structuredOutput`; do not parse `result.text` as a substitute. The local parse narrows the result and enforces the application's stronger constraints before using it. JSON Schema validation checks the expressed shape and constraints; it cannot prove extracted facts are true.
 
-The runtime validates model output and retries a bounded number of invalid results. The example permits only the runtime's `StructuredOutput` tool; its name is case-sensitive. `disallowedTools: ["*"]` also blocks this tool and prevents schema submission. Add any other intended tool names to the allowlist when combining structured output with tool work.
+## Choose a schema
 
-The schema retry budget is distinct from `maxTurns`, but retries still consume model calls, turns and cost. Schema retry exhaustion produces an unsuccessful terminal result; it does not return unchecked data as a success. `maxBudgetUsd` is an estimated threshold checked after usage is reported, so it cannot prevent an in-flight call from exceeding the amount.
+`defineOutputFormat` accepts either a Zod schema or a JSON Schema object. Zod is converted to JSON Schema; arbitrary application transforms or refinements do not become provider behavior. Prefer explicit object properties and required fields, and validate stronger business rules in your application.
 
-Use schemas with explicit properties and required fields. Provider support for tools and schema-shaped output matters. A custom schema does not authorize tool side effects; permission rules still apply.
+Provider support varies. The example uses a plain string for the model-facing email field because schema libraries can emit patterns that a provider handles poorly. The application still requires a valid email before reporting success. A simple portable wire schema does not mean skipping application validation.
+
+For JSON Schema without Zod, this is the equivalent format declaration for a small summary:
+
+```ts
+import { defineOutputFormat } from "cognitio-agent-sdk"
+
+const format = defineOutputFormat<{ summary: string }>({
+  type: "object",
+  properties: { summary: { type: "string" } },
+  required: ["summary"],
+  additionalProperties: false,
+}, { maxRetries: 1 })
+```
+
+The generic type describes your intended shape; it is not a separate validator. `OutputOf<typeof format>` can extract the format's compile-time output type. Runtime result fields still need narrowing at your application's boundary.
+
+## Allow the submission tool
+
+`StructuredOutput` is case-sensitive. A schema-only Agent should use `allowedTools: ["StructuredOutput"]`. To combine structured output with other work, include the intended tools in that same allowlist.
+
+`disallowedTools: ["*"]` blocks the submission tool too. Do not carry a text-only deny-all policy into a structured-output example. An empty `allowedTools` array is also not a schema-only policy: it adds no allowlist restriction.
+
+## Handle retries and failures
+
+`maxRetries` is a non-negative schema retry count. Invalid or missing schema submissions may cause another model call. Retries also consume assistant turns, provider usage and the enclosing run's time budget; `maxTurns` can end the run before schema retries are exhausted.
+
+An exhausted schema retry budget produces an unsuccessful `error_max_structured_output_retries` result. Inspect `result.subtype` and `result.error?.message`; do not treat every such failure as an invalid field. A provider can end its stream before completing a tool call. Setup and transport failures may instead reject the promise.
+
+If a submission repeatedly fails, check the tool policy, simplify the model-facing schema, confirm model tool support, and inspect the terminal error. Do not keep retrying a schema the provider cannot produce. The [standalone extraction project](/cookbook/structured-extraction) includes the complete installation and execution flow.

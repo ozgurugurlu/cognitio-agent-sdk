@@ -1,71 +1,92 @@
 ---
-title: "Quickstart"
-description: "Install the SDK and run a complete agent in a few minutes."
+title: "Run your first agent"
+description: "Create a project, connect a model, and print your first response."
 ---
-## 1. Install
 
-Use Node.js 22 or newer, or Bun 1.3.11 or newer, on a [supported platform](/installation).
+You will build a small Node.js program that asks an agent a question and prints its answer. You need **Node.js 22 or newer**, npm, and an OpenAI API key with access to the model used below. See [installation](/installation) for supported operating systems and other package managers.
 
-```sh
-npm install cognitio-agent-sdk
-```
-
-Keep optional dependencies enabled: they contain the runtime binary for your platform. You do not need a separate runtime installation.
-
-## 2. Configure a provider
-
-Set an API key in your shell. For the example below:
+## 1. Create a project
 
 ```sh
-export ANTHROPIC_API_KEY="your-api-key"
+mkdir my-cognitio-agent
+cd my-cognitio-agent
+npm init -y
+npm install cognitio-agent-sdk@2.0.0
 ```
 
-For OpenAI, set `OPENAI_API_KEY` and use a compatible `openai/<model>` ID. Provider keys are forwarded through the SDK's explicit environment policy; see [credentials and isolation](/defaults-and-isolation).
+The package includes the matching native runtime through npm optional dependencies. Keep optional dependencies enabled; no separate runtime installation is needed.
 
-## 3. Create `agent.mjs`
+## 2. Add your API key
 
-```js
+Create a file named `.env` in this directory:
+
+```dotenv
+OPENAI_API_KEY=replace-with-your-provider-key
+```
+
+Create `.gitignore` so your key and installed packages stay out of source control:
+
+```gitignore
+.env
+node_modules/
+```
+
+The run command below uses Node's `--env-file` option to load `.env`. Cognitio can also use provider variables already set in your shell. To use another provider, change the key and model together; see [models and prompts](/concepts/models-and-prompts).
+
+## 3. Write the agent
+
+Create `agent.mjs`:
+
+```js title="agent.mjs"
 import { Agent, shutdown } from "cognitio-agent-sdk"
 
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("Set OPENAI_API_KEY in .env before running this example.")
+}
+
 const agent = new Agent({
-  model: "anthropic/claude-sonnet-4-5",
-  instructions: "Answer the user's question in one paragraph.",
-  maxTurns: 4,
-  maxBudgetUsd: 1,
+  model: "openai/gpt-4.1-mini",
+  instructions: "Explain concepts in two short sentences.",
   disallowedTools: ["*"],
+  maxTurns: 3,
 })
+
 try {
-  const result = await agent.run("Explain how an agent uses a tool.")
-  if (result.isError) throw new Error(`Agent ended: ${result.subtype}`)
+  const result = await agent.run("How does an agent use a tool?")
+  if (result.isError) throw new Error(`Agent stopped: ${result.subtype}`)
   console.log(result.text)
-  console.log({ cost: result.totalCostUsd, usage: result.usage })
 } finally {
   await agent.close().finally(() => shutdown())
 }
 ```
 
+- **`model`** selects the provider and model as `provider/model`.
+- **`instructions`** describes the behavior you want to reuse across tasks.
+- **`disallowedTools: ["*"]`** makes this a text-only first run.
+- **`maxTurns`** limits model turns within one task.
+- **`run()`** returns the final answer and run metadata.
+- **`shutdown()`** releases the shared local runtime when this script is finished.
+
+## 4. Run it
+
 ```sh
-node agent.mjs
+node --env-file=.env agent.mjs
 ```
 
-`disallowedTools: ["*"]` disables tools for this text-only example. Remove that denylist and set a nonempty `allowedTools` list when the agent should use selected tools. An empty `allowedTools` list does not disable tools. Budget accounting depends on reported usage and catalog pricing; a model call can exceed the threshold before the runtime checks it.
+You should see a short explanation of how a model selects a tool and uses its result. The exact wording varies. When the response is complete, the script exits.
 
-## 4. Stream the answer
+No extra isolation setup is required: the SDK starts with its own runtime configuration and temporary state. It does not automatically load your personal agent configuration. This is configuration isolation, not an operating-system sandbox for tools.
 
-```js
-import { query, shutdown } from "cognitio-agent-sdk"
+If the program fails, start with [missing credentials](/troubleshooting#the-model-rejects-my-api-key), [runtime installation](/troubleshooting#the-runtime-cannot-be-found), or [a process that stays alive](/troubleshooting#the-script-does-not-exit).
 
-try {
-  for await (const message of query({
-    prompt: "Explain an agent tool loop.",
-    options: { model: "anthropic/claude-sonnet-4-5", disallowedTools: ["*"] },
-  })) {
-    if (message.type === "assistant") console.log(message.text)
-    if (message.type === "result") console.log(message.result.subtype)
-  }
-} finally {
-  await shutdown()
-}
-```
+## 5. Give it a useful next task
 
-`query()` closes its private Agent and session handle when the stream finishes or you break from the loop. The default process-wide runtime remains available until `shutdown()`. Call `shutdown()` when the application is finished with all facade-owned runtimes, not after each request in a shared service. For conversations, create a [session](/concepts/sessions); each `Agent.run()` starts a fresh session.
+| Next step | What changes |
+| --- | --- |
+| [Read a project](/concepts/built-in-tools) | Replace the text-only denylist with selected built-in tools and a working directory. |
+| [Add a custom tool](/cookbook/custom-tool) | Let the model call your own calculator function. |
+| [Keep a conversation](/cookbook/session-memory) | Use one session for multiple messages. |
+| [Stream responses](/concepts/streaming) | Display text or tool progress while the agent is working. |
+| [Extract structured data](/cookbook/structured-extraction) | Receive and validate a typed object. |
+
+The rest of the guides use TypeScript where types help explain an API. You can run those examples with the [TypeScript setup](/installation#typescript-projects).

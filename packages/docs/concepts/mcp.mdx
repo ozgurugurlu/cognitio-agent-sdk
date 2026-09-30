@@ -1,49 +1,120 @@
 ---
 title: "Model Context Protocol"
-description: "Connect tools, resources and prompts through MCP."
+description: "Choose a transport and connect application tools or external MCP servers."
 ---
-## External servers
+
+For the TypeScript examples, use the [TypeScript setup](/installation#typescript-projects), including `"type": "module"` and the `tsx` runner.
+MCP connects the runtime to tools supplied by your application or another service. Start with a direct SDK-hosted tool when the function already lives in your JavaScript process. Use an external MCP descriptor for a service or subprocess you operate separately.
+
+| Connection | Where the code runs | Use with a remote runtime? |
+| --- | --- | --- |
+| SDK `transport: "direct"` | Your SDK process, through the control channel | Yes |
+| SDK `transport: "http"` | An SDK-owned loopback HTTP server | No; requires local spawn |
+| External `type: "remote"` | The MCP service host | Yes, if the runtime can reach it |
+| External `type: "local"` | A subprocess on the runtime host | Yes; it runs on that remote host |
+
+## Run an SDK-hosted tool
+
+Use the [quickstart](/quickstart) setup with Node.js 22+, `cognitio-agent-sdk` and `OPENAI_API_KEY`. Save this as `mcp.ts`; run `node --env-file=.env --import tsx mcp.ts`.
 
 ```ts
-const agent = new Agent({
-  model: "anthropic/claude-sonnet-4-5",
-  sdkMcpServers: [{
-    name: "catalog",
-    type: "remote",
-    url: "https://your-service.example/mcp",
-    transport: "http",
-    headers: { Authorization: `Bearer ${process.env.MCP_TOKEN}` },
-    oauth: false,
-  }],
+import { Agent, createSdkMcpServer, defineTool, shutdown } from "cognitio-agent-sdk"
+
+const diagnostics = createSdkMcpServer({
+  name: "diagnostics",
+  transport: "direct",
+  tools: [defineTool({
+    name: "ping",
+    description: "Return the application's readiness status.",
+    inputJsonSchema: { type: "object", properties: {}, additionalProperties: false },
+    execute: () => ({ status: "ready" }),
+  })],
 })
-```
-
-Remote servers support Streamable HTTP and legacy SSE. Select `transport: "sse"` explicitly for an SSE endpoint; omission tries HTTP with SSE fallback. Session descriptors support explicit headers and `oauth: false`; they do not initiate an interactive OAuth flow.
-
-A local descriptor runs a subprocess **on the runtime host**:
-
-```ts
-const server = {
-  name: "local",
-  type: "local" as const,
-  command: ["node", "/absolute/path/to/mcp-server.mjs"],
-  environment: { DATA_ROOT: "/srv/data" },
-  cwd: "/srv/data",
+const agent = new Agent({
+  model: "openai/gpt-4.1-mini",
+  sdkMcpServers: [diagnostics],
+  allowedTools: ["diagnostics_ping"],
+  maxTurns: 3,
+})
+try {
+  const result = await agent.run("Call diagnostics_ping and report its status.", {
+    signal: AbortSignal.timeout(60_000),
+  })
+  if (result.subtype !== "success") throw new Error(`Run ended: ${result.subtype}`)
+  console.log(result.text)
+} finally {
+  await agent.close().finally(() => shutdown())
 }
 ```
 
-The runtime owns the process and closes it with the session's MCP scope. Relative executables and paths resolve on that host. An isolated runtime receives an isolated environment; use explicit `environment` values for the child.
+MCP tool names combine the sanitized server and tool names, such as `diagnostics_ping`. This differs from `Agent.tools`, whose tools use `sdk_<name>`. Choose unique names after sanitization. For tools with arguments, validate inside `execute` before side effects; the schema advertises inputs but does not automatically parse callback arguments. See [tools](/concepts/tools).
 
-## SDK-hosted tools
+`createSdkMcpServer()` returns a descriptor. The SDK starts hosting when a session registers it, and closes the hosted resources with their owner. Choose `direct` explicitly for remote runtimes; omitting `transport` uses HTTP hosting.
 
-`createSdkMcpServer({ name, tools, transport })` builds a descriptor. `direct` routes tool calls over the existing control channel; `http` starts an SDK-owned loopback MCP server and requires a locally spawned runtime. For remote runtimes, use direct callback tools or an external MCP server.
+## Connect an external service
+
+The following complete connection example requires an existing MCP endpoint in `MCP_URL`. Set `MCP_TOKEN` only if that service expects bearer authentication. The endpoint must be reachable from the runtime host.
+
+```ts
+import { Agent, shutdown } from "cognitio-agent-sdk"
+
+const url = process.env.MCP_URL
+if (!url) throw new Error("Set MCP_URL to your existing MCP endpoint.")
+const token = process.env.MCP_TOKEN
+const agent = new Agent({
+  model: "openai/gpt-4.1-mini",
+  sdkMcpServers: [{
+    name: "catalog",
+    type: "remote",
+    url,
+    transport: "http",
+    ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+    oauth: false,
+    timeout: 10_000,
+  }],
+  allowedTools: ["catalog_*"],
+  maxTurns: 3,
+})
+try {
+  const result = await agent.run("Use the catalog tools to describe the available data.", {
+    signal: AbortSignal.timeout(60_000),
+  })
+  if (result.subtype !== "success") throw new Error(`Run ended: ${result.subtype}`)
+  console.log(result.text)
+} finally {
+  await agent.close().finally(() => shutdown())
+}
+```
+
+Use `transport: "sse"` for a legacy SSE endpoint. Omitting transport tries Streamable HTTP with SSE fallback. Session descriptors support explicit headers and `oauth: false`; they do not start an interactive OAuth login. Tool permissions still apply after connection.
+
+## Run an external subprocess
+
+This descriptor assumes you already have an MCP server script. Add it to `sdkMcpServers` on an Agent; it is configuration, not a standalone server implementation.
+
+```ts
+import type { LocalMcpServer } from "cognitio-agent-sdk"
+
+const server: LocalMcpServer = {
+  name: "inventory",
+  type: "local",
+  command: ["node", "/absolute/path/to/inventory-mcp.mjs"],
+  cwd: "/srv/inventory",
+  environment: { DATA_ROOT: "/srv/inventory" },
+  timeout: 10_000,
+}
+```
+
+All paths and executables resolve on the runtime host. The runtime owns the subprocess and closes its session MCP scope. With an isolated runtime, pass required environment values explicitly; do not assume the subprocess sees your shell configuration.
 
 ## Resources and prompts
 
-Hosted HTTP MCP servers also accept `resources` and `prompts`. A resource has a name, stable URI and `read(context)` callback returning an MCP `contents` array. A prompt has a name, argument declarations and `get(arguments, context)` returning MCP messages.
+SDK HTTP hosting additionally accepts `resources` and `prompts`. This example registers a resource and a prompt without making a model request:
 
 ```ts
-const content = createSdkMcpServer({
+import { Agent, createSdkMcpServer, shutdown } from "cognitio-agent-sdk"
+
+const handbook = createSdkMcpServer({
   name: "handbook",
   transport: "http",
   tools: [],
@@ -54,9 +125,22 @@ const content = createSdkMcpServer({
   }],
   prompts: [{
     name: "review",
-    get: () => ({ messages: [{ role: "user", content: { type: "text", text: "Review this carefully." } }] }),
+    arguments: [{ name: "text", required: true }],
+    get: (args) => ({
+      messages: [{ role: "user", content: { type: "text", text: `Review: ${args.text}` } }],
+    }),
   }],
 })
+const agent = new Agent({ model: "openai/gpt-4.1-mini", sdkMcpServers: [handbook] })
+try {
+  const session = await agent.createSession()
+  console.log("Registered handbook for session", session.id)
+  // Keep this session open while a separate MCP client consumes its hosted content.
+} finally {
+  await agent.close().finally(() => shutdown())
+}
 ```
 
-Resources/prompts require HTTP hosting; the direct control protocol supports tools. Required prompt arguments and duplicate names/URIs are checked. A separate MCP client can list/read these resources and get prompts from the hosted HTTP endpoint. Session-scoped MCP registration currently feeds tools into the agent loop; it does not expose `Session.readResource()` / `getPrompt()` methods or automatically turn these prompts into slash commands.
+A separate MCP client can list/read resources and fetch prompts from the hosted endpoint while its session is alive. Required prompt arguments and duplicate names/URIs are checked. Direct transport supports tools only and rejects resource/prompt registrations.
+
+Session MCP registration supplies tools to the agent loop. It does not automatically insert resource contents into model context, turn MCP prompts into slash commands, or add `Session.readResource()`/`getPrompt()` methods. For explicit agent context, read the content in your application and pass it in a prompt. For slash commands, use [programmatic commands](/concepts/skills-commands-plugins).

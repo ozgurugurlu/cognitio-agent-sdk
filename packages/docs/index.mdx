@@ -1,46 +1,61 @@
 ---
 title: "Cognitio Agent SDK"
-description: "Programmable agents. Your models. Your application."
+description: "Build agents that use tools, remember conversations, and work inside your application."
 ---
-Cognitio Agent SDK is a TypeScript toolkit for agents that use tools, maintain sessions, stream their work, and ask your application for permission. It is **built on OpenCode** and ships its own version-matched runtime.
 
-Start with `Agent` for a reusable application component, `query()` for a single streamed task, or `createAgentClient()` when you need explicit session and server ownership.
+Cognitio Agent SDK gives your JavaScript or TypeScript application an agent loop: a model chooses a tool, receives its result, and continues until the task is complete. You choose the model, instructions, tools, and permissions.
 
-```ts
+It is **built on OpenCode** and includes a matching local runtime. Install one npm package; you do not need to install or launch a separate CLI.
+
+## Start with a working agent
+
+The [quickstart](/quickstart) takes you from an empty directory to a running agent using Node.js and a provider API key.
+
+```js
 import { Agent, shutdown } from "cognitio-agent-sdk"
 
 const agent = new Agent({
-  model: "anthropic/claude-sonnet-4-5",
-  instructions: "You explain software clearly and concisely.",
-  maxTurns: 4,
+  model: "openai/gpt-4.1-mini",
+  instructions: "Explain software concepts in plain language.",
   disallowedTools: ["*"],
+  maxTurns: 3,
 })
+
 try {
-  const result = await agent.run("Explain what a transaction is.")
+  const result = await agent.run("What is an agent tool loop?")
+  if (result.isError) throw new Error(`Agent stopped: ${result.subtype}`)
   console.log(result.text)
 } finally {
   await agent.close().finally(() => shutdown())
 }
 ```
 
-[Run your first agent](/quickstart) · [Explore the public API](/api-reference/index) · [Browse working examples](/cookbook/examples)
+This example uses `OPENAI_API_KEY` from your environment and disables tools for its first text-only response. The quickstart includes installation, credentials, the run command, and expected output.
 
-## One SDK, two deployment modes
+## What you can build
 
-In local mode, the SDK starts a bundled native runtime and owns its lifecycle. In remote mode, it connects to a runtime you operate. The same sessions, tools and event model work through both paths.
+| Your application needs to… | Start here |
+| --- | --- |
+| Read files, search a project, or run a command | [Built-in tools](/concepts/built-in-tools) |
+| Call your own API or business logic | [Custom tools](/concepts/tools) |
+| Remember earlier messages | [Sessions and conversations](/concepts/sessions) |
+| Display an answer as it arrives | [Streaming](/concepts/streaming) |
+| Return a typed object | [Structured output](/concepts/structured-output) |
+| Decide which actions need approval | [Permissions](/concepts/permissions) |
+| Connect external tools and data | [MCP](/concepts/mcp) |
+| Delegate a focused task | [Subagents](/concepts/subagents) |
+| Track usage and handle failures | [Observability](/concepts/observability) and [troubleshooting](/troubleshooting) |
 
-```mermaid
-flowchart LR
-  A[Your application] --> B[Cognitio Agent SDK]
-  B -->|HTTP and SSE| C[Cognitio runtime]
-  C --> D[Model provider]
-  C --> E[Files, shell and MCP]
-  C -->|Control requests| B
-  B --> F[Your hooks and tools]
-```
+## Choose an entry point
 
-## Build the behavior you need
+Start with **`Agent`**. It holds reusable configuration; `agent.run()` completes one task, and `await agent.createSession()` creates a conversation. Use **`query()`** when you want one streamed task without managing an Agent object. Use **`createAgentClient()`** when your application needs direct ownership of the runtime and its sessions.
 
-Use [custom tools](/concepts/tools), [subagents](/concepts/subagents), [skills and plugins](/concepts/skills-commands-plugins) to extend an agent. Keep your application's policy in [permissions and hooks](/concepts/permissions). Inspect [usage and telemetry](/concepts/observability), request [structured output](/concepts/structured-output), and [rewind file changes](/concepts/checkpoints).
+All three use the same runtime. Local execution starts with isolated configuration and state by default. There is no isolation flag to enable. See [runtime defaults](/defaults-and-isolation) when you need custom credentials, persistent state, or host configuration.
 
-V2 targets the capabilities recorded in its [Claude SDK comparison](/migration/claude-agent-sdk). It has its own API and supports multiple model providers. Python, managed sandboxes and durable scheduled jobs are outside this release.
+## Learn by running a project
+
+The [cookbooks](/cookbook/examples) include complete code and commands for a chat CLI, contact extraction, a custom calculator tool, and a conversation with memory. Each recipe also links to its source on GitHub.
+
+The **[SDK reference](/api-reference/index)** describes the JavaScript and TypeScript API. The **[runtime HTTP API](/http-api/overview)** is for advanced integrations that operate a server directly; you can use the SDK without learning that protocol.
+
+Need help? Visit [troubleshooting](/troubleshooting) or email [ugurlu.oozgur@gmail.com](mailto:ugurlu.oozgur@gmail.com).

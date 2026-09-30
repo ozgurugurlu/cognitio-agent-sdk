@@ -1,46 +1,110 @@
 ---
 title: "Sessions"
-description: "Create, continue, resume and fork conversations."
+description: "Keep conversation history, resume a handle, and branch a conversation."
 ---
-## Maintain a conversation
+
+A session is a conversation stored by a runtime. Each message you send can use earlier turns in that session. Use sessions for chat, iterative editing, and workflows where the agent should remember prior decisions.
+
+An `Agent` stores configuration; a `Session` stores the conversation identity. Repeated `agent.run()` calls start independent conversations. Repeated `session.send()` calls continue one conversation.
+
+## Send a follow-up and resume
+
+Use the [TypeScript example setup](/concepts/agents#run-the-examples). This complete example saves a fact, closes its local handle, and resumes the same conversation while its owning runtime remains alive.
 
 ```ts
-import { Agent, shutdown } from "cognitio-agent-sdk"
+import { Agent } from "cognitio-agent-sdk"
 
-const agent = new Agent({ model: "anthropic/claude-sonnet-4-5" })
+const apiKey = process.env.OPENAI_API_KEY
+if (!apiKey) throw new Error("Set OPENAI_API_KEY before running this example.")
+
+const agent = new Agent({
+  model: "openai/gpt-4.1-mini",
+  instructions: "Remember conversation facts and answer briefly.",
+  spawn: { env: { OPENAI_API_KEY: apiKey } },
+  disallowedTools: ["*"],
+  maxTurns: 1,
+  maxBudgetUsd: 0.03,
+})
 try {
-  const session = await agent.createSession({ title: "Planning" })
-  await session.send("My project uses PostgreSQL.")
-  const result = await session.send("Suggest a migration strategy.")
-  console.log(result.text)
-  await session.rename("Database migration")
-  await session.tag("planning")
-  console.log(await session.messages())
+  const session = await agent.createSession({ title: "Database choice" })
+  const saved = await session.send("Remember that this project uses PostgreSQL. Reply with Saved.")
+  if (saved.subtype !== "success") throw new Error(`First turn ended: ${saved.subtype}`)
+
+  const sessionId = session.id
+  await session.close()
+
+  const resumed = await agent.resume(sessionId)
+  const result = await resumed.send("Which database did I name? Reply only with its name.")
+  if (result.subtype !== "success") throw new Error(`Follow-up ended: ${result.subtype}`)
+  if (!result.text?.toLowerCase().includes("postgresql")) throw new Error("The expected fact was not recalled.")
+  console.log({ sessionId: resumed.id, answer: result.text })
+  await resumed.close()
 } finally {
-  await agent.close().finally(() => shutdown())
+  await agent.close()
 }
 ```
 
-A session permits one active query at a time. `interrupt()` stops the current model/tool turn; `abort()` is an alias. `close()` closes the local handle and its dispatcher. It does not normally delete the persisted server session.
+The same `agent` owns the runtime throughout this example. Calling `agent.close()` removes its isolated temporary state; the recorded ID alone cannot recover that conversation afterward.
 
-## Resume and change policy
+`session.send()` returns a `ResultMessage`. Check `subtype === "success"`; unlike `Agent.run()`'s result, it has no `isError` convenience field. `text` can be absent on a tool-only or unsuccessful result.
 
-`agent.resume(id)` reattaches to an existing server session. Explicit options on the Agent override stored runtime settings; unspecified options preserve them. Callback tools and hooks must be provided again by the attaching process. Runtime metadata is restored if attachment fails. Active local handles cannot have their runtime configuration replaced underneath them.
+## Work with a live session
 
-The low-level form accepts `client.sessions.resume(id, { runtimeConfig, title, permission })`. Explicit empty collections clear prior values (`hooks: {}`, `sdkMcpServers: []`, `agents: {}`); `canUseTool: false` removes a prior permission callback. A session's original working directory is immutable; use a new session for a different workspace.
+| Method or property                           | Purpose                                                                          |
+| -------------------------------------------- | -------------------------------------------------------------------------------- |
+| `session.id`                                 | Stable server-side conversation identifier.                                      |
+| `session.send(prompt)`                       | Sends a turn and returns its terminal result.                                    |
+| `session.stream(prompt, options)`            | Sends a turn and yields [stream events](/concepts/streaming).                    |
+| `session.messages()`                         | Reads the stored transcript.                                                     |
+| `session.rename(title)` / `session.tag(tag)` | Updates searchable session metadata.                                             |
+| `session.getTodos()`                         | Reads the current todo list.                                                     |
+| `session.todos({ signal })`                  | Watches todo snapshots until cancelled.                                          |
+| `session.getAppliedSettings()`               | Inspects the effective runtime configuration.                                    |
+| `session.usage`                              | Usage observed by this handle, reconciled at completed turns.                    |
+| `session.interrupt()` / `session.abort()`    | Stops the active model/tool turn.                                                |
+| `session.close()`                            | Closes the local handle and dispatcher without normally deleting the transcript. |
 
-## Fork
+A session accepts only **one active query at a time**. Await a send or finish/cancel a stream before starting the next one. Use separate sessions for concurrent conversations. A resumed handle's live usage counters begin at zero; they are not the lifetime accounting history of the persisted transcript.
 
-`agent.fork(id, { messageId })` creates an independent branch of a transcript. Without a message ID it forks the current conversation. Bare runtime forks copy serializable policy while dropping registrations that require callbacks in another process. The SDK binds the current Agent's callbacks for its fork.
+In v2, `Session.send()` does not accept an options argument, and `Session.stream()` options only select partial messages. Use `session.interrupt()` to cancel an active Session turn. External `AbortSignal` options belong to `Agent.run()` and `Agent.stream()`.
 
-## Persistence and ownership
+## Fork a conversation
 
-An isolated local runtime stores its database in temporary scratch state. Closing its owning low-level client removes that state unless scratch preservation was requested. A default Agent uses the process-wide client: `Agent.close()` leaves that runtime available, and `shutdown()` closes it. An Agent with explicit local `spawn` options owns a dedicated client and closes it with `Agent.close()`.
+A fork copies conversation history into a new session so you can explore another direction without appending to the original. The optional `messageId` selects the boundary; omit it to fork the current transcript.
 
-To resume across application restarts, run a persistent remote runtime, or deliberately configure persistent local state. Merely recording a session ID does not preserve an isolated runtime. Preserving scratch for debugging does not automatically reconnect a later Agent to that database.
+Inside the owning Agent's `try` block, after a session has been created, you can use:
 
-Persisted transcripts and runtime policy have different lifetimes: runtime overrides and callback descriptors are held in memory. Restarting a persistent server keeps its database but resets those overrides. Supply the intended policy and callbacks again when resuming after restart.
+```ts
+const branch = await agent.fork(session.id)
+try {
+  const alternative = await branch.send("Given the earlier context, suggest an alternative database.")
+  if (alternative.subtype !== "success") throw new Error(`Branch ended: ${alternative.subtype}`)
+  console.log({ original: session.id, branch: branch.id, answer: alternative.text })
+} finally {
+  await branch.close()
+}
+```
 
-Remote sessions are retained by default. `deleteSessionsOnClose: true` deletes sessions created or forked by that Agent. Resumed sessions are retained. Use `client.sessions.delete(id)` for explicit deletion.
+Forks inherit the original working directory; they do not copy or isolate filesystem contents. The high-level Agent binds its configured callbacks to the new session. A bare runtime fork copies serializable policy but drops registrations that depend on callbacks owned by another process.
 
-`session.getTodos()` returns current todos; `session.todos({ signal })` watches snapshots until cancelled. Enable `todowrite` in the tool policy when the agent should maintain them.
+## Resume with the intended policy
+
+`agent.resume(id)` reconnects to a session on that Agent's runtime. Explicit constructor options override stored runtime settings; unspecified options preserve them. Supply custom tool, hook, and permission callbacks again when attaching from another application process.
+
+A fresh dedicated isolated runtime cannot see sessions from a different runtime. Keep the original owner alive, share an explicitly owned client, or connect to a [persistent remote runtime](/cookbook/remote). Resume/fork cannot change the original working directory. If you need per-session directories and later resume, pass `cwd` to `createSession()` rather than to the Agent constructor.
+
+With the lower-level client, `client.sessions.resume(id, { runtimeConfig, title, permission })` applies explicit overrides before attachment. Empty collections can clear prior values, such as `hooks: {}`, `sdkMcpServers: []`, or `agents: {}`; `canUseTool: false` removes a callback registration. An active local handle cannot have its runtime configuration replaced underneath it.
+
+## Understand what survives cleanup
+
+| Action                                         | What survives?                                                                                                  |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Close a Session handle                         | The server transcript normally remains; resume through the same live runtime.                                   |
+| Close an Agent with explicit local `spawn`     | Its dedicated runtime stops and temporary state is removed.                                                     |
+| Close an Agent using the default shared client | The shared runtime remains until application-level `shutdown()`.                                                |
+| Close a remote client                          | The remote server and stored sessions remain running.                                                           |
+| Restart a persistent server                    | Persisted transcripts survive, but in-memory runtime overrides and callback descriptors must be supplied again. |
+
+For durable conversations, choose persistent runtime storage deliberately. Preserving scratch files for debugging does not automatically reconnect a future Agent to that database.
+
+For explicit retention management, obtain the client with `await agent.client()` and use `client.sessions.list()` or `client.sessions.delete(id)`. Delete only conversations you intend to remove. `deleteSessionsOnClose: true` deletes sessions created or forked by that Agent; resumed sessions are retained. The [session-memory project](/cookbook/session-memory) demonstrates ownership with an explicitly created client.

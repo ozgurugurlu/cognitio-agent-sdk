@@ -1,23 +1,77 @@
 ---
 title: "Events and control requests"
-description: "Understand SSE subscriptions and callback responses."
+description: "Advanced: understand raw SSE envelopes, callback responses and ownership."
 ---
-## Event stream
 
-The runtime publishes events through SSE. Subscribers receive typed payloads with session and message identifiers. Session events cover message/part updates, status, terminal results, permissions, tool lifecycle, compaction and child tasks.
+For the TypeScript examples, use the [TypeScript setup](/installation#typescript-projects), including `"type": "module"` and the `tsx` runner.
+Use `Agent.stream()` or `Session.stream()` for normal application integrations. This page explains the lower-level protocol those APIs coordinate; it is not necessary to implement SSE manually to use hooks or tools.
 
-Subscribe before submitting a prompt: subscribing afterwards can miss an early callback or terminal result. Filter by session identity and preserve ordering within your session state machine. Network reconnection does not imply replay of every past event; reconcile through persisted messages where needed.
+## Start with a typed SDK stream
 
-## Callback channel
+With the [quickstart](/quickstart) setup and `OPENAI_API_KEY`, save this as `events.ts` and run `node --env-file=.env --import tsx events.ts`:
 
-A registered SDK hook, permission callback or direct tool produces a `control.request`. The SDK dispatches it locally and submits its result to `POST /session/{sessionID}/control-response`. Request IDs correlate responses and deadlines; stale/duplicate responses must not affect a later request.
+```ts
+import { Agent, shutdown } from "cognitio-agent-sdk"
 
-Callbacks receive cancellation signals. The runtime can cancel a request on interruption, timeout, session teardown or a competing decision. Treat cancellation as authoritative and avoid committing a late side effect based on a discarded request.
+const agent = new Agent({ model: "openai/gpt-4.1-mini", disallowedTools: ["*"] })
+try {
+  for await (const message of agent.stream("Explain Server-Sent Events in one sentence.", {
+    includePartialMessages: true,
+    signal: AbortSignal.timeout(60_000),
+  })) {
+    if (message.type === "partial" && message.field === "text") process.stdout.write(message.delta)
+    if (message.type === "result") {
+      console.log("\nCompleted", message.result.subtype)
+      if (message.result.subtype !== "success") process.exitCode = 1
+    }
+  }
+} finally {
+  await agent.close().finally(() => shutdown())
+}
+```
 
-## Ownership
+The SDK returns a discriminated union and assembles the nested terminal `message.result`. Full assistant messages and partial deltas are different views of the output; do not concatenate both into the same text buffer. The example selects text deltas rather than printing every partial field indiscriminately.
 
-A process that registers callback descriptors must keep its dispatcher alive. Callback functions are not persisted with the transcript. After a restart, reattach with real callbacks or remove the registrations; missing callbacks cannot safely imply approval.
+## Raw SSE envelopes
 
-Direct SDK tool calls use this control path. HTTP MCP tools use MCP transport instead. Both feed the same session loop and tool policy, but their network/lifecycle requirements differ.
+`GET /event` sends JSON in SSE `data:` records. The first event is `server.connected`; heartbeat events keep the connection active. An example framing is:
 
-For ordinary integrations, consume `AgentMessage` from `Agent.stream()` or `Session.stream()` rather than rebuilding this machinery.
+```text
+data: {"type":"server.connected","properties":{}}
+
+data: {"type":"server.heartbeat","properties":{}}
+```
+
+`GET /global/event` uses a different envelope with the event under `payload`, and can cover multiple instances. Do not decode it as the bare `/event` schema. Global and instance streams include events unrelated to any one session.
+
+For a custom client, connect in the correct directory/workspace context, wait for readiness, then submit the prompt. Filter events by their session identifiers and track message/part IDs; subscribing after submission can miss an early callback or completion. A heartbeat says the connection is alive, not that a model turn succeeded.
+
+Reconnection is not a guarantee that every missed event is replayed. Reconcile persisted messages and pending control requests after a disconnect, and avoid emitting duplicate application effects when reconciling.
+
+## Callback requests
+
+Hooks, permission callbacks and direct SDK MCP tools are functions in the client process. The runtime emits `control.request` with fields including `id`, `sessionID`, `subtype`, `payload`, `createdAt` and `timeoutMs`. The subtype identifies the operation: `can_use_tool`, `hook_callback`, `mcp_message` or `elicitation`.
+
+A registered dispatcher executes the corresponding local callback and posts a correlated response to `POST /session/{sessionID}/control-response`. For illustration, a denial response for an existing permission request has this shape; replace the request ID with the actual received UUID:
+
+```json
+{
+  "requestID": "00000000-0000-4000-8000-000000000001",
+  "subtype": "can_use_tool",
+  "response": { "behavior": "deny", "message": "This operation is not allowed." }
+}
+```
+
+The endpoint returns a `resolved` boolean. Do not interpret HTTP success alone as proof that a stale request was resolved. Match session, request ID and subtype; do not apply a late response to a later operation.
+
+`GET /session/{sessionID}/control-requests` lists pending requests. `POST /session/{sessionID}/control-cancel` accepts the request ID and subtype to cancel one. Consult the [complete OpenAPI document](/openapi.json) for each exact payload; the live `/doc` route in v2 contains only a limited control-plane schema.
+
+## Cancellation and callback ownership
+
+The runtime emits `control.cancelled` when a request times out, is cancelled or is shut down. The SDK maps this to callback cancellation signals. Honor that signal in network calls and long-running operations; arbitrary JavaScript and completed external effects are not rolled back automatically.
+
+The process that registers callbacks must keep their dispatcher alive. Child tasks can route requests through the owning root session; preserve the root/active-session identity carried by the payload instead of assuming all requests belong to a single flat session. Functions are not persisted with transcript data. Reattach real callbacks after a process restart or remove the registrations.
+
+A missing or cancelled permission callback must not be treated as approval. Depending on the policy, an unresolved operation may still wait for a user decision; headless integrations should use deterministic rules and explicit cancellation deadlines. See [permissions](/concepts/permissions).
+
+Direct SDK tools use this control channel. HTTP MCP tools use MCP transport instead. Both feed the runtime's tool loop, but their connection and shutdown responsibilities differ. Avoid running competing custom dispatchers for registrations already owned by an SDK session handle.

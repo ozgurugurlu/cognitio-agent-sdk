@@ -35,7 +35,9 @@ Remembered database: PostgreSQL
 
 ## How it works
 
-`session.close()` releases a local handle; it does not delete the transcript. `client.sessions.resume(sessionId)` attaches a new handle to the same server-side conversation. This example makes two model requests, each limited to one turn with `maxBudgetUsd: 0.03`. The script verifies the resumed ID and recalled value.
+`session.close()` releases a local handle; it does not delete the transcript. `client.sessions.resume(sessionId)` attaches a new handle to the same server-side conversation. This example makes two model requests, each limited to one assistant turn. The session has an estimated `maxBudgetUsd: 0.03` budget. The script verifies the resumed ID and recalled value.
+
+`Session.send()` accepts only the prompt; it does not accept an `AbortSignal` option. To cancel an active turn from your application, call `session.interrupt()` on the active handle. This example always closes its owned client in `finally` when the operation completes or throws.
 
 ## Persistence lifetime
 

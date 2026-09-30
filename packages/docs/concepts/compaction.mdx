@@ -1,29 +1,63 @@
 ---
 title: "Context compaction"
-description: "Control summaries and preserve important context."
+description: "Summarize a long conversation and preserve the details your application needs."
 ---
-The runtime compacts long conversations near the model's context limit. Configure it per session:
+
+For the TypeScript examples, use the [TypeScript setup](/installation#typescript-projects), including `"type": "module"` and the `tsx` runner.
+Compaction replaces older model context with a summary when a conversation grows. It helps fit later turns into the model's context window, but summaries are lossy. Keep authoritative records in application storage and include them again when exact wording matters.
+
+## Compact a session explicitly
+
+Use the [quickstart](/quickstart) setup with `OPENAI_API_KEY`. Save this as `compaction.ts` and run `node --env-file=.env --import tsx compaction.ts`. Both the initial turn and the summary make provider requests.
 
 ```ts
+import { Agent, shutdown } from "cognitio-agent-sdk"
+
 const agent = new Agent({
-  compaction: { auto: true, includeFiles: false },
+  model: "openai/gpt-4.1-mini",
+  disallowedTools: ["*"],
+  compaction: { auto: false, includeFiles: false },
   hooks: {
-    PreCompact: [() => ({ customInstructions: "Preserve decisions, owners and open questions." })],
+    PreCompact: [() => ({
+      customInstructions: "Preserve acceptance criteria and unresolved questions.",
+    })],
+    PostCompact: [(event) => {
+      console.log("Compaction outcome", event.data.result, event.data.compactionId)
+    }],
   },
 })
+try {
+  const session = await agent.createSession({ title: "Release requirements" })
+  const result = await session.send(
+    "Remember these requirements: export CSV, retain the account ID, and finish in under 5 seconds.",
+  )
+  if (result.subtype !== "success") throw new Error(`Run ended: ${result.subtype}`)
+  const summary = await session.compact({
+    customInstructions: "Keep the 5-second limit and CSV requirement explicitly.",
+  })
+  console.log(summary.compactionId)
+  console.log(summary.preCompactTokenCount)
+  console.log(summary.preservedMessageIds)
+  console.log(summary.summaryText ?? "No summary text was included in the boundary.")
+} finally {
+  await agent.close().finally(() => shutdown())
+}
 ```
 
-`includeFiles: false` avoids a coding-oriented file/directory section. Neutral sessions use a general-purpose summary template. `compaction.auto: false` disables automatic compaction for that session; it does not disable explicit compaction.
+`compact()` waits for a committed compaction boundary. It returns the boundary ID, pre-compaction token count, preserved message IDs and optional summary text. It occupies the session's active operation slot; do not run another query in that session simultaneously.
 
-```ts
-const summary = await session.compact({
-  customInstructions: "Keep the acceptance criteria verbatim.",
-})
-console.log(summary.compactionId, summary.summaryText)
-```
+The method has no `signal` option in v2. Use the owning session/client lifecycle to cancel and clean up abandoned work; do not assume a `Promise.race` timeout stops the underlying operation. A failed compaction can reject rather than return a normal `ResultMessage`.
 
-`compact()` waits for the runtime compaction boundary and returns its ID, token count, preserved message IDs and summary text when available. A `model` override selects the summary model for that call.
+## Automatic compaction
 
-`PreCompact` can add instructions. `PostCompact` reports outcome and preserved-message metadata. Multiple pre-compaction instructions are joined in order. An explicit runtime `agents.compaction` definition customizes the helper agent; `agents.title` customizes title generation if you enable it.
+`compaction: { auto: true }` allows runtime compaction near the model's context limit. `auto: false` disables that automatic behavior; explicit `session.compact()` remains available.
 
-When `checkpointing.beforeCompaction` is enabled, the boundary records the corresponding file checkpoint. A summary is still lossy context management; use durable application storage for records that must never be summarized away.
+`includeFiles: false` avoids the coding-oriented file/directory section. Neutral sessions use a general-purpose summary template. File-context inclusion changes the summary's content, not the permissions of tools or the process.
+
+## Customize a summary
+
+Pass `customInstructions` to a manual call for that summary. `PreCompact` can add instructions for automatic and manual compactions; multiple hook instructions are joined in order. `PostCompact` reports outcome and preserved-message metadata after the work.
+
+A call can select a different summary model with `session.compact({ model: "openai/gpt-4.1-mini" })`. That model must be configured and accessible to the runtime. A session-scoped `agents.compaction` definition can customize helper instructions. For manual `session.compact()`, choose the summary model through the call's `model` option: the facade supplies that model, or the session's main model when omitted, ahead of the helper's model setting. Changing the summary model for a call does not change the main model.
+
+Compaction consumes tokens and can incur cost. Manual compaction contributes to usage observed by the session handle. When `checkpointing.beforeCompaction` is enabled, the boundary can reference a file checkpoint; that checkpoint and the conversational summary remain separate mechanisms.

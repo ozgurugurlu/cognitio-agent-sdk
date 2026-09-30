@@ -1,5 +1,7 @@
 # Cognitio Agent SDK
 
+[Documentation](https://cognitio-agent.mintlify.site) · [Quickstart](https://cognitio-agent.mintlify.site/quickstart) · [Changelog](https://cognitio-agent.mintlify.site/changelog)
+
 Build agents in TypeScript and JavaScript with tools, streaming, subagents, hooks, permissions, persistent sessions, and structured output. **Built on OpenCode.**
 
 Cognitio packages the runtime with the SDK, so applications do not need a separately installed CLI. The high-level `Agent` and `query()` APIs sit above an HTTP runtime; `createAgentClient()` provides direct session management and remote-server connections.

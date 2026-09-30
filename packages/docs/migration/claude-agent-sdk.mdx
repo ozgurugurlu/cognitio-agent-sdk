@@ -1,47 +1,93 @@
 ---
 title: "From Claude Agent SDK"
-description: "Map capabilities to Cognitio without assuming identical APIs."
+description: "Move an integration to Cognitio's agents, sessions, tools and permissions."
 ---
-Cognitio is built on OpenCode. It provides programmable agent sessions, tools and permissions across multiple model providers. It is not a drop-in replacement for the Claude Agent SDK and does not claim that every newly added Claude feature is implemented.
 
-| Capability | Cognitio v2 |
-| --- | --- |
-| Single task / streaming | `Agent.run`, `Agent.stream`, `query` |
-| Conversations, resume, fork | `Session`, `agent.resume`, `agent.fork` |
-| Local custom tools | `defineTool`, `AgentOptions.tools` |
-| MCP | Session-scoped stdio, Streamable HTTP and SSE; hosted HTTP resources/prompts |
-| Permissions | Rules, modes and `canUseTool` |
-| Hooks | The 15 documented Cognitio lifecycle events |
-| Subagents | `defineAgent`, session-scoped definitions, fresh/inherited context |
-| Skills, commands, plugins | Programmatic definitions and local compatibility loading |
-| Structured output | JSON Schema/Zod and bounded retries |
-| File rewind | Checkpoints and `session.rewind` |
-| Cost and limits | Usage, per-model accounting, turn/budget limits |
-| Thinking | Validated provider/model-specific effort and thinking options |
-| Remote hosting | HTTP/SSE runtime with local callback control channel |
+Cognitio is built on OpenCode and has its own API and message shapes. When moving an application, replace the SDK calls and check the behavior of permissions, credentials and session storage. Changing the import name alone is not enough.
 
-## Change the entry point
+## 1. Install Cognitio
 
-Claude uses its own `query()` options and message schema. Cognitio's facade can express the same one-task intent:
+Use Node.js 22 or newer. In your application directory:
 
-```ts
-import { Agent, shutdown } from "cognitio-agent-sdk"
+```sh
+npm install --save-exact cognitio-agent-sdk@2.0.0
+```
+
+Keep optional dependencies enabled so npm installs the matching runtime. Set your provider's API key explicitly; a Claude CLI login or authentication file is not automatically imported into Cognitio's isolated runtime.
+
+## 2. Replace a one-task call
+
+Create `.env` with your Anthropic key and keep it out of Git:
+
+```dotenv
+ANTHROPIC_API_KEY=replace_with_your_key
+```
+
+Save this complete example as `agent.mjs`:
+
+```js
+import { Agent } from "cognitio-agent-sdk"
+
+const key = process.env.ANTHROPIC_API_KEY?.trim()
+if (!key || key === "replace_with_your_key") throw new Error("Set ANTHROPIC_API_KEY in .env.")
+
 const agent = new Agent({
   model: "anthropic/claude-sonnet-4-5",
-  instructions: "Review for correctness.",
-  allowedTools: ["read", "grep", "glob"],
+  instructions: "Summarize the supplied text in one sentence.",
+  disallowedTools: ["*"],
+  maxTurns: 1,
+  maxBudgetUsd: 0.05,
+  spawn: { auth: { anthropic: { type: "api", key } } },
 })
 try {
-  console.log((await agent.run("Review the source.")).text)
+  const result = await agent.run("The team moved its nightly database backup from 02:00 to 03:00.", {
+    signal: AbortSignal.timeout(90_000),
+  })
+  if (result.isError) throw new Error(`Agent ended: ${result.subtype}`)
+  console.log(result.text)
 } finally {
-  await agent.close().finally(() => shutdown())
+  await agent.close()
 }
 ```
 
-Map provider model names to `provider/model`; map tool names to Cognitio's runtime names; rewrite message handling against `AgentMessage`. Recheck permission behavior instead of translating mode names mechanically. Supply credentials explicitly and account for isolated-state lifetime.
+```sh
+node --env-file=.env agent.mjs
+```
 
-## Differences to account for
+A successful run prints a summary such as “The team's nightly database backup now runs at 03:00 instead of 02:00.” Wording varies. The explicit `spawn` option makes this Agent own a dedicated runtime, so `close()` stops it. The estimated budget does not guarantee a provider billing ceiling.
 
-Python bindings, Claude's complete current hook inventory, managed sandbox adapters, durable detached tasks, remote plugin marketplace installation and an API-compatible Claude facade are outside v2. Cognitio's direct SDK MCP protocol supports tools; hosted HTTP supports resources/prompts. Provider-specific reasoning and multimodal support vary.
+For a complete OpenAI version, follow the [chat recipe](/cookbook/chat-cli) or open the [chat application source](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/examples/01-chat/index.mjs).
 
-Consult the [official Claude Agent SDK reference](https://code.claude.com/docs/en/agent-sdk/overview) for the original SDK's current behavior and Cognitio's API reference for this release. The checked-in examples are the executable contract for Cognitio usage.
+## 3. Map the features your application uses
+
+| Your application needs | Cognitio API | Guide |
+| --- | --- | --- |
+| One task | `Agent.run()` | [Agents](/concepts/agents) |
+| Stream a task | `Agent.stream()` or `query()` | [Streaming](/concepts/streaming) |
+| A conversation | `agent.createSession()` and `session.send()` | [Sessions](/concepts/sessions) |
+| Resume or branch | `agent.resume()` and `agent.fork()` | [Sessions](/concepts/sessions) |
+| An application function | `defineTool()` and `tools` | [Custom tool recipe](/cookbook/custom-tool) |
+| External tools and data | `sdkMcpServers` | [MCP](/concepts/mcp) |
+| Approval decisions | `permission`, `permissionMode`, `canUseTool` | [Permissions](/concepts/permissions) |
+| Lifecycle callbacks | `hooks` | [Hooks](/concepts/hooks) |
+| Task delegation | `defineAgent()` and `agents` | [Subagents](/concepts/subagents) |
+| Schema-shaped results | `defineOutputFormat()` | [Extraction recipe](/cookbook/structured-extraction) |
+| File rewind | `session.checkpoint()` and `session.rewind()` | [Checkpoints](/concepts/checkpoints) |
+| Skills, commands and local plugins | `skills`, `commands`, `plugins` | [Extensions](/concepts/skills-commands-plugins) |
+
+Use `provider/model` identifiers such as `anthropic/claude-sonnet-4-5`. Built-in tool names are Cognitio names such as `read`, `grep` and `glob`; a direct custom tool named `multiply` is exposed as `sdk_multiply`.
+
+Rewrite message handling against the `AgentMessage` union. An event with `type: "result"` contains its terminal result in `message.result`; partial text is opt-in. Do not reuse another SDK's message parser unchanged.
+
+## Check these behavior differences
+
+- **Configuration:** local runtimes isolate state by default and sessions use `settingSources: []`. Opt into local instruction discovery deliberately.
+- **Tools:** `allowedTools: []` leaves the allowlist unrestricted. Use `disallowedTools: ["*"]` for text-only work. Custom tool input must be validated inside `execute`.
+- **Permissions:** explicit rules and modes can decide before `canUseTool`. A callback is not an interceptor for every tool call.
+- **Lifecycle:** default Agents share a process-wide runtime until `shutdown()`. Agents with explicit `spawn` options close their own runtime; injected clients are borrowed.
+- **Persistence:** an isolated runtime's transcript disappears with its temporary state. Reuse a persistent runtime when sessions must survive application restarts.
+- **Hooks and reasoning:** use Cognitio's documented hook names and provider-specific reasoning options. Matching names in another SDK do not guarantee matching semantics.
+
+Python bindings, managed sandbox adapters, durable detached tasks, and remote plugin marketplace installation are outside Cognitio 2.0.0. Direct SDK MCP supports tools; SDK-hosted HTTP MCP also supports resources and prompts and requires local spawn. See [MCP](/concepts/mcp) for remote alternatives.
+
+Use the [Claude Agent SDK documentation](https://code.claude.com/docs/en/agent-sdk/overview) for the original integration and [Cognitio's API reference](/api-reference/index) for the replacement calls.

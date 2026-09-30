@@ -1,29 +1,72 @@
 ---
 title: "Checkpoints and rewind"
-description: "Save and restore workspace file state."
+description: "Save eligible workspace files and restore them without rewinding the conversation."
 ---
-```ts
-const session = await agent.createSession()
-const checkpoint = await session.checkpoint("before-change")
-await session.send("Update the example file.")
-const restored = await session.rewind(checkpoint.id)
-console.log(restored.affectedFiles)
-```
 
-Checkpointing requires a Git-backed workspace and runtime snapshots enabled (`spawn.config.snapshot` must not be `false`). Initialize a repository with `git init` before using this example.
+For the TypeScript examples, use the [TypeScript setup](/installation#typescript-projects), including `"type": "module"` and the `tsx` runner.
+A checkpoint captures eligible file state in a Git-backed session workspace. Use it before a change you may need to undo. Rewind restores files; it does not undo model usage, remove conversation messages or reverse external effects.
 
-A checkpoint records eligible file state and a transcript boundary. `listCheckpoints()` lists handles; `rewind()` restores captured files and reports affected paths. It does not rewind or delete conversation messages. Rewind cannot undo external API calls, emails, database writes or shell side effects outside the captured workspace.
+## Try a file-only rewind
 
-## Automatic policy
+Install `cognitio-agent-sdk`, use Node.js 22+ and have Git on `PATH`. This complete example creates its own temporary repository, so it does not modify your project. It makes no model request and needs no provider key. Save it as `checkpoints.ts`; run `node --import tsx checkpoints.ts`.
 
 ```ts
-const agent = new Agent({
-  checkpointing: { enabled: true, beforeTools: true, beforeCompaction: true },
-})
+import { execFileSync } from "node:child_process"
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { Agent, shutdown } from "cognitio-agent-sdk"
+
+const directory = realpathSync(mkdtempSync(join(tmpdir(), "cognitio-checkpoint-")))
+const file = join(directory, "note.txt")
+const agent = new Agent({ cwd: directory, disallowedTools: ["*"] })
+try {
+  execFileSync("git", ["init", directory], { stdio: "ignore" })
+  writeFileSync(file, "original\n")
+  const session = await agent.createSession({ title: "File rewind demo" })
+  const checkpoint = await session.checkpoint("before-change")
+  writeFileSync(file, "changed\n")
+  const restored = await session.rewind(checkpoint.id)
+  console.log(readFileSync(file, "utf8").trim()) // original
+  console.log(restored.affectedFiles)
+  console.log((await session.listCheckpoints()).map((item) => item.id))
+} finally {
+  try {
+    await agent.close().finally(() => shutdown())
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
 ```
 
-`enableFileCheckpointing: true` is the simple switch. The detailed policy controls automatic snapshots before tools and compaction. Manual `checkpoint()` remains available independently. Compaction boundaries can carry the checkpoint ID in the raw runtime event.
+The workspace must be Git-backed and runtime snapshots must remain enabled: `spawn.config.snapshot` cannot be `false`. Perform manual checkpoint and rewind operations while the session is idle. Keep the returned checkpoint ID; it belongs to that session's lineage, not an arbitrary other session.
 
-Checkpoints belong to the runtime's persistent storage. Their durability follows [session persistence](/concepts/sessions): deleting isolated scratch storage removes them. Forks preserve applicable checkpoint lineage; a checkpoint ID from an unrelated session is rejected.
+## Choose automatic checkpoint points
 
-Snapshots cover eligible files within the session directory. They honor Git ignore rules, including matching files tracked in the source repository, and exclude newly encountered files larger than 2 MiB. Do not use checkpoints as a complete workspace backup. Review affected files after a rewind when another process can modify the same workspace.
+Add this policy to your Agent options when the runtime should checkpoint around tool and compaction work:
+
+```ts
+import type { CheckpointingConfig } from "cognitio-agent-sdk"
+
+const checkpointing: CheckpointingConfig = {
+  enabled: true,
+  beforeTools: true,
+  beforeCompaction: true,
+}
+```
+
+`enableFileCheckpointing: true` is the simple enable switch. The detailed policy selects automatic points. Manual `session.checkpoint(label)` remains available independently of that automatic policy. A compaction boundary can carry the associated checkpoint ID in its raw event.
+
+## Understand the capture boundary
+
+Snapshots cover eligible files within the session directory. They honor Git ignore rules, including matching files tracked in the source repository, and exclude newly encountered files larger than 2 MiB. A checkpoint is not a complete workspace backup.
+
+Rewind restores captured file differences and returns `affectedFiles`. It does not roll back the transcript, an external database write, an email, an HTTP request, or a shell operation outside captured file state. Concurrent edits by another process can be affected; coordinate access and review the returned paths.
+
+The runtime's default isolated state is configuration/state isolation, not filesystem sandboxing. Built-in tools can access host resources according to the runtime process's privileges and policy.
+
+## Retention and forks
+
+Checkpoint metadata and snapshots live with runtime storage. Closing and removing isolated scratch storage removes that durable context too. A saved checkpoint ID is not sufficient to recover files from a deleted runtime. See [session persistence](/concepts/sessions).
+
+Forks preserve applicable checkpoint lineage, while unrelated-session checkpoint IDs are rejected. Rewinding a fork does not rewind its conversation history or turn the operation into a merge between branches.

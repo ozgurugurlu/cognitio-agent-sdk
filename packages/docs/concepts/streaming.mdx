@@ -1,42 +1,113 @@
 ---
 title: "Streaming and cancellation"
-description: "Consume typed messages and control the lifetime of a run."
+description: "Display an answer as it arrives, observe tool work, and stop a run cleanly."
 ---
+
+Use `agent.stream()` when your application needs progress before the final answer: a chat interface can display text, a service can observe tool calls, and a caller can cancel work. The returned `AgentStream` is an async iterator with session and cancellation controls.
+
+Use the [TypeScript example setup](/concepts/agents#run-the-examples) for the complete example below.
+
+## Stream text as it arrives
+
+Partial messages are opt-in. A `part` event identifies each part's type; a `partial` event carries its delta. This example prints only text parts, so reasoning deltas do not become user-visible answer text.
+
 ```ts
-const stream = agent.stream("Inspect the project.", { includePartialMessages: true })
-for await (const message of stream) {
-  if (message.type === "assistant") console.log(message.text)
-  if (message.type === "tool.use") console.log(message)
-  if (message.type === "result") console.log(message.result.subtype)
+import { Agent, type ResultMessage } from "cognitio-agent-sdk"
+
+const apiKey = process.env.OPENAI_API_KEY
+if (!apiKey) throw new Error("Set OPENAI_API_KEY before running this example.")
+
+const agent = new Agent({
+  model: "openai/gpt-4.1-mini",
+  spawn: { env: { OPENAI_API_KEY: apiKey } },
+  disallowedTools: ["*"],
+  maxTurns: 1,
+  maxBudgetUsd: 0.03,
+})
+const stream = agent.stream("Explain database indexes in three short sentences.", {
+  includePartialMessages: true,
+  signal: AbortSignal.timeout(60_000),
+})
+const textParts = new Set<string>()
+let result: ResultMessage | undefined
+try {
+  for await (const message of stream) {
+    if (message.type === "part" && message.part.type === "text") textParts.add(message.part.id)
+    if (message.type === "partial" && message.field === "text" && textParts.has(message.partId)) {
+      process.stdout.write(message.delta)
+    }
+    if (message.type === "result") result = message.result
+  }
+  process.stdout.write("\n")
+  if (!result) throw new Error("The stream ended without a terminal result.")
+  if (result.subtype !== "success") throw new Error(`Stream ended: ${result.subtype}`)
+  // result.text is the final answer; store it without appending it to the deltas again.
+} finally {
+  await stream.close().finally(() => agent.close())
 }
 ```
 
-`AgentMessage` is a discriminated union. It covers assistant output, tool calls/results, permission requests, hooks, subagents, compaction boundaries, rate limits, background-task lifecycle and the terminal result. Check `type` before accessing event-specific fields. The API reference is the authoritative event inventory.
+The final `result.text` is authoritative for the final assistant message. Earlier assistant text can include intermediate commentary before tool calls. For a transcript UI, group text by `messageId` and `partId`; do not treat every assistant message as the final answer.
 
-Partial streaming is opt-in. Do not concatenate full assistant messages and partial deltas into the same output buffer: they represent different views of the response.
+Do not concatenate complete `assistant.text` snapshots with partial deltas into the same answer buffer: they describe overlapping text. If your application only needs complete assistant messages, omit `includePartialMessages` and handle `message.type === "assistant"` instead.
 
-## Cancellation
+## Observe work and results
 
-Pass an `AbortSignal` to a run or stream. Breaking a `for await` loop closes the iterator and aborts its owned turn. Always close an Agent in `finally`; abandoning an iterator without returning or aborting can leave active work. The default shared runtime remains alive after handle cleanup; call `shutdown()` at application teardown as described in [lifecycle](/cookbook/lifecycle).
+Every event is part of the discriminated `AgentMessage` union. Check `type` before reading its fields.
 
-```ts
-const abort = new AbortController()
-const task = agent.run("Summarize these files.", { signal: abort.signal })
-// In an application, wire this to the caller's cancellation signal.
-abort.abort()
-await task.catch((error) => console.error(error.message))
-```
+| Event                                                                | Useful fields or purpose                                                                                 |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `assistant`                                                          | A completed assistant message, optional `text`/`reasoning`, and its parts.                               |
+| `part` / `partial`                                                   | Part snapshots and incremental changes when partial streaming is enabled.                                |
+| `tool.use`                                                           | `name`, `input`, and `toolUseId` for a requested tool.                                                   |
+| `tool.result`                                                        | `output` correlated by `toolUseId`; a tool failure can still be recoverable.                             |
+| `permission.request`                                                 | A request waiting on a permission decision. Configure [permissions](/concepts/permissions) to answer it. |
+| `subagent.start`, `subagent.progress`, `subagent.stop`               | Child-session work and its provenance.                                                                   |
+| `task.started`, `task.progress`, `task.notification`, `task.stopped` | Tool-task status and heartbeats; these do not imply detached background jobs.                            |
+| `rate_limit`                                                         | Provider retry/rate-limit information when available.                                                    |
+| `system`                                                             | Runtime lifecycle information, including compaction boundaries.                                          |
+| `result`                                                             | Terminal `message.result`, with `subtype`, optional `text`, usage, and cost.                             |
 
-## Streaming input
+The SDK also emits user, todo, checkpoint, rewind, and raw event messages. See [AgentMessage](/api-reference/type-aliases/AgentMessage) for the full field definitions. A successful tool result does not by itself mean the overall task succeeded; check the terminal result.
 
-`PromptInput` accepts text, a `PromptTurn` with text/parts, or an async iterable of turns. The SDK submits turns in order. Use this for an application that receives input incrementally; it is not concurrent queries within one session.
+## Cancellation and cleanup
+
+Pass a caller-owned `AbortSignal` or an `AbortSignal.timeout(...)` deadline. For an explicit cancel button, create an `AbortController`, pass `controller.signal`, and call `controller.abort()` from the button handler. Cancellation can produce an `error_aborted` result; startup or transport failures can also throw.
+
+| Operation                  | Effect                                                                              |
+| -------------------------- | ----------------------------------------------------------------------------------- |
+| `await stream.sessionId()` | Starts lazily if needed and returns the conversation ID.                            |
+| `await stream.interrupt()` | Interrupts the current turn.                                                        |
+| `await stream.close()`     | Closes this iterator and its transient session handle. Safe to call during cleanup. |
+| `break` from `for await`   | Returns the iterator and aborts an unfinished owned turn.                           |
+| `await agent.close()`      | Closes the Agent's owned streams/handles and its dedicated connection, if any.      |
+
+Keep cleanup in `finally`. Dropping a reference to an iterator without returning, closing, or aborting it is not cancellation. Closing the example's explicitly spawned Agent stops its dedicated runtime; a default shared runtime instead requires `shutdown()` at application teardown.
+
+## Continue a conversation
+
+`session.stream(prompt, { includePartialMessages: true })` streams a turn within an existing session. It yields the same `AgentMessage` shapes, but closing the iterator does not transfer ownership of the Session or its client. Keep the Session for the next turn and close it when the conversation is done. Await or cancel each turn before starting another on that session.
+
+In v2, Session stream options do not accept `signal`; use `session.interrupt()` for an active Session turn. The `signal` option in this guide's complete example is provided by the higher-level `Agent.stream()` wrapper.
+
+## Feed input in order
+
+`PromptInput` accepts a string, a `{ text, parts }` turn, or an async iterable of turns. An iterable submits turns sequentially in one session; it does not create concurrent queries.
+
+Using the configured Agent from the complete example, replace its stream/consumption block with:
 
 ```ts
 async function* turns() {
-  yield "The service uses PostgreSQL."
-  yield "Now suggest a backup plan."
+  yield "Remember that this service uses PostgreSQL. Reply with Saved."
+  yield "Which database did I name?"
 }
-const result = await agent.run(turns())
+try {
+  const result = await agent.run(turns(), { signal: AbortSignal.timeout(90_000) })
+  if (result.isError) throw new Error(`Conversation ended: ${result.subtype}`)
+  console.log(result.text)
+} finally {
+  await agent.close()
+}
 ```
 
-Files, images and agent/subtask references are represented by `PromptPart`; supported modalities depend on the model. Do not assume every provider accepts every part type.
+When streaming an iterable input, each completed input turn can yield its own terminal `result` event. `agent.run()` returns the terminal result from the last submitted turn. For interactive applications, explicit [sessions](/concepts/sessions) are usually simpler.

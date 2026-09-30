@@ -1,42 +1,107 @@
 ---
 title: "Installation"
-description: "Runtime packages, platform support and binary resolution."
+description: "Install Cognitio in a JavaScript or TypeScript application."
 ---
-## Package managers
+
+Use **Node.js 22+** or **Bun 1.3.11+**. Cognitio is an ESM package with TypeScript declarations included. A model provider API key is required when you run a model request, but not to install the SDK.
+
+## Install the package
+
+Choose the package manager your application already uses:
+
+<CodeGroup>
+```sh npm
+npm install cognitio-agent-sdk@2.0.0
+```
+
+```sh pnpm
+pnpm add cognitio-agent-sdk@2.0.0
+```
+
+```sh Bun
+bun add cognitio-agent-sdk@2.0.0
+```
+</CodeGroup>
+
+Keep optional dependencies enabled. They provide the native runtime for your platform; there is no separate CLI to download or start. Commit your application's lockfile for reproducible installs.
+
+## JavaScript projects
+
+Save scripts as `.mjs`, as in the [quickstart](/quickstart), or set `"type": "module"` in your application's `package.json` to use ESM in `.js` files.
 
 ```sh
-npm install cognitio-agent-sdk
-# or
-bun add cognitio-agent-sdk
-# or
-pnpm add cognitio-agent-sdk
+node --env-file=.env agent.mjs
 ```
 
-The JavaScript SDK runs under Node.js 22+ and Bun. It is ESM. TypeScript types are included. No installation-time download script is required; npm installs the matching native runtime as an optional package.
+Use `--env-file` when your provider key is in `.env`. If you already exported the key in the same shell, `node agent.mjs` is sufficient.
 
-| OS | Architectures | Runtime variants |
+## TypeScript projects
+
+For a Node.js project, install a TypeScript runner and enable ESM:
+
+```sh
+npm pkg set type=module
+npm install --save-dev tsx typescript @types/node
+```
+
+Save a guide's complete TypeScript example as `agent.ts`, then run:
+
+```sh
+node --env-file=.env --import tsx agent.ts
+```
+
+Bun can run the same TypeScript file directly:
+
+```sh
+bun run agent.ts
+```
+
+Guides that import `zod` also need it in your application:
+
+```sh
+npm install zod@4.1.8
+```
+
+## Supported local runtimes
+
+| Operating system | Architecture | Notes |
 | --- | --- | --- |
-| macOS | arm64, x64 | native; x64 baseline |
-| Linux | arm64, x64 | glibc and musl; x64 baseline |
-| Windows | arm64, x64 | native; x64 baseline |
+| macOS | Apple Silicon (arm64), Intel (x64) | Matching runtime selected automatically. |
+| Linux | arm64, x64 | Packages available for glibc and musl, including Alpine. |
+| Windows | arm64, x64 | Matching runtime selected automatically. |
 
-A cross-built artifact is not the same as an executed platform test. Release CI and the [publishing guide](/publishing) describe the validation matrix.
+The x64 packages use the baseline runtime build. Install dependencies on the target platform instead of copying `node_modules` from a different operating system or architecture. See [troubleshooting](/troubleshooting#the-runtime-cannot-be-found) if your package manager omitted the runtime package.
 
-## Binary resolution
+For an environment where you run the server separately, use [remote connections](/cookbook/remote).
 
-The SDK resolves an explicit `spawn.binaryPath`, then `COGNITIO_BIN_PATH`, then the installed platform package, then a `cognitio` executable on `PATH`. Bundled and PATH-selected binaries must report the expected runtime version. The explicit `spawn.binaryPath` and `COGNITIO_BIN_PATH` overrides bypass that automatic version check; you own their compatibility.
+## Upgrade an application
+
+Upgrade the main package and commit the updated lockfile:
+
+```sh
+npm install cognitio-agent-sdk@latest
+```
+
+The SDK pins its platform packages to the matching version. You do not need to upgrade a background runtime separately. Review the [changelog](/changelog) before upgrading an existing application.
+
+## Custom runtime binaries
+
+Most applications should use the bundled runtime. For a custom runtime build, pass an absolute executable path with `spawn.binaryPath` or set `COGNITIO_BIN_PATH`. Explicit overrides bypass the automatic bundled-version check, so the custom runtime must implement the SDK's protocol.
 
 ```ts
+import { Agent } from "cognitio-agent-sdk"
+
 const agent = new Agent({
-  model: "anthropic/claude-sonnet-4-5",
+  model: "openai/gpt-4.1-mini",
   spawn: { binaryPath: "/absolute/path/to/cognitio" },
+  disallowedTools: ["*"],
 })
+
+try {
+  console.log((await agent.run("Say hello.")).text)
+} finally {
+  await agent.close()
+}
 ```
 
-Prefer an absolute executable path. Relative paths such as `"./bin/cognitio"` resolve against the SDK process's current directory; a bare command name such as `"cognitio"` is not a valid `binaryPath`. Keep optional dependencies enabled when relying on the bundled local runtime. For a minimal image with no native binary, use [remote mode](/cookbook/remote).
-
-## Reproducible installation
-
-Commit your application's lockfile. The main package pins its platform packages to the same exact SDK version. Upgrade the main package to upgrade the bundled runtime; the runtime never upgrades itself.
-
-Contributors use `bun install --frozen-lockfile` at the repository root, then run checks from the package directories. The public repository's `CONTRIBUTING.md` lists the commands.
+Replace the placeholder path before running this advanced example. Explicit `spawn` options give this Agent its own runtime, which `close()` releases. See [lifecycle and cleanup](/cookbook/lifecycle) for shared and borrowed clients.

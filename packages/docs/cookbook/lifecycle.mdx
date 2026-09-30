@@ -1,30 +1,88 @@
 ---
 title: "Lifecycle and failure handling"
-description: "Close what you own and preserve useful errors."
+description: "Close the resources your application owns and distinguish failed results from rejected operations."
 ---
-Use `try/finally` around every owned Agent or client. Session handles, callback dispatchers, MCP servers and spawned runtimes have related but distinct lifetimes.
 
-Default Agents and `query()` share a process-wide runtime. Close each Agent when its work is finished and call `shutdown()` once at application teardown. Closing an Agent does not stop that shared runtime. Explicit connection options such as `spawn` create a dedicated client that the Agent closes. Injected clients are borrowed and must be closed by their creator; `shutdown()` does not close them.
+For the TypeScript examples, use the [TypeScript setup](/installation#typescript-projects), including `"type": "module"` and the `tsx` runner.
+An Agent, a Session handle and a runtime process have different lifetimes. Close the objects you create, and stop a shared runtime only when the application has finished with it.
+
+| Construction | Who owns the runtime/client? | Cleanup |
+| --- | --- | --- |
+| `new Agent()` or `query()` with no connection options | Process-wide default client | Close Agent handles; call `shutdown()` at application teardown. |
+| `new Agent({ spawn: ... })` | That Agent owns a dedicated local client | `agent.close()` closes it and its runtime. |
+| `new Agent({ client })` | The application that created the client | Close Agent, then close client when all borrowers finish. |
+| `createAgentClient({ baseUrl })` | Server is externally owned | `client.close()` releases local resources, not the server. |
+
+## Handle both forms of failure
+
+Use the [quickstart](/quickstart) setup with `OPENAI_API_KEY`. Save this as `lifecycle.ts`; run `node --env-file=.env --import tsx lifecycle.ts`.
 
 ```ts
-import { createAgentClient } from "cognitio-agent-sdk"
+import { Agent, isSdkError, shutdown } from "cognitio-agent-sdk"
 
-const client = await createAgentClient()
+const agent = new Agent({
+  model: "openai/gpt-4.1-mini",
+  disallowedTools: ["*"],
+  maxTurns: 2,
+})
 try {
-  const session = await client.sessions.create({ runtimeConfig: { model: "anthropic/claude-sonnet-4-5" } })
-  const result = await session.send("Hello")
-  if (result.subtype !== "success") console.error(result)
+  const result = await agent.run("Explain an API timeout in one sentence.", {
+    signal: AbortSignal.timeout(60_000),
+  })
+  if (result.subtype !== "success") {
+    console.error("Run did not succeed", result.subtype, result.error?.message)
+    process.exitCode = 1
+  } else {
+    console.log(result.text)
+  }
+} catch (error) {
+  if (isSdkError(error)) console.error("SDK operation failed", error.kind, error.message)
+  else console.error(error instanceof Error ? error.message : String(error))
+  process.exitCode = 1
 } finally {
-  await client.close()
+  await agent.close().finally(() => shutdown())
 }
 ```
 
-Calling `close()` repeatedly is safe. Closing during work requests cancellation and waits for cleanup. Cleanup failures can aggregate several underlying errors; inspect their causes rather than assuming the first error is the only one.
+A provider or run limit can produce an unsuccessful terminal result, so a fulfilled promise is not enough to establish success. Setup, protocol, transport and lifecycle problems may reject instead. The `isSdkError` guard recognizes tagged SDK errors with kinds such as `configuration`, `binary`, `transport`, `protocol`, `closed` and `session_conflict`. Do not match human-readable messages to make policy decisions.
 
-The example above owns its low-level client, so `client.close()` stops its local runtime. Closing a remote client only closes local subscriptions and handles; the server stays running. Guide fragments that only show configuration assume your application supplies this surrounding lifecycle.
+## Share a client intentionally
 
-V2 adds tagged SDK errors for programmatic setup, configuration, lifecycle and transport decisions. Use the exported error guard and `kind` discriminator. Provider/tool result errors may also arrive as unsuccessful terminal messages. Avoid matching human-readable error strings in application logic.
+This separate example owns one local runtime and lends its client to an Agent. No process-global `shutdown()` is needed for that owned client.
 
-Signal cleanup applies to SDK-owned child processes. Injected `spawnProcess` implementations must implement the documented child-process event and exit contract, including `on`, `once`, `off`, `kill`, streams and exit/signal state. Missing exit properties mean not-yet-known, not already-exited.
+```ts
+import { Agent, createAgentClient } from "cognitio-agent-sdk"
 
-Retry only when the operation is safe to repeat. A lost connection does not prove a tool did not execute. Use idempotency keys in your own side-effectful tools and inspect persisted sessions before replaying a task.
+const client = await createAgentClient({ spawn: { port: 0 } })
+const agent = new Agent({ client, model: "openai/gpt-4.1-mini", disallowedTools: ["*"] })
+try {
+  const session = await agent.createSession({ title: "Two turns" })
+  const first = await session.send("Remember that the database is PostgreSQL.")
+  if (first.subtype !== "success") throw new Error(`First turn ended: ${first.subtype}`)
+  const second = await session.send("Which database did I mention?")
+  if (second.subtype !== "success") throw new Error(`Second turn ended: ${second.subtype}`)
+  console.log(second.text)
+} finally {
+  await agent.close().finally(() => client.close())
+}
+```
+
+`Session.send()` returns `ResultMessage` and takes a single prompt argument in v2. Check `subtype`; it does not have the facade's `RunResult.isError` convenience field. Low-level `Session.stream()` also has no caller-supplied `signal` option in v2. Use `session.interrupt()`/`abort()` to stop an active turn, or the facade’s `Agent.run()`/`stream()` signal support when that fits your application.
+
+A default isolated runtime stores state in scratch storage removed when its owner closes. `session.close()` normally releases the local handle without deleting the server session, but closing the runtime's owner can remove the entire scratch database. See [sessions](/concepts/sessions) before designing persistence.
+
+## Cancel and finish cleanup
+
+Pass an `AbortSignal` to `Agent.run()` or `Agent.stream()`. For an existing low-level Session, call `session.interrupt()`/`abort()` or close its owner. Breaking a `for await` loop returns the iterator and aborts its owned turn. Abandoning an iterator without returning or aborting it can leave work active.
+
+Repeated `close()` calls are safe. Closing during active work requests cancellation and waits for bounded cleanup. Cleanup itself can fail; an aggregate error can contain multiple underlying failures. The `finally` chains above ensure the outer owner is still closed if handle cleanup rejects.
+
+Call `shutdown()` once at the boundary where the application no longer needs any default Agent. Do not call it after each HTTP request in a service that has other concurrent default Agents. It does not close clients you constructed and injected yourself.
+
+## Retry side effects carefully
+
+A lost connection does not prove a tool did not execute. Before replaying a task, inspect the persisted conversation and your application's operation state. Add idempotency keys or duplicate detection to custom tools that send messages, charge accounts or modify external services.
+
+Configuration/state isolation does not sandbox the host filesystem, subprocesses or network. Custom callbacks execute in your SDK process even when the runtime is isolated or remote. Keep their privileges and cleanup under application control.
+
+Custom `spawnProcess` adapters are an advanced escape hatch: they must implement the documented child-process streams, lifecycle events, kill behavior and exit/signal state. Prefer the bundled spawn path unless your deployment needs a custom process owner.

@@ -1,55 +1,63 @@
 ---
-title: "Executable examples"
-description: "Run the same feature examples used by the verification suite."
+title: "Examples"
+description: "Build a chat app, extract data, call a tool, or continue a conversation."
 ---
 
-## Standalone projects
+Choose a recipe below. Each page includes installation commands, an environment template, complete JavaScript, the run command, and expected output. The examples use Node.js 22 or newer and `cognitio-agent-sdk@2.0.0` from npm.
 
-Start with root `examples/` for independently installable applications using the public npm package. Each directory has its own README, npm lockfile, environment template and complete Node.js entry point. Copy one directory, install with `npm ci`, configure `.env`, and run `npm start`.
+## Start with a complete application
 
-| Project | Recipe |
-| --- | --- |
-| `examples/01-chat` | [A small text-only CLI](/cookbook/chat-cli) |
-| `examples/02-structured-output` | [Validated extraction with Zod](/cookbook/structured-extraction) |
-| `examples/03-custom-tool` | [An application calculator tool](/cookbook/custom-tool) |
-| `examples/04-session-memory` | [Close a handle and resume a conversation](/cookbook/session-memory) |
+| Build | Step-by-step recipe | GitHub project |
+| --- | --- | --- |
+| Ask one question and print the answer | [Chat CLI](/cookbook/chat-cli) | [Chat application](https://github.com/ozgurugurlu/cognitio-agent-sdk/tree/main/examples/01-chat) |
+| Extract a contact into validated JSON | [Structured extraction](/cookbook/structured-extraction) | [Extraction application](https://github.com/ozgurugurlu/cognitio-agent-sdk/tree/main/examples/02-structured-output) |
+| Let the model call your multiplication function | [Custom calculator tool](/cookbook/custom-tool) | [Calculator application](https://github.com/ozgurugurlu/cognitio-agent-sdk/tree/main/examples/03-custom-tool) |
+| Close a handle and resume the same conversation | [Session memory](/cookbook/session-memory) | [Conversation application](https://github.com/ozgurugurlu/cognitio-agent-sdk/tree/main/examples/04-session-memory) |
 
-These projects use a real provider and incur model usage. Each declares small turn/cost limits, validates unsuccessful results, and closes its owned resources. They do not require a source runtime build.
+You can follow any recipe in a new directory without cloning the repository. Each linked GitHub project is also independently copyable and includes its own package manifest, npm lockfile, environment template, and README.
 
-## Feature integration examples
+## Run a downloaded project
 
-The source repository includes `packages/agent-sdk/examples/`. Examples use the public SDK exports and are verified against a real runtime with a deterministic local model endpoint. This tests the SDK/runtime integration without requiring paid provider calls. A separate live-provider smoke checks provider connectivity when credentials are supplied.
-
-| Example                   | Demonstrates                                                                                        |
-| ------------------------- | --------------------------------------------------------------------------------------------------- |
-| `01-simple.ts`            | Agent run and cleanup                                                                               |
-| `02-custom-tool.ts`       | A typed local tool                                                                                  |
-| `03-subagent.ts`          | Session-scoped delegation                                                                           |
-| `04-hooks.ts`             | Hook and permission callbacks                                                                       |
-| `05-structured-output.ts` | Schema validation                                                                                   |
-| `06-session-resume.ts`    | Conversation persistence and resume                                                                 |
-| `07-mcp-external.ts`      | An external MCP endpoint                                                                            |
-| `08-remote.ts`            | Borrowing a remote runtime                                                                          |
-| `09-auto-permissions.ts`  | Auto-mode configuration                                                                             |
-| `10-applied-settings.ts`  | Inspecting effective policy                                                                         |
-| `11-session-features.ts`  | Real file rewind, commands, plugin skills, forks and compaction hooks in a disposable Git workspace |
-
-After cloning the public source, run `bun install --frozen-lockfile`, then build the SDK with `bun run --cwd packages/agent-sdk build`. To run an individual example against a real provider, also build your host binary with `bun run --cwd packages/agent-sdk build:binaries --single`. Set `COGNITIO_BIN_PATH` to the absolute `bin/cognitio` path (`bin/cognitio.exe` on Windows) inside the host directory printed under `packages/agent-sdk/dist-binaries/`; staging does not install the platform package. The examples README includes a macOS command. Registry installations already include their host binary.
-
-Each file exports `run(options)` for application reuse. Run an example directly with Bun:
+After copying one of the linked project directories, open a terminal in that directory:
 
 ```sh
-export ANTHROPIC_API_KEY="your-api-key"
-export COGNITIO_MODEL="anthropic/claude-sonnet-4-5"
-bun packages/agent-sdk/examples/02-custom-tool.ts
+npm ci
 ```
 
-Example 08 additionally needs `COGNITIO_BASE_URL` for an existing runtime. Example 07 starts and closes its own separate HTTP MCP server. Example 11 requires Git and works only in its own temporary workspace. See the examples README for connection overrides and optional dependencies.
+Copy `.env.example` to `.env`, then replace the API-key placeholder. In a Unix shell:
 
 ```sh
-bun run --cwd packages/agent-sdk test:examples
+cp .env.example .env
 ```
 
-The deterministic suite is a release gate. It rebuilds and imports the public package, starts the real runtime from source, and checks actual effects and results, including tool execution, subagent turns, permission decisions, schemas, transcripts, MCP, usage, file rewind and compaction. Only the model endpoint is deterministic. It also checks that runtime scratch storage is removed after cleanup.
+On PowerShell:
 
-A live-provider smoke runs only when `COGNITIO_EXAMPLES_LIVE=1` is set and otherwise reports a skip. It uses the selected provider account and can incur a model charge. This is separate from the deterministic suite and from packed-install verification on plain Node.
+```powershell
+Copy-Item .env.example .env
+```
+
+The default configuration uses `openai/gpt-4.1-mini` and `OPENAI_API_KEY`. Model access depends on your provider account. Keep `.env` out of Git. After setting the key, run:
+
+```sh
+npm start
+```
+
+The programs make real model requests and can incur provider charges. They reject unsuccessful results and close the runtimes they own. Their estimated cost limits are not provider billing caps. Each recipe explains its output and what to change next.
+
+## Explore more features
+
+These focused source examples show individual SDK features. Pair them with the linked guide when adding the feature to your own application; they use shared helpers from the [feature examples directory](https://github.com/ozgurugurlu/cognitio-agent-sdk/tree/main/packages/agent-sdk/examples).
+
+| Feature | Guide | Source example |
+| --- | --- | --- |
+| Basic agent call | [Agents and query](/concepts/agents) | [Simple agent](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/packages/agent-sdk/examples/01-simple.ts) |
+| Typed application function | [Tools](/concepts/tools) | [Addition tool](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/packages/agent-sdk/examples/02-custom-tool.ts) |
+| Delegate a task | [Subagents](/concepts/subagents) | [Subagent](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/packages/agent-sdk/examples/03-subagent.ts) |
+| Observe tools and answer permission requests | [Hooks](/concepts/hooks) | [Hook callbacks](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/packages/agent-sdk/examples/04-hooks.ts) |
+| Return schema-shaped data | [Structured output](/concepts/structured-output) | [Output schema](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/packages/agent-sdk/examples/05-structured-output.ts) |
+| Continue a transcript | [Sessions](/concepts/sessions) | [Resume a session](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/packages/agent-sdk/examples/06-session-resume.ts) |
+| Connect an MCP service | [MCP](/concepts/mcp) | [External HTTP server](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/packages/agent-sdk/examples/07-mcp-external.ts) |
+| Use a runtime you operate | [Remote runtimes](/cookbook/remote) | [Remote client](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/packages/agent-sdk/examples/08-remote.ts) |
+| Classify unresolved permissions | [Permissions](/concepts/permissions) | [Auto permission mode](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/packages/agent-sdk/examples/09-auto-permissions.ts) |
+| Inspect effective configuration | [Defaults and isolation](/defaults-and-isolation) | [Applied settings](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/packages/agent-sdk/examples/10-applied-settings.ts) |
+| Rewind files, fork, and compact | [Checkpoints](/concepts/checkpoints) | [Session features](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/packages/agent-sdk/examples/11-session-features.ts) |

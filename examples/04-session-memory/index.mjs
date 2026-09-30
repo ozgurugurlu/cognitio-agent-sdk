@@ -37,18 +37,14 @@ try {
       maxBudgetUsd: 0.03,
     },
   })
-  const saved = await session.send("Remember that this project uses PostgreSQL. Reply with Saved.", {
-    signal: AbortSignal.timeout(90_000),
-  })
+  const saved = await session.send("Remember that this project uses PostgreSQL. Reply with Saved.")
   if (saved.subtype !== "success") throw new Error(`First turn failed: ${saved.subtype}`)
   const sessionId = session.id
   await session.close()
 
   const resumed = await client.sessions.resume(sessionId)
   if (resumed.id !== sessionId) throw new Error("The resumed session ID changed.")
-  const recalled = await resumed.send("Which database did I name? Reply only with the database name.", {
-    signal: AbortSignal.timeout(90_000),
-  })
+  const recalled = await resumed.send("Which database did I name? Reply only with the database name.")
   if (recalled.subtype !== "success") throw new Error(`Recall failed: ${recalled.subtype}`)
   if (typeof recalled.text !== "string" || !recalled.text.toLowerCase().includes("postgresql")) {
     throw new Error("The resumed conversation did not recall PostgreSQL.")

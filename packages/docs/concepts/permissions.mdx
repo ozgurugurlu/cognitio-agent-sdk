@@ -1,37 +1,121 @@
 ---
 title: "Permissions"
-description: "Make authorization part of your application."
+description: "Control tool availability, authorize operations, and handle approval requests."
 ---
-| Mode | Intent |
-| --- | --- |
-| `default` | Apply rules and ask when a decision is needed. |
-| `acceptEdits` | Allow ordinary edits while retaining checks for other operations. |
-| `dontAsk` | Deny operations that would require an unanswered prompt. |
-| `plan` | Restrict operations to planning/read-oriented behavior. |
-| `bypassPermissions` | Bypass permission prompts; use only with an intentional external boundary. |
-| `auto` | Classify unresolved requests, then use the callback/user path when classification cannot decide. |
 
-## Answer permission requests
+Permissions answer two questions: **which tools may this agent use**, and **may this particular operation proceed**? Start with a small allowlist for routine work. Add ordered permission rules or a callback when the decision depends on a path, command, account, or user approval.
+
+Default local isolation separates runtime state and configuration. Permission modes do not create a filesystem or operating-system sandbox.
+
+## Start with a tool allowlist
+
+For a file-reading agent, use `allowedTools: ["read", "glob", "grep"]`. For a text-only assistant, use `disallowedTools: ["*"]`. These are Agent constructor options; the [built-in tools example](/concepts/built-in-tools#read-a-file-with-an-agent) includes a complete runnable file-reading agent.
+
+A nonempty allowlist restricts tools and grants matching operations, subject to effective deny rules. A denylist match wins over an allowlist match. `allowedTools: []` is unrestricted, and explicitly supplying either list replaces the facade's default hidden-tool profile. An allowlist cannot create a tool that the selected model or runtime has not made available.
+
+<Note>
+  `disallowedTools: ["*"]` also blocks schema submission through `StructuredOutput`. For a schema-only task, use
+  `allowedTools: ["StructuredOutput"]`.
+</Note>
+
+## Rules apply to operations
+
+The `permission` option is an ordered array of `{ permission, pattern, action }`. Within a ruleset, the **last matching rule wins**. Put a broad rule first and narrower exceptions after it. `action` is `"allow"`, `"deny"`, or `"ask"`.
+
+| Permission name      | Pattern is matched against                                                    |
+| -------------------- | ----------------------------------------------------------------------------- |
+| `read`               | File path requested by the read tool.                                         |
+| `edit`               | Paths changed by `edit`, `write`, `multiedit`, or `apply_patch`.              |
+| `bash`               | Commands identified by the shell tool.                                        |
+| `glob`, `grep`       | The glob or search expression, respectively; these are not path restrictions. |
+| `webfetch`           | Requested URL.                                                                |
+| `task`               | Subagent name.                                                                |
+| `skill`              | Skill name.                                                                   |
+| An SDK/MCP tool name | The permission request for that tool; use `pattern: "*"` for the whole tool.  |
+
+The runtime also makes permission requests such as `external_directory` when a tool accesses a location outside its workspace. These are permission names, not additional tools you can call.
+
+Tool-list shorthand accepts scoped entries such as `bash(npm:*)` or `task(reviewer)`. In the shell shorthand, `:` becomes a space, so `bash(npm:*)` matches the `npm *` command pattern. This is command-pattern authorization, not a guarantee about what an npm script will do. Use a controlled workspace and application-level boundaries for privileged execution.
+
+## Make a decision in your application
+
+This complete example exposes a deterministic order lookup. The broad rule denies other operations; the later rule sends this tool's requests through the approval path. The callback allows only the sample order. It deliberately does not add `allowedTools: ["sdk_lookup_order"]`, because that matching grant could approve the request before the callback runs.
+
+Use the [TypeScript example setup](/concepts/agents#run-the-examples).
 
 ```ts
-import { Agent, PermissionDecision } from "cognitio-agent-sdk"
-const agent = new Agent({
-  model: "anthropic/claude-sonnet-4-5",
-  permission: [{ permission: "*", pattern: "*", action: "ask" }],
-  canUseTool(name) {
-    return name === "read" || name === "grep"
-      ? PermissionDecision.allow()
-      : PermissionDecision.deny("This agent only reads files.")
+import { Agent, defineTool, PermissionDecision } from "cognitio-agent-sdk"
+
+const apiKey = process.env.OPENAI_API_KEY
+if (!apiKey) throw new Error("Set OPENAI_API_KEY before running this example.")
+
+const lookupOrder = defineTool({
+  name: "lookup_order",
+  description: "Look up the delivery status of an order by its ID.",
+  inputJsonSchema: {
+    type: "object",
+    properties: { orderId: { type: "string" } },
+    required: ["orderId"],
+    additionalProperties: false,
+  },
+  execute(input) {
+    // Callback input needs application validation, even after permission approval.
+    if (typeof input !== "object" || input === null || !("orderId" in input) || input.orderId !== "order-42") {
+      throw new Error("Unknown order ID.")
+    }
+    return { orderId: "order-42", status: "shipped" }
   },
 })
+
+const agent = new Agent({
+  model: "openai/gpt-4.1-mini",
+  spawn: { env: { OPENAI_API_KEY: apiKey } },
+  tools: [lookupOrder],
+  permissionMode: "default",
+  permission: [
+    { permission: "*", pattern: "*", action: "deny" },
+    { permission: "sdk_lookup_order", pattern: "*", action: "ask" },
+  ],
+  canUseTool(name, input) {
+    return name === "sdk_lookup_order" && input.orderId === "order-42"
+      ? PermissionDecision.allow()
+      : PermissionDecision.deny("Only the sample order is available.")
+  },
+  maxTurns: 3,
+  maxBudgetUsd: 0.03,
+})
+try {
+  const result = await agent.run("Use the order lookup tool to get the status of order-42.", {
+    signal: AbortSignal.timeout(60_000),
+  })
+  if (result.isError) throw new Error(`Agent ended: ${result.subtype}`)
+  console.log(result.text)
+} finally {
+  await agent.close()
+}
 ```
 
-The explicit ask rule makes this example's unresolved operations reach the callback. `allow(updatedInput)` can replace tool input; validate replacement arguments in your application. `deny(message)` returns a reason. `ask()` leaves the user-decision path pending; it is not an approval or an automatic denial. Headless applications should return a concrete allow/deny decision or use a policy such as `dontAsk` that denies unresolved requests.
+`PermissionDecision.allow(updatedInput)` can replace input; validate the replacement as well. `deny(message)` supplies a reason. `ask()` delegates to the remaining user-decision path and may keep the request pending. A headless callback should normally return a concrete allow or deny decision.
 
-`allowedTools` and explicit allow rules can approve matching operations before `canUseTool` runs. Permission modes also run before the callback: bypass, accepted edits and confident auto classification may settle a request. The callback handles unresolved requests; it is not a universal interceptor. Use `disallowedTools` or deny rules for restrictions that must always apply.
+## Understand decision order
 
-The callback runs in your process over an SSE/POST control channel. The server stores a descriptor, not the function. Rebind callbacks when resuming after a process restart. Set `canUseTool: false` in an explicit resume override to remove a previous callback. A callback timeout or unavailable control channel can leave the user-decision path pending; use an application cancellation deadline and do not assume every failure becomes a denial.
+For a tool that is available, effective deny rules stop the operation before modes or callbacks can approve it. A matching allow can also settle the request immediately. Rules from the Agent/session and the runtime tool lists are evaluated together; an effective deny from either wins.
 
-`autoPermissionClassifierModel` chooses the classifier model. Classification may incur extra provider usage and is not an OS sandbox. Uncertain or failed classification falls through to the callback/user path. Put unconditional restrictions in deterministic deny rules or the tool denylist.
+Unresolved requests pass through plugin permission decisions, the selected permission mode, and then the callback/user-decision path. Consequently, `canUseTool` is **not a universal tool interceptor**. An allow rule, accepted edit, bypass mode, or confident automatic classification can settle a request first. Use a denylist or effective deny rule for unconditional restrictions, and validate sensitive operations inside their implementation.
 
-You can change mode on a live idle session with `session.setPermissionMode(mode)` and inspect the resulting configuration with `getAppliedSettings()`.
+| Mode                | Behavior for unresolved requests                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `default`           | Uses the callback or user approval path.                                                                                                  |
+| `dontAsk`           | Denies without waiting for approval. Existing explicit allows still work.                                                                 |
+| `acceptEdits`       | Allows recognized read operations and ordinary workspace edits; external-directory and other operations still need a decision.            |
+| `bypassPermissions` | Approves unresolved requests; effective deny rules still apply.                                                                           |
+| `plan`              | Adds edit restrictions with exceptions for planning files. It does not by itself disable shell commands or guarantee read-only execution. |
+| `auto`              | Uses model classification for unresolved requests, then falls through when classification cannot decide confidently.                      |
+
+Plugin permission hooks can explicitly keep a request on the approval path. The `autoPermissionClassifierModel` option chooses the classifier; this can incur extra provider usage. Prefer deterministic rules when the decision must not depend on a model.
+
+## Keep approval lifetimes bounded
+
+Callbacks run in your application process over the runtime control channel. The server stores a descriptor, not the function. Rebind callbacks after an application restart; an explicit resume override of `canUseTool: false` removes a prior registration.
+
+A callback timeout or unavailable control channel can leave the user-decision path pending. Pass an application cancellation signal or deadline, as in the example, rather than assuming every failure becomes a denial. On an idle session, `setPermissionMode(mode)` changes its policy, and `getAppliedSettings()` shows the applied configuration.

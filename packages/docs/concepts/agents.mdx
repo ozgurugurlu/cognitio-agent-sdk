@@ -1,33 +1,134 @@
 ---
 title: "Agents and query"
-description: "Choose a reusable agent, a one-shot stream or an explicit client."
+description: "Run a task, reuse an agent profile, and choose the right conversation API."
 ---
-`Agent` stores a configuration profile and manages its client. Each `run()` and `stream()` creates a fresh session. A single instance can serve multiple independent requests; use explicit sessions for a conversation.
+
+An `Agent` combines a model, instructions, tools, and limits. Give it a task and the SDK runs the model/tool loop until the model finishes or a limit stops it. Cognitio starts its bundled runtime automatically; you do not need a separate CLI installation.
+
+An Agent is a reusable configuration, **not a conversation**. Each `run()` or `stream()` starts a new session. Use [sessions](/concepts/sessions) when later messages should remember earlier ones.
+
+## Run a task
+
+This complete example checks the provider key, sends a short prompt, validates the terminal outcome, and closes its runtime. The explicit `spawn.env` supplies the key and gives this Agent its own local runtime. Isolation is already enabled by default.
 
 ```ts
-import { Agent, shutdown } from "cognitio-agent-sdk"
+import { Agent } from "cognitio-agent-sdk"
+
+const apiKey = process.env.OPENAI_API_KEY
+if (!apiKey) throw new Error("Set OPENAI_API_KEY before running this example.")
 
 const agent = new Agent({
-  model: "anthropic/claude-sonnet-4-5",
-  instructions: "Review documents for clarity.",
-  maxTurns: 8,
+  model: "openai/gpt-4.1-mini",
+  instructions: "Explain technical concepts clearly in at most three sentences.",
+  spawn: { env: { OPENAI_API_KEY: apiKey } },
+  disallowedTools: ["*"],
+  maxTurns: 1,
+  maxBudgetUsd: 0.03,
 })
+
 try {
-  const result = await agent.run("Review this paragraph: ...")
-  console.log(result.text, result.isError, result.sessionId)
+  const result = await agent.run("What is a database index?", {
+    signal: AbortSignal.timeout(60_000),
+  })
+  if (result.isError) throw new Error(`Agent ended: ${result.subtype}`)
+  if (!result.text.trim()) throw new Error("The model returned no text.")
+  console.log(result.text)
+  console.log({ sessionId: result.sessionId, turns: result.turns })
 } finally {
-  await agent.close().finally(() => shutdown())
+  await agent.close()
 }
 ```
 
-`RunResult` extends the terminal `ResultMessage` with `text` and `isError`. A completed transport can still produce an unsuccessful result; check `subtype` or `isError`. Setup, transport and lifecycle failures can throw.
+`disallowedTools: ["*"]` makes this a text-only task. Remove it or choose a nonempty `allowedTools` list when the task needs [built-in tools](/concepts/built-in-tools) or [your own functions](/concepts/tools).
 
-`query({ prompt, options })` is an asynchronous iterable with terminal result access. It owns its temporary Agent and closes that Agent at completion, failure or iterator cancellation. The default shared runtime remains alive. Read the [streaming guide](/concepts/streaming) before sharing or abandoning an iterator.
+## Run the examples
 
-`createAgentClient()` exposes `sessions.create/get/resume/fork/list/delete`, transport metadata and explicit transport ownership. Use it for services that already manage runtime lifetimes.
+The guides use TypeScript with top-level `await`. In a Node.js 22 project, install:
 
-Default Agents share a process-wide client. `Agent.close()` closes that Agent's streams and session handles; the shared runtime stays available until `shutdown()`. Call `shutdown()` at application teardown: it closes all facade-owned canonical and dedicated clients and can interrupt other Agents using them.
+```sh
+npm install cognitio-agent-sdk@2.0.0
+npm install --save-dev tsx typescript @types/node
+npm pkg set type=module
+```
 
-Explicit connection options such as `spawn` or `baseUrl` create a dedicated client, which that Agent closes. An injected `client` is borrowed and is never closed by either `Agent.close()` or `shutdown()`; its creator must close it. Closing a remote client does not stop the remote server.
+Save a complete example as `agent.ts`. Create a `.env` file containing your `OPENAI_API_KEY`, add `.env` to `.gitignore`, then run:
 
-See the generated `Agent`, `AgentOptions`, `RunOptions`, `QueryOptions` and `AgentClient` reference pages for every option.
+```sh
+node --env-file=.env --import tsx agent.ts
+```
+
+Use the [quickstart](/quickstart) for the initial provider setup. The [cookbook](/cookbook/chat-cli) also includes copyable JavaScript projects that need no TypeScript runner. Provider requests incur usage on your account; `maxBudgetUsd` is an estimated stopping threshold, not a prepaid spending cap.
+
+## Choose an API
+
+| API                          | Use it when                                                    | Conversation behavior                                              |
+| ---------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `agent.run(prompt)`          | You want one final result.                                     | Creates a fresh session and collects its stream.                   |
+| `agent.stream(prompt)`       | You want text and tool events while work runs.                 | Creates a fresh session and returns an async iterator.             |
+| `agent.createSession()`      | You want a chat or a sequence of related tasks.                | Returns a handle you can send multiple turns to.                   |
+| `query({ prompt, options })` | You want a one-shot stream without keeping an Agent variable.  | Owns a temporary Agent with the supplied options.                  |
+| `createAgentClient()`        | Your service manages connections and session storage directly. | Exposes session create, resume, fork, list, and delete operations. |
+
+For example, a second `agent.run("What did I just ask?")` does **not** see the first run. Configuration is shared, conversation history is not. Separate sessions can run concurrently; a single session accepts one active query at a time.
+
+## Check completion, not just transport success
+
+`agent.run()` returns a `RunResult`: `text`, `isError`, `subtype`, session identifiers, turn count, duration, and optional usage/cost/structured output. A completed request can still have an unsuccessful terminal result.
+
+| `subtype`                             | Meaning                                      |
+| ------------------------------------- | -------------------------------------------- |
+| `success`                             | The turn completed normally.                 |
+| `error_max_turns`                     | The assistant turn limit was reached.        |
+| `error_max_budget`                    | Reported estimated usage reached the budget. |
+| `error_aborted`                       | The turn was interrupted.                    |
+| `error_max_structured_output_retries` | The schema retry limit was reached.          |
+| `error_during_execution`              | Execution failed; inspect `error?.message`.  |
+
+Setup, connection, and lifecycle errors can also throw. Keep cleanup in `finally`, including when you reject a terminal result.
+
+## One-shot query
+
+This alternative owns and closes its temporary Agent. Supplying `spawn` gives it a dedicated runtime that closes when iteration finishes, throws, or is returned early.
+
+```ts
+import { query } from "cognitio-agent-sdk"
+
+const apiKey = process.env.OPENAI_API_KEY
+if (!apiKey) throw new Error("Set OPENAI_API_KEY before running this example.")
+
+const stream = query({
+  prompt: "Explain a database index in one sentence.",
+  options: {
+    model: "openai/gpt-4.1-mini",
+    spawn: { env: { OPENAI_API_KEY: apiKey } },
+    disallowedTools: ["*"],
+    maxTurns: 1,
+    maxBudgetUsd: 0.03,
+    signal: AbortSignal.timeout(60_000),
+  },
+})
+try {
+  for await (const message of stream) {
+    if (message.type !== "result") continue
+    if (message.result.subtype !== "success") {
+      throw new Error(`Query ended: ${message.result.subtype}`)
+    }
+    console.log(message.result.text)
+  }
+} finally {
+  await stream.close()
+}
+```
+
+## Runtime ownership
+
+| How you construct the Agent                                  | Who closes the connection?                                                                                           |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| No `spawn`, `baseUrl`, `client`, `control`, or `workspaceId` | Agents share a process-wide local client. Close each Agent, then call exported `shutdown()` at application teardown. |
+| Explicit `spawn`, as in these examples                       | The Agent owns a dedicated local client; `agent.close()` stops it and removes its temporary state.                   |
+| `baseUrl`                                                    | The Agent owns its connection; closing it does not stop the remote server.                                           |
+| An injected `client`                                         | The caller owns it. Neither `agent.close()` nor `shutdown()` closes that borrowed client.                            |
+
+Explicit `control` or `workspaceId` connection options also select a dedicated local client when no `baseUrl` or injected `client` is supplied. The Agent closes that dedicated client.
+
+Local isolation separates runtime configuration, credentials, and state from your usual installation. It does not sandbox tool access to files, processes, or the network. Choose tool permissions for the work your application permits. For service shutdown patterns, see [lifecycle](/cookbook/lifecycle).

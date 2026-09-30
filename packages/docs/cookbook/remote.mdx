@@ -1,24 +1,100 @@
 ---
 title: "Remote runtimes"
-description: "Connect to a server you own and keep session state persistent."
+description: "Connect an application to an existing runtime and keep ownership explicit."
 ---
-Start the Cognitio runtime with `cognitio serve --hostname 127.0.0.1 --port 4096` when you operate its executable separately. The SDK's platform package contains this version-matched executable. Choose persistent storage explicitly for a long-lived server.
+
+For the TypeScript examples, use the [TypeScript setup](/installation#typescript-projects), including `"type": "module"` and the `tsx` runner.
+Most applications can let the SDK spawn its bundled runtime. Use `baseUrl` when a runtime already runs as a separate service: the SDK becomes a client and does not own that server's lifetime.
+
+Model credentials, working directories, built-in tools and session storage belong to the **runtime host**. Supplying an API key only to the connecting application does not configure a remote server's provider access.
+
+## Try two processes locally
+
+Complete the [quickstart](/quickstart) setup. Put `OPENAI_API_KEY` in the environment of the server-owning process. Save this as `runtime-host.ts` and run `node --env-file=.env --import tsx runtime-host.ts` in the first terminal:
+
+```ts
+import { createAgentClient } from "cognitio-agent-sdk"
+
+const owner = await createAgentClient({
+  spawn: { hostname: "127.0.0.1", port: 4096, isolated: true },
+})
+try {
+  console.log("Runtime ready at", owner.baseUrl)
+  console.log("Press Ctrl+C to close this runtime.")
+  await new Promise<void>((resolve) => {
+    process.once("SIGINT", () => resolve())
+    process.once("SIGTERM", () => resolve())
+  })
+} finally {
+  await owner.close()
+}
+```
+
+This uses the executable included with the npm package; no global CLI installation is required. It is a local development server with temporary isolated state. Closing the owner stops it and removes its scratch storage. It is not the persistent deployment described below.
+
+In a second terminal, save this as `remote.ts` and run `node --import tsx remote.ts`:
 
 ```ts
 import { Agent, createAgentClient } from "cognitio-agent-sdk"
+
 const client = await createAgentClient({ baseUrl: "http://127.0.0.1:4096" })
-const agent = new Agent({ client, model: "anthropic/claude-sonnet-4-5" })
+const agent = new Agent({
+  client,
+  model: "openai/gpt-4.1-mini",
+  disallowedTools: ["*"],
+  deleteSessionsOnClose: true,
+  maxTurns: 2,
+})
 try {
-  console.log((await agent.run("Hello")).text)
+  const result = await agent.run("Explain what a remote runtime does in one sentence.", {
+    signal: AbortSignal.timeout(60_000),
+  })
+  if (result.subtype !== "success") throw new Error(`Run ended: ${result.subtype}`)
+  console.log(result.text)
 } finally {
   await agent.close().finally(() => client.close())
 }
 ```
 
-An Agent borrowing a client does not own it. Closing a remote client stops local subscriptions; it does not stop your server. Remote mode also does not apply local spawn isolation: configure credentials, filesystem policy and storage on the server.
+The Agent borrows `client`; its creator closes it. Closing this remote client releases local handles, subscriptions and callback hosts, while the first terminal's server stays running. `shutdown()` handles the default process-wide client and does not close an injected client.
 
-Bind to loopback unless you deliberately expose the runtime. For external deployment use authenticated transport and your network boundary. `COGNITIO_SERVER_PASSWORD` and `COGNITIO_SERVER_USERNAME` configure runtime Basic authentication; supply matching client authorization headers through `ClientOptions.headers`.
+`deleteSessionsOnClose: true` deletes sessions this Agent created or forked. Resumed sessions are retained. Omit this cleanup policy for conversations your application intends to keep.
 
-Direct SDK tools and hooks use the existing event/control channel. SDK-owned HTTP MCP hosting requires a locally spawned runtime. For a remote runtime, use direct callback tools or an external MCP endpoint that the runtime can reach.
+## Authenticate a deployed server
 
-Use `deleteSessionsOnClose` to clean ephemeral sessions that an Agent created on a long-lived server. Do not enable it for conversations your product promises to retain.
+The runtime supports Basic authentication using `COGNITIO_SERVER_USERNAME` and `COGNITIO_SERVER_PASSWORD` in its server environment. The default username, when a password is set without a username, is `cognitio`. For a directly operated server, set these variables in that server process. For the SDK-spawned owner above, pass them explicitly through `spawn.env`, for example `env: { COGNITIO_SERVER_USERNAME: username, COGNITIO_SERVER_PASSWORD: password }` using values read and checked by your host application. Isolated spawn does not forward ambient `COGNITIO_*` variables, so exporting them only in the parent shell is insufficient.
+
+On the connecting application, set `COGNITIO_REMOTE_USERNAME` and `COGNITIO_REMOTE_PASSWORD` to the same credentials and `COGNITIO_REMOTE_URL` to the server URL. Supply matching headers on every client request, including SSE:
+
+```ts
+import { Agent, createAgentClient } from "cognitio-agent-sdk"
+
+const baseUrl = process.env.COGNITIO_REMOTE_URL
+const password = process.env.COGNITIO_REMOTE_PASSWORD
+const username = process.env.COGNITIO_REMOTE_USERNAME ?? "cognitio"
+if (!baseUrl || !password) throw new Error("Set the remote URL and password.")
+const client = await createAgentClient({
+  baseUrl,
+  headers: {
+    Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`,
+  },
+})
+const agent = new Agent({ client, model: "openai/gpt-4.1-mini", disallowedTools: ["*"] })
+try {
+  const result = await agent.run("Say hello.", { signal: AbortSignal.timeout(60_000) })
+  if (result.subtype !== "success") throw new Error(`Run ended: ${result.subtype}`)
+  console.log(result.text)
+} finally {
+  await agent.close().finally(() => client.close())
+}
+```
+
+Basic credentials require protected transport when traffic leaves the local host. Operate behind an authenticated network boundary and TLS; keep unauthenticated development servers on loopback. Never print the Authorization header.
+
+## Plan storage and callback lifetimes
+
+A production server needs deliberately configured persistent storage, stable runtime credentials and an operational process owner. Connecting through `baseUrl` does not enable local spawn isolation or provision those resources. Session paths refer to the server's filesystem, and runtime isolation is not an OS or filesystem sandbox.
+
+Persisted transcripts can survive server restarts when storage is retained. Session runtime overrides and callback registrations are held in memory; reapply the intended policy and real callbacks when resuming. Keep the SDK application connected while the runtime needs its custom tools, hooks or permission callbacks.
+
+Direct SDK tools use the HTTP event/control channel and work with remote runtimes. SDK-owned HTTP MCP hosting requires a locally spawned runtime; for remote use, choose direct tools or an external MCP endpoint reachable from the server. See [MCP](/concepts/mcp).

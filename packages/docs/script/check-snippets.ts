@@ -14,7 +14,7 @@ const bindings = (name: ts.BindingName): string[] =>
 
 for (const page of [...pages, "../../README.md", "../agent-sdk/README.md"]) {
   const content = await readFile(path.join(root, page), "utf8")
-  const blocks = [...content.matchAll(/```(?:ts|typescript|js|javascript)\s*\n([\s\S]*?)```/g)]
+  const blocks = [...content.matchAll(/```(?:ts|typescript|js|javascript)\b[^\n]*\n([\s\S]*?)```/g)]
   for (const [index, block] of blocks.entries()) {
     const code = block[1]!
     const source = ts.createSourceFile("snippet.ts", code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)

@@ -1,41 +1,89 @@
 ---
 title: "Models and prompts"
-description: "Use provider/model IDs and control the model context."
+description: "Choose a provider, supply credentials, and shape the agent's instructions."
 ---
-Model IDs have the form `provider/model`. `models.anthropic("claude-sonnet-4-5")` is a typed string helper, not a provider object. Unknown strings remain accepted so a new or private model does not require an SDK release.
+
+A model ID has the form `provider/model`, such as `openai/gpt-4.1-mini`. Cognitio runs the agent loop; the selected provider runs inference and accounts for its usage. Changing the provider requires that provider's credentials and a model your account can access.
+
+## Choose a model and write instructions
+
+Use the [TypeScript example setup](/concepts/agents#run-the-examples). This complete example uses an OpenAI model and application-specific instructions. It needs only `OPENAI_API_KEY` from your environment.
 
 ```ts
 import { Agent, models } from "cognitio-agent-sdk"
+
+const apiKey = process.env.OPENAI_API_KEY
+if (!apiKey) throw new Error("Set OPENAI_API_KEY before running this example.")
+
 const agent = new Agent({
-  model: models.anthropic("claude-sonnet-4-5"),
-  instructions: "You are a precise research assistant.",
-  includeEnvironment: false,
+  model: models.openai("gpt-4.1-mini"),
+  instructions: "You explain technical concepts to a new developer. Use one short analogy and no jargon.",
+  appendSystemPrompt: "Keep your answer under 80 words.",
+  spawn: { env: { OPENAI_API_KEY: apiKey } },
+  disallowedTools: ["*"],
+  maxTurns: 1,
+  maxBudgetUsd: 0.03,
 })
+try {
+  const result = await agent.run("What does a database transaction do?", {
+    signal: AbortSignal.timeout(60_000),
+  })
+  if (result.isError) throw new Error(`Agent ended: ${result.subtype}`)
+  console.log(result.text)
+} finally {
+  await agent.close()
+}
 ```
 
-## Prompt composition
+`models.openai("gpt-4.1-mini")` returns the string `"openai/gpt-4.1-mini"`. Helpers such as `models.anthropic(...)` and `models.google(...)` give editor completions; they do not create provider clients, load credentials, or verify account access. Plain strings are accepted, including newly released or private model IDs, but the runtime still needs a configured provider and model definition.
 
-`instructions` is shorthand for a custom system prompt and cannot be combined with `systemPrompt`. Use `appendSystemPrompt` for an addition. The neutral base prompt is exported as `NEUTRAL_BASE_PROMPT`.
+To use another provider, change both the model and the credential you explicitly pass in `spawn.env`. For example, an Anthropic model uses `ANTHROPIC_API_KEY`; a Google model uses `GEMINI_API_KEY`. Never put a real key in source code or commit your `.env` file.
 
-`systemPrompt: { type: "preset", preset: "default", append: "..." }` chooses the coding prompt. `preset: "none"` disables that preset. Environment context and instruction/skill channels are separately controlled by `includeEnvironment`, `settingSources` and tool policy.
+## Understand prompt composition
+
+With no custom prompt, the SDK supplies a neutral, general-purpose agent prompt. You do not need to replace it for every application.
+
+| Option                                                               | What it changes                                                                                     |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `instructions: "..."`                                                | Replaces the base system prompt with your application instructions.                                 |
+| `systemPrompt: "..."`                                                | Also selects a full custom base prompt. Do not combine it with `instructions`.                      |
+| `appendSystemPrompt: "..."`                                          | Adds instructions after the chosen base prompt. Useful for output style or application conventions. |
+| `systemPrompt: { type: "preset", preset: "default", append: "..." }` | Explicitly chooses the runtime's coding-oriented prompt and appends your text.                      |
+| `systemPrompt: { type: "preset", preset: "none" }`                   | Omits the preset base prompt. Other context channels remain independently controlled.               |
+| `includeEnvironment: false`                                          | Omits the automatic working-directory/platform context from the system prompt.                      |
+
+`instructions` and `systemPrompt` are mutually exclusive. `appendSystemPrompt` can be used with either. The exported `NEUTRAL_BASE_PROMPT` lets you compose with the SDK's exact neutral prompt when needed.
+
+Instructions guide the model; they do not enforce authorization. Use [tool policies and permissions](/concepts/permissions) for restrictions such as preventing shell commands or limiting file operations.
+
+## Project instructions and context
+
+SDK sessions default to `settingSources: []`, so project/user/local instruction resources are not discovered automatically. Programmatic instructions and explicitly supplied tools still work. Opt into only the sources your application wants to load with `settingSources: ["project"]`, `"user"`, or `"local"` entries.
+
+`includeEnvironment: false` does not remove text that you explicitly put in a prompt or return from a tool. Similarly, selecting `preset: "none"` does not disable skills, tool descriptions, or enabled instruction sources. These options control separate pieces of context.
+
+## Change the model for one run
+
+A per-run `model` overrides the Agent's default for that fresh session. The Agent keeps its original profile for later runs. On an existing idle Session, `session.setModel(id)` changes the model used for following turns; the conversation history stays in that session.
+
+Choose models based on the task's required capabilities: tool calling for agents that take actions, input modalities for image/file prompts, and supported schema behavior for [structured output](/concepts/structured-output). An accepted model ID is not a promise that every capability is available on that model.
 
 ## Reasoning controls
 
-`effort` accepts `low`, `medium`, `high` or `max`. `thinkingConfig` accepts `{ type: "adaptive" }`, `{ type: "disabled" }`, or `{ type: "enabled", budgetTokens: 4096 }`. Enabled thinking requires at least 1024 tokens. Support is provider/model specific; unsupported configurations fail explicitly instead of silently being ignored.
+Leave reasoning controls unset for the `gpt-4.1-mini` examples on this site. For models that support reasoning, `effort` accepts `"low"`, `"medium"`, `"high"`, or `"max"`, subject to the model's supported variants.
 
-```ts
-const agent = new Agent({
-  model: "anthropic/claude-sonnet-4-5",
-  thinkingConfig: { type: "enabled", budgetTokens: 4096 },
-})
-```
+`thinkingConfig` accepts one of:
 
-## Catalog and private providers
+| Value                                     | Request                                                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `{ type: "adaptive" }`                    | Let a supported provider/model determine its reasoning budget.                                    |
+| `{ type: "enabled", budgetTokens: 4096 }` | Request an explicit thinking budget. It must be at least 1024 and below the model's output limit. |
+| `{ type: "disabled" }`                    | Disable thinking through a provider integration that supports this control.                       |
 
-The runtime validates model catalog data before using limits and prices. `COGNITIO_MODELS_PATH` selects a preferred local catalog file. An unreadable file or invalid JSON can fall back to the bundled snapshot or remote catalog; a parsed catalog with an invalid schema is rejected. The path setting alone does not disable background refresh.
+These are provider-specific capabilities. The runtime maps supported combinations to the provider's options and rejects unsupported combinations explicitly. Even `thinkingConfig: { type: "disabled" }` is not a portable option for every provider; omit the field when the provider does not support it. Reasoning tokens and additional calls can affect latency and cost.
 
-Set `COGNITIO_DISABLE_MODELS_FETCH=1` to disable automatic remote catalog fetching. `COGNITIO_MODELS_URL` selects a mirror base URL without a trailing slash; the runtime appends `/api.json`. For an isolated SDK child, supply these variables through `spawn.env`: parent `COGNITIO_*` variables are not automatically forwarded. A validated refresh invalidates provider metadata on subsequent access.
+## Private providers and model catalogs
 
-Add a private OpenAI-compatible provider through `spawn.config.provider`, including its `npm`, `options.baseURL`, credentials and model limits. No Cognitio-hosted inference service or gateway is implied by this SDK.
+For a private OpenAI-compatible endpoint, configure `spawn.config.provider` with its provider ID, adapter `npm`, `options.baseURL`, credentials, and model definitions/limits. Reference that provider as `your-provider/your-model`. The [SpawnOptions reference](/api-reference/interfaces/SpawnOptions) describes the configuration entry point. Cognitio does not include a hosted inference gateway.
 
-Mutable dynamically installed provider packages use a daily cache generation; `COGNITIO_PROVIDER_CACHE_TTL_MS` overrides the positive TTL. Exact package versions remain pinned. Bundled provider upgrades arrive through SDK releases.
+The runtime uses a validated model catalog for metadata such as limits and estimated prices. Advanced deployments can supply `COGNITIO_MODELS_PATH` for a local catalog, `COGNITIO_DISABLE_MODELS_FETCH: "1"` to disable automatic remote catalog fetching, or `COGNITIO_MODELS_URL` for a mirror base URL (the runtime appends `/api.json`). Supply these through `spawn.env` for an isolated child. A local path alone does not disable background refresh; unreadable/invalid-JSON files may fall back, while parsed catalog data that fails schema validation is rejected. An explicitly forced catalog refresh can still make a network request.

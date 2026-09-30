@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Cognitio Agent SDK",
-  "description": "Build programmable agents with tools, sessions, permissions and streaming. Built on OpenCode.",
+  "description": "Build agents with tools, conversations, streaming, and structured output. Built on OpenCode.",
   "colors": {
     "primary": "#26785F",
     "light": "#75B798",
@@ -24,36 +24,42 @@
               "index",
               "quickstart",
               "installation",
-              "defaults-and-isolation"
+              "concepts/agents"
             ]
           },
           {
-            "group": "Build agents",
+            "group": "Models and conversations",
             "pages": [
-              "concepts/agents",
+              "concepts/models-and-prompts",
               "concepts/sessions",
               "concepts/streaming",
-              "concepts/models-and-prompts",
-              "concepts/tools",
-              "concepts/permissions",
-              "concepts/hooks"
+              "concepts/structured-output"
             ]
           },
           {
-            "group": "Extend the runtime",
+            "group": "Tools and extensions",
             "pages": [
+              "concepts/built-in-tools",
+              "concepts/tools",
               "concepts/mcp",
               "concepts/subagents",
-              "concepts/skills-commands-plugins",
-              "concepts/structured-output",
+              "concepts/skills-commands-plugins"
+            ]
+          },
+          {
+            "group": "Control and observe",
+            "pages": [
+              "concepts/permissions",
+              "concepts/hooks",
               "concepts/checkpoints",
               "concepts/compaction",
               "concepts/observability"
             ]
           },
           {
-            "group": "Cookbook projects",
+            "group": "Cookbooks",
             "pages": [
+              "cookbook/examples",
               "cookbook/chat-cli",
               "cookbook/structured-extraction",
               "cookbook/custom-tool",
@@ -61,24 +67,30 @@
             ]
           },
           {
-            "group": "Ship an application",
+            "group": "Run in an application",
             "pages": [
-              "cookbook/examples",
-              "cookbook/remote",
               "cookbook/lifecycle",
-              "migration/claude-agent-sdk",
-              "migration/v2",
+              "defaults-and-isolation",
+              "cookbook/remote"
+            ]
+          },
+          {
+            "group": "Help and migration",
+            "pages": [
+              "changelog",
               "troubleshooting",
-              "publishing"
+              "support",
+              "migration/claude-agent-sdk",
+              "migration/v2"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "SDK reference",
         "groups": [
           {
-            "group": "Public API",
+            "group": "Overview",
             "pages": [
               "api-reference/index"
             ]
@@ -220,7 +232,32 @@
             ]
           },
           {
-            "group": "Protocol",
+            "group": "Supporting",
+            "pages": [
+              "api-reference/supporting/PermissionDecision",
+              "api-reference/supporting/SdkMcpHost",
+              "api-reference/supporting/ToolContext",
+              "api-reference/supporting/ToolDefinitionBase"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Advanced",
+        "groups": [
+          {
+            "group": "Runtime HTTP API",
+            "pages": [
+              "http-api/overview",
+              "http-api/events-and-control"
+            ]
+          },
+          {
+            "group": "HTTP endpoints",
+            "openapi": "/openapi.json"
+          },
+          {
+            "group": "Protocol types",
             "pages": [
               "api-reference/protocol/AgentConfig",
               "api-reference/protocol/AgentPart",
@@ -367,31 +404,6 @@
               "api-reference/protocol/UserMessage",
               "api-reference/protocol/WellKnownAuth"
             ]
-          },
-          {
-            "group": "Supporting",
-            "pages": [
-              "api-reference/supporting/PermissionDecision",
-              "api-reference/supporting/SdkMcpHost",
-              "api-reference/supporting/ToolContext",
-              "api-reference/supporting/ToolDefinitionBase"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "HTTP API",
-        "groups": [
-          {
-            "group": "Protocol",
-            "pages": [
-              "http-api/overview",
-              "http-api/events-and-control"
-            ]
-          },
-          {
-            "group": "Endpoints",
-            "openapi": "/openapi.json"
           }
         ]
       }
@@ -403,6 +415,18 @@
       "view",
       "chatgpt",
       "claude"
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/ozgurugurlu/cognitio-agent-sdk"
+      },
+      {
+        "label": "Contact",
+        "href": "mailto:ugurlu.oozgur@gmail.com"
+      }
     ]
   }
 }

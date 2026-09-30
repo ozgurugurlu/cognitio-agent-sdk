@@ -67,10 +67,15 @@ try {
   for (const file of (await readdir(temporary, { recursive: true })).filter((file) => file.endsWith(".mdx"))) {
     const target = path.join(temporary, file)
     const source = (await readFile(target, "utf8")).replace(/[ \t]+$/gm, "")
-    const title = source.match(/^# (.+)$/m)?.[1]?.replace(/\\/g, "") ?? path.basename(file, ".mdx")
+    const title =
+      file === "index.mdx"
+        ? "SDK reference"
+        : (source.match(/^# (.+)$/m)?.[1]?.replace(/\\/g, "") ?? path.basename(file, ".mdx"))
+    const introduction =
+      file === "index.mdx" ? await readFile(path.join(root, "snippets/sdk-reference-intro.md"), "utf8") : ""
     await writeFile(
       target,
-      `---\ntitle: ${JSON.stringify(title)}\ndescription: "Generated from the public TypeScript API."\n---\n\n${source.replace(/^# .+\n/m, "").replace(/\]\(([^)]+)\.mdx(#[^)]*)?\)/g, "]($1$2)")}`,
+      `---\ntitle: ${JSON.stringify(title)}\ndescription: "Generated from the public TypeScript API."\n---\n\n${introduction}${source.replace(/^# .+\n/m, "").replace(/\]\(([^)]+)\.mdx(#[^)]*)?\)/g, "]($1$2)")}`,
     )
   }
   for (const entry of supplemental.values()) {
@@ -95,20 +100,26 @@ try {
   }
   const files = (await readdir(temporary, { recursive: true })).filter((file) => file.endsWith(".mdx")).sort()
   const config = JSON.parse(await readFile(path.join(root, "docs.json"), "utf8"))
-  const tab = config.navigation.tabs.find((item: { tab: string }) => item.tab === "API reference")
-  if (!tab) throw new Error("docs.json must declare the API reference tab")
+  const tab = config.navigation.tabs.find((item: { tab: string }) => item.tab === "SDK reference")
+  const advanced = config.navigation.tabs.find((item: { tab: string }) => item.tab === "Advanced")
+  if (!tab || !advanced) throw new Error("docs.json must declare SDK reference and Advanced tabs")
   tab.groups = [
-    { group: "Public API", pages: ["api-reference/index"] },
-    ...["classes", "functions", "interfaces", "type-aliases", "variables", "protocol", "supporting"].flatMap(
-      (folder) => {
-        const pages = files
-          .filter((file) => file.startsWith(`${folder}/`))
-          .map((file) => `api-reference/${file.slice(0, -4)}`)
-        return pages.length
-          ? [{ group: folder.replace("type-aliases", "Types").replace(/^./, (letter) => letter.toUpperCase()), pages }]
-          : []
-      },
-    ),
+    { group: "Overview", pages: ["api-reference/index"] },
+    ...["classes", "functions", "interfaces", "type-aliases", "variables", "supporting"].flatMap((folder) => {
+      const pages = files
+        .filter((file) => file.startsWith(`${folder}/`))
+        .map((file) => `api-reference/${file.slice(0, -4)}`)
+      return pages.length
+        ? [{ group: folder.replace("type-aliases", "Types").replace(/^./, (letter) => letter.toUpperCase()), pages }]
+        : []
+    }),
+  ]
+  advanced.groups = [
+    ...advanced.groups.filter((group: { group: string }) => group.group !== "Protocol types"),
+    {
+      group: "Protocol types",
+      pages: files.filter((file) => file.startsWith("protocol/")).map((file) => `api-reference/${file.slice(0, -4)}`),
+    },
   ]
   const navigation = JSON.stringify(config, null, 2) + "\n"
   if (checking) {

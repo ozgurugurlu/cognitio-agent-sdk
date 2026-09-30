@@ -1,5 +1,5 @@
 {
-  "sourceCommit": "e9d865a2cae2a97908c0d19d3de5271d67c731ca",
+  "sourceCommit": "f98f95668f67657b964621939d1d834b47c679f6",
   "product": "Cognitio Agent SDK",
   "historyIncluded": false,
   "files": [
@@ -1598,7 +1598,9 @@
     "packages/docs/api-reference/variables/NEUTRAL_BASE_PROMPT.mdx",
     "packages/docs/api-reference/variables/PermissionDecision.mdx",
     "packages/docs/api-reference/variables/models.mdx",
+    "packages/docs/changelog.mdx",
     "packages/docs/concepts/agents.mdx",
+    "packages/docs/concepts/built-in-tools.mdx",
     "packages/docs/concepts/checkpoints.mdx",
     "packages/docs/concepts/compaction.mdx",
     "packages/docs/concepts/hooks.mdx",
@@ -1632,11 +1634,12 @@
     "packages/docs/migration/v2.mdx",
     "packages/docs/openapi.json",
     "packages/docs/package.json",
-    "packages/docs/publishing.mdx",
     "packages/docs/quickstart.mdx",
     "packages/docs/script/check-snippets.ts",
     "packages/docs/script/check.ts",
     "packages/docs/script/generate-reference.ts",
+    "packages/docs/snippets/sdk-reference-intro.md",
+    "packages/docs/support.mdx",
     "packages/docs/troubleshooting.mdx",
     "packages/docs/typedoc.json",
     "packages/enterprise/.gitignore",
@@ -4951,34 +4954,5 @@
     "tsconfig.json",
     "turbo.json"
   ],
-  "publicAdaptations": [
-    {
-      "file": "package.json",
-      "reason": "Point repository metadata to the GitHub source repository."
-    },
-    {
-      "file": "packages/agent-sdk/package.json",
-      "reason": "Point SDK repository metadata to the GitHub source repository."
-    },
-    {
-      "file": "PUBLISHING.md",
-      "reason": "Document the actual GitHub source, snapshot update workflow, and Mintlify deployment settings."
-    },
-    {
-      "file": "packages/docs/README.md",
-      "reason": "Document standalone preview, validation, and the self-contained OpenAPI copy."
-    },
-    {
-      "file": "packages/docs/openapi.json",
-      "reason": "Materialize the canonical runtime OpenAPI as a regular file inside the hosted documentation root."
-    },
-    {
-      "file": "packages/docs/script/generate-reference.ts",
-      "reason": "Synchronize the hosted OpenAPI copy during generation and reject stale or linked copies during checks."
-    },
-    {
-      "file": "packages/docs/script/check.ts",
-      "reason": "Validate the hosted OpenAPI copy against its canonical runtime specification."
-    }
-  ]
+  "publicAdaptations": []
 }

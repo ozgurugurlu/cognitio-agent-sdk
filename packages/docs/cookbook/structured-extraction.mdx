@@ -1,45 +1,119 @@
 ---
 title: "Extract structured data"
-description: "Turn a contact description into validated JSON with Zod."
+description: "Extract a contact into JSON and validate it with Zod."
 ---
 
-The complete project in `examples/02-structured-output/` extracts a small object from a fixed input. It depends only on the published SDK and Zod. Copy the directory to use it independently of the repository.
+Turn a short contact description into a typed object that your application can validate. The complete code is below. You can also [browse the project on GitHub](https://github.com/ozgurugurlu/cognitio-agent-sdk/tree/main/examples/02-structured-output) or [open its JavaScript source](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/examples/02-structured-output/index.mjs).
 
-## Run the project
+## 1. Create the project
 
-From the repository root, use the commands below. If you copied the project elsewhere, enter its directory and omit the first `cd` line.
+Use Node.js 22 or newer, npm, and an OpenAI API key with access to `gpt-4.1-mini`. Model requests use your provider account and can incur charges.
 
 ```sh
-cd examples/02-structured-output
-npm ci
-cp .env.example .env
-# Set OPENAI_API_KEY in .env, then:
-npm start
+mkdir cognitio-extraction
+cd cognitio-extraction
+npm init -y
+npm install --save-exact cognitio-agent-sdk@2.0.0 zod@4.1.8
 ```
 
-Node.js 22 or newer is required. On PowerShell, use `Copy-Item .env.example .env`. The model defaults to `openai/gpt-4.1-mini`; the project's README explains its schema and expected fields.
+Keep npm optional dependencies enabled; they include the runtime for your platform. You do not need a separately installed runtime.
 
-## Validate at the application boundary
+## 2. Configure the environment
 
-Use `defineOutputFormat()` to pass the schema to the runtime. The following excerpt shows the pattern; the complete project adds the input, budget and cleanup:
+Create a file named `.env` in this directory:
+
+```dotenv
+COGNITIO_MODEL=openai/gpt-4.1-mini
+OPENAI_API_KEY=replace_with_your_key
+```
+
+Replace the placeholder with your key. Add `.env` and `node_modules/` to `.gitignore`. Existing shell environment values take precedence over this file. To use Anthropic instead, set `COGNITIO_MODEL=anthropic/claude-sonnet-4-5` and `ANTHROPIC_API_KEY` to your Anthropic key; the code forwards either provider's credential.
+
+## 3. Create `index.mjs`
 
 ```js
-import { defineOutputFormat } from "cognitio-agent-sdk"
+import { Agent, defineOutputFormat } from "cognitio-agent-sdk"
 import { z } from "zod"
+
+const model = process.env.COGNITIO_MODEL?.trim() || "openai/gpt-4.1-mini"
+const credential = { openai: "OPENAI_API_KEY", anthropic: "ANTHROPIC_API_KEY" }[model.split("/")[0]]
+if (!model.includes("/")) throw new Error("Set COGNITIO_MODEL to a provider/model identifier.")
+if (credential && (!process.env[credential]?.trim() || process.env[credential] === "replace_with_your_key")) {
+  throw new Error(`Set ${credential} in .env or your shell before running this example.`)
+}
+const providerEnv = Object.fromEntries(
+  ["OPENAI_API_KEY", "ANTHROPIC_API_KEY"]
+    .filter((name) => process.env[name]?.trim())
+    .map((name) => [name, process.env[name]]),
+)
 
 const contactSchema = z.object({
   name: z.string().min(1),
   email: z.email(),
   company: z.string().min(1),
 })
+// Keep the model-facing email schema simple; validate the actual address below.
 const modelSchema = contactSchema.extend({
   email: z.string().describe("Email address exactly as written in the input"),
 })
-const format = defineOutputFormat(modelSchema, { maxRetries: 1 })
+const agent = new Agent({
+  model,
+  instructions: "Extract only information present in the supplied text.",
+  settingSources: [],
+  includeEnvironment: false,
+  allowedTools: ["StructuredOutput"],
+  outputFormat: defineOutputFormat(modelSchema, { maxRetries: 1 }),
+  maxTurns: 3,
+  maxBudgetUsd: 0.03,
+  spawn: {
+    isolated: true,
+    port: 0,
+    autoCleanup: true,
+    env: { ...providerEnv, COGNITIO_DISABLE_AUTOUPDATE: "1", COGNITIO_DISABLE_LSP_DOWNLOAD: "1" },
+    config: { plugin: [], lsp: false, formatter: false, agent: { title: { disable: true } } },
+  },
+})
+
+try {
+  const result = await agent.run("Extract this contact: Mina Patel works at Acme Labs. Email: mina@example.com.", {
+    signal: AbortSignal.timeout(90_000),
+  })
+  if (result.isError || result.subtype !== "success") {
+    throw new Error(`Extraction failed: ${result.subtype}: ${result.error?.message ?? "No error details"}`)
+  }
+  const contact = contactSchema.parse(result.structuredOutput)
+  console.log(JSON.stringify(contact, null, 2))
+} finally {
+  await agent.close()
+}
 ```
 
-Set the Agent's `outputFormat` to `format`. After `agent.run()`, first reject an unsuccessful result, then use `contactSchema.parse(result.structuredOutput)` to obtain validated data. Do not parse the conversational `result.text` as a substitute for the structured payload. The model-facing schema uses a plain string for email; the stricter local schema still rejects invalid email addresses before the application prints success. This avoids depending on a provider reproducing every constraint emitted by a schema library.
+## 4. Run it
 
-Set `allowedTools: ["StructuredOutput"]` on this Agent. The name is case-sensitive: it permits the runtime's internal schema-output tool and hides ordinary tools. Do not use `disallowedTools: ["*"]` here; that also blocks `StructuredOutput` and can exhaust the schema-retry budget. Invalid model output can consume schema retries; those retries still use model calls, the turn limit and the cost budget. Exhaustion is an unsuccessful result, not unchecked successful data. See [structured output](/concepts/structured-output) for the contract.
+```sh
+node --env-file=.env index.mjs
+```
 
-A schema validates the shape and constraints you express; it cannot establish that arbitrary extracted facts are true. Keep the input small and inspect the returned values for your application.
+The fixed input should produce:
+
+```json
+{
+  "name": "Mina Patel",
+  "email": "mina@example.com",
+  "company": "Acme Labs"
+}
+```
+
+The application prints the object only after a successful result and `contactSchema.parse()`. A schema error or an unsuccessful model result exits with an error. Replace the contact sentence passed to `agent.run()` with your own input.
+
+## How it works
+
+`defineOutputFormat(modelSchema)` supplies a simple model-facing shape. The stricter local `contactSchema` checks the actual email address after the response. This keeps provider-facing schema constraints separate from application validation. Read `result.structuredOutput`; do not parse `result.text` as a substitute.
+
+`allowedTools: ["StructuredOutput"]` permits only the runtime's schema-output tool. Its name is case-sensitive. `disallowedTools: ["*"]` would block this tool too. This example allows three turns and one schema retry; retries also consume turns and model usage. The estimated $0.03 budget is not a provider billing limit.
+
+The explicit `spawn` configuration creates a dedicated runtime, which `agent.close()` stops in `finally`. Each request has a 90-second cancellation deadline. A valid object can still contain an incorrect extracted fact, so validate any additional rules your application requires. See [structured output](/concepts/structured-output).
+
+## Use the existing project
+
+If you prefer the [complete GitHub project](https://github.com/ozgurugurlu/cognitio-agent-sdk/tree/main/examples/02-structured-output), copy that directory, run `npm ci`, copy `.env.example` to `.env`, set your key, and run `npm start`. On PowerShell, use `Copy-Item .env.example .env`; in a Unix shell, use `cp .env.example .env`.

@@ -1,46 +1,96 @@
 ---
-title: "Tools"
-description: "Combine built-in tools with functions in your application."
+title: "Custom tools"
+description: "Give an agent application functions with schemas, validation, and clear permissions."
 ---
-Built-ins cover reading, writing, editing, glob/grep, shell commands, web access, subagents, skills and todos. Available tools depend on runtime configuration. High-level defaults hide interactive/headless-inappropriate tools; see [defaults](/defaults-and-isolation).
 
-## Define a tool
+A tool lets the model ask your application to do something: look up an order, calculate a value, or call an API. You describe its name, purpose, and input shape; your callback performs the work and returns data the model can use in its answer.
 
-This example uses Zod 4. Add it to your application's dependencies with `npm install zod@4`, or use JSON Schema directly.
+Cognitio includes [built-in tools](/concepts/built-in-tools) for files, commands, and web access. Use `defineTool()` for your application logic, or [MCP](/concepts/mcp) to connect a group of tools through a server.
+
+## Define and run a tool
+
+Use the [TypeScript example setup](/concepts/agents#run-the-examples) and add Zod:
+
+```sh
+npm install zod@4.1.8
+```
+
+This complete example exposes one addition tool. The allowlist makes only that tool available to the model. The callback validates its input before calculating a result.
 
 ```ts
 import { Agent, defineTool } from "cognitio-agent-sdk"
 import { z } from "zod"
 
-const inputSchema = z.object({ a: z.number(), b: z.number() })
+const apiKey = process.env.OPENAI_API_KEY
+if (!apiKey) throw new Error("Set OPENAI_API_KEY before running this example.")
+
+const inputSchema = z.object({ a: z.number().finite(), b: z.number().finite() })
 const add = defineTool({
   name: "add",
-  description: "Add two numbers.",
+  description: "Add two finite numbers and return their sum.",
   inputSchema,
-  execute(input) {
-    const values = inputSchema.parse(input)
-    return { sum: values.a + values.b }
+  execute(input, context) {
+    context.signal.throwIfAborted()
+    const { a, b } = inputSchema.parse(input)
+    const sum = a + b
+    if (!Number.isFinite(sum)) throw new Error("The sum must be finite.")
+    return { sum }
   },
 })
+
 const agent = new Agent({
-  model: "anthropic/claude-sonnet-4-5",
+  model: "openai/gpt-4.1-mini",
+  instructions: "Use the addition tool when asked to add numbers.",
+  spawn: { env: { OPENAI_API_KEY: apiKey } },
   tools: [add],
   allowedTools: ["sdk_add"],
+  maxTurns: 3,
+  maxBudgetUsd: 0.03,
 })
+try {
+  const result = await agent.run("Use the addition tool for 19 + 23, then state the result.", {
+    signal: AbortSignal.timeout(60_000),
+  })
+  if (result.isError) throw new Error(`Agent ended: ${result.subtype}`)
+  console.log(result.text)
+} finally {
+  await agent.close()
+}
 ```
 
-Direct Agent tools are exposed as `sdk_<sanitized-name>`. Tool names must remain unique after sanitization. `execute` receives tool arguments and a `ToolContext` with the session ID, cancellation signal and an optional tool call ID. Respect the signal for network and long-running operations.
+A tool call usually needs at least two assistant turns: one to request the tool and another to interpret its result. Keep `maxTurns` large enough for the intended loop.
 
-The schema describes arguments to the model/MCP client; v2 does not automatically parse callback input with Zod or validate it against arbitrary JSON Schema. Validate inside `execute` before using the values or performing side effects, as the example does. This also applies to input replaced by a permission callback. Use a JSON Schema-compatible shape for the declared schema; keep additional refinements or transformations in the parser you call inside `execute`.
+## Names and inputs
 
-Use `inputJsonSchema` or a JSON Schema object in `inputSchema` when you do not use Zod. Tool outputs must be representable through the control channel; return plain data or strings.
+Direct tools supplied through `Agent({ tools: [...] })` are model-visible as `sdk_<name>`. Characters outside letters, digits, `_`, and `-` become `_`. For example, `lookup-order` becomes `sdk_lookup-order`. Names must remain unique after sanitization; use the **model-visible** name in tool policies and permission callbacks.
 
-## Tool policies
+`inputSchema` accepts Zod or JSON Schema. `inputJsonSchema` accepts a JSON Schema directly. A schema describes the input expected by the model; **v2 does not automatically parse custom callback input with Zod or validate arbitrary JSON Schema before calling `execute`**. Validate in your callback before side effects, including when hooks or permission callbacks can replace the input. Keep transformations and application-specific refinements in that explicit validation step.
 
-`allowedTools` and `disallowedTools` accept built-in names, MCP names and supported permission patterns such as `bash(npm:*)`. Denies take precedence. A nonempty allowlist limits tools to matching entries; `allowedTools: []` leaves the allowlist unrestricted and also overrides the facade's default hidden-tool profile. Use `disallowedTools: ["*"]` to deny every tool, including the synthetic `StructuredOutput` tool. For schema-only output, allow `StructuredOutput` explicitly as shown in [structured output](/concepts/structured-output). A tool policy controls visibility and execution; permissions decide whether an available operation may proceed.
+The callback may be synchronous or asynchronous. Return strings or plain serializable data. An exception becomes a tool failure that the model can receive; the overall run may still recover and succeed. Check the terminal result separately.
 
-For many MCP tools, `enableToolSearch: "auto"` defers tool discovery until needed. `always`, `never`, `true` and `false` are also supported. `metadata.searchHint` improves keyword search; `metadata.alwaysLoad` keeps a tool present.
+## Cancellation and application boundaries
 
-Tool annotations describe read-only, destructive, idempotent and open-world behavior. They are descriptive hints, not a replacement for authorization in the tool implementation.
+`execute(input, context)` receives `context.sessionId`, `context.signal`, and an optional `context.toolCallId`. Pass the signal to cancellable I/O, and check it before expensive work or side effects. The SDK cannot undo an external action your callback already committed.
 
-Custom callbacks execute in the SDK process even when the runtime is remote or isolated. Host them intentionally and keep privileged operations behind your application's policy.
+Callbacks execute in **your application process**, including when the runtime uses isolated state or a remote server. They have your application's access to databases, files, and services. Validate identifiers and enforce application authorization inside the callback when those checks must apply to every invocation.
+
+Tool annotations such as read-only, destructive, idempotent, or open-world describe behavior to consumers. They do not enforce authorization.
+
+## Choose which tools the model can use
+
+| Configuration               | Effect                                                                                                                       |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `allowedTools: ["sdk_add"]` | A nonempty list limits tools to matching entries and grants matching operations unless another effective policy denies them. |
+| `disallowedTools: ["bash"]` | Hides and blocks the shell tool.                                                                                             |
+| `allowedTools: []`          | Adds no allowlist restriction. It does **not** disable tools.                                                                |
+| `disallowedTools: ["*"]`    | Blocks every tool, including the synthetic `StructuredOutput` tool.                                                          |
+
+Supplying either list replaces the high-level default hidden-tool profile. For a narrow task, prefer a nonempty allowlist. A disallowed match wins over an allowed match. Scoped entries such as `bash(npm:*)` match operations inside a tool; see [permissions](/concepts/permissions) for the full distinction between availability, rules, modes, and callbacks.
+
+For [structured output](/concepts/structured-output), include `StructuredOutput` in the allowlist together with any application tools the task needs. Its case-sensitive name is an exception to the lower-case built-in tool names.
+
+## Discover a large tool collection
+
+`enableToolSearch: "auto"` can defer tool schemas when there are many tools. `"always"` or `true` enables search; `"never"` or `false` disables it. Leaving the option unset disables deferred search. In auto mode, the runtime enables it at 20 total candidate tools or 10 MCP tools.
+
+`metadata.searchHint` adds search terms, and `metadata.alwaysLoad` keeps a tool schema loaded. MCP tools can be deferred when search is enabled; other tool definitions must be marked deferred. The model uses `tool_search` to reveal relevant schemas for later steps. Discovery does not grant permission to execute a denied tool.

@@ -1,25 +1,57 @@
 ---
 title: "Migrating to v2"
-description: "Package identity, isolated defaults and explicit ownership."
+description: "Update package installation, configuration and session ownership for Cognitio 2.0.0."
 ---
-V2 is published as `cognitio-agent-sdk`. Update imports, lockfiles and deployment manifests together. Internal workspace packages use `@cognitio/*`; consumers install the public agent package only.
 
-The runtime executable is `cognitio`, configuration uses `.cognitio` / `cognitio.json`, and runtime environment variables use `COGNITIO_`. Existing upstream environment names are not a supported fallback. Preserve upstream attribution when redistributing source.
+When moving an earlier integration to Cognitio 2.0.0, check installation, tool policy, configuration discovery and runtime ownership together.
 
-## Defaults that changed
+## Install the package
 
-Local `createAgentClient()` now isolates the runtime by default, matching `Agent` and `query()`. Session `settingSources` defaults to an empty list. Pass provider auth explicitly if you previously relied on a host auth file. Choose `spawn.isolated: false` plus explicit setting sources only when host configuration is intended.
+```sh
+npm install --save-exact cognitio-agent-sdk@2.0.0
+```
 
-Use `systemPrompt: { type: "preset", preset: "default" }` for the coding prompt. The neutral prompt remains the default; the preset does not restore configuration discovery or the facade's hidden tools.
+Import public APIs from `cognitio-agent-sdk`. Keep optional dependencies enabled: the package includes a matching runtime for supported platforms. Upgrade the SDK package to update that bundled runtime. Use the [chat recipe](/cookbook/chat-cli) to check a new installation with a real request.
 
-Runtime binaries are exact-pinned optional packages. Do not install an upstream executable as a substitute. `spawn.binaryPath` is an explicit compatibility responsibility, not a way to bypass a failed bundled install unnoticed.
+The runtime executable is `cognitio`, configuration files use `.cognitio` and `cognitio.json`, and runtime environment variables use the `COGNITIO_` prefix. Old upstream variable names are not fallback aliases. See [installation](/installation) before supplying a separately managed binary.
 
-## Session changes
+## Choose configuration discovery explicitly
 
-Resume supports explicit runtime overrides with rollback on attachment failure. Runtime fork copies serializable policy; callback capabilities need rebinding in the attaching SDK process. `deleteSessionsOnClose` is opt-in and applies only to sessions owned through creation/fork.
+`Agent`, `query()` and local `createAgentClient()` use isolated runtime state by default. Sessions default to `settingSources: []`, so they do not silently inherit local instruction files. Common provider environment variables are forwarded, but host authentication files are not. Supply credentials through supported provider variables or `spawn.auth`.
 
-New reasoning, checkpoint and compaction settings are validated. Previously reserved unsupported fields now have concrete schemas; arbitrary records are rejected. Check tagged errors and terminal result subtypes rather than parsing exception text.
+If your application intentionally relies on user/project configuration, select `spawn.isolated: false` and the relevant `settingSources`. This is separate from the system prompt: `systemPrompt: { type: "preset", preset: "default" }` chooses the coding prompt, while the default remains neutral. It does not restore configuration discovery or hidden tools. See [defaults and isolation](/defaults-and-isolation).
 
-An empty `allowedTools` array leaves the allowlist unrestricted. Use `disallowedTools: ["*"]` for a text-only agent, or a nonempty allowlist for selected tools. Custom tool schemas describe arguments; validate callback input in your own `execute` implementation.
+Isolation concerns configuration and state. It does not restrict filesystem or network operations with an OS sandbox.
 
-Default Agents and `query()` share a process-wide runtime. Closing their handles does not stop it; use `shutdown()` at application teardown. Agents with explicit `spawn` options own dedicated clients, and injected clients remain their creator's responsibility.
+## Make tool policy explicit
+
+| Intended behavior | Configuration |
+| --- | --- |
+| No tool execution | `disallowedTools: ["*"]` |
+| Selected built-ins only | `allowedTools: ["read", "grep", "glob"]` |
+| One custom direct tool | `allowedTools: ["sdk_multiply"]` |
+| Structured output without other tools | `allowedTools: ["StructuredOutput"]` |
+
+An empty `allowedTools` array leaves the allowlist unrestricted. A wildcard deny also blocks `StructuredOutput`, so use its case-sensitive allowlist entry for schema-only results.
+
+Custom tool schemas describe arguments to the model. Validate invocation input inside `execute` before using it. Follow the [calculator recipe](/cookbook/custom-tool) for a complete example or read its [JavaScript source](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/examples/03-custom-tool/index.mjs).
+
+## Close the resources your application owns
+
+Default Agents and `query()` share a process-wide runtime. Close each Agent or stream when its work is done, then call `shutdown()` when the application is finished using all facade-owned runtimes.
+
+An Agent with explicit `spawn` options owns a dedicated client and closes it with `agent.close()`. An Agent with an injected `client` borrows it: the code that created the client must call `client.close()`. Closing a remote client does not stop your remote server. See [lifecycle](/cookbook/lifecycle).
+
+## Resume sessions with their policy
+
+Resume can apply explicit runtime overrides. A session's working directory remains fixed. Callback functions must be provided again by the attaching process; they are not stored with the transcript.
+
+Forks preserve serializable policy, while callback registrations must be rebound. `deleteSessionsOnClose` is opt-in and applies to sessions created or forked by the Agent, not resumed sessions.
+
+A default isolated runtime uses temporary state. Keeping a session ID does not make it available after that state is removed. The [session memory recipe](/cookbook/session-memory) shows close/resume within one living runtime; use [remote runtimes](/cookbook/remote) for persistent server ownership.
+
+## Handle results and errors
+
+Check `result.isError` or `result.subtype` after `Agent.run()`. Setup and transport failures can throw; cleanup belongs in `finally`. Use the SDK error guard and tagged `kind` values instead of matching error strings. Low-level session results expose `subtype` rather than the facade's added `isError` field.
+
+Reasoning, checkpoint and compaction options have explicit schemas. Check the corresponding guides when migrating these settings: [models](/concepts/models-and-prompts), [checkpoints](/concepts/checkpoints), and [compaction](/concepts/compaction).

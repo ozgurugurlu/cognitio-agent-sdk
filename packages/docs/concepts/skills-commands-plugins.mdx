@@ -1,37 +1,87 @@
 ---
 title: "Skills, commands and plugins"
-description: "Package instructions and behavior without local configuration files."
+description: "Package reusable instructions, explicit commands and session-local capability bundles."
 ---
-All three can be supplied programmatically in `RuntimeConfig`. They remain session-scoped and work when filesystem setting discovery is disabled.
+
+For the TypeScript examples, use the [TypeScript setup](/installation#typescript-projects), including `"type": "module"` and the `tsx` runner.
+Use a **skill** for reusable instructions the model can load, a **command** for a prompt your application invokes explicitly, and an **inline plugin** to bundle related definitions. All three can be supplied programmatically without creating configuration files on the runtime host.
+
+## Run a namespaced command
+
+Use the [quickstart](/quickstart) setup with `OPENAI_API_KEY`. Save this as `commands.ts` and run `node --env-file=.env --import tsx commands.ts`.
 
 ```ts
-import { defineSkill, defineCommand, definePlugin } from "cognitio-agent-sdk"
+import { Agent, defineCommand, definePlugin, shutdown } from "cognitio-agent-sdk"
 
-const style = defineSkill({
-  name: "plain-writing",
-  description: "Write clear technical explanations.",
-  content: "Use concrete nouns, short paragraphs and explicit assumptions.",
+const editorial = definePlugin({
+  name: "editorial",
+  commands: [defineCommand({
+    name: "review",
+    description: "Rewrite one passage for clarity.",
+    template: "Rewrite this passage in plain English, preserving its meaning: $ARGUMENTS",
+  })],
 })
-const review = defineCommand({
-  name: "review",
-  description: "Review text for clarity.",
-  template: "Review this text: $ARGUMENTS",
+const agent = new Agent({
+  model: "openai/gpt-4.1-mini",
+  plugins: [editorial],
+  disallowedTools: ["*"],
+  maxTurns: 2,
 })
-const plugin = definePlugin({ name: "editorial", skills: [style], commands: [review] })
+try {
+  const session = await agent.createSession({ title: "Editorial review" })
+  const result = await session.command("editorial:review", "Utilize the system to facilitate the operation.")
+  if (result.subtype !== "success") throw new Error(`Command ended: ${result.subtype}`)
+  console.log(result.text)
+} finally {
+  await agent.close().finally(() => shutdown())
+}
 ```
 
-## Skills
+An inline plugin namespaces its commands as `plugin:command`; here that is `editorial:review`. A command registered directly in `Agent.commands` keeps its own name. `$ARGUMENTS` is replaced by the argument string supplied to `session.command()`.
 
-A skill includes a name, description and content, with optional base directory, tool policy and model. `disableModelInvocation` prevents autonomous model invocation. The skill tool and instruction-source policy determine discoverability. Enable `skill` deliberately if using the facade's default hidden-tool profile.
+Commands run a model turn in the existing session and return a terminal result. They can select an agent/model, apply tool restrictions or delegate as a subtask. They do not execute concurrently with another active query in that session.
 
-## Commands
+## Let the model load a skill
 
-Call `session.command("review", "Text to review")`. Templates support argument substitution. A command can select an agent/model, restrict tools or delegate as a subtask. Command execution returns a terminal result through the same session lifecycle.
+This separate example registers a skill directly. Its name is therefore `plain-writing`, without a plugin prefix.
 
-## Plugins
+```ts
+import { Agent, defineSkill, shutdown } from "cognitio-agent-sdk"
 
-Inline plugins bundle skills, commands, agents, hooks and MCP servers. Plugin contents are namespaced and their diagnostics appear in `getAppliedSettings()`.
+const agent = new Agent({
+  model: "openai/gpt-4.1-mini",
+  skills: [defineSkill({
+    name: "plain-writing",
+    description: "Rewrite technical prose in clear, concrete language.",
+    content: "Use short paragraphs. Replace vague verbs with concrete actions. Preserve the original facts.",
+  })],
+  allowedTools: ["skill"],
+  maxTurns: 3,
+})
+try {
+  const result = await agent.run(
+    "Load plain-writing and rewrite: 'The utilization of this functionality facilitates better outcomes.'",
+    { signal: AbortSignal.timeout(60_000) },
+  )
+  if (result.subtype !== "success") throw new Error(`Run ended: ${result.subtype}`)
+  console.log(result.text)
+} finally {
+  await agent.close().finally(() => shutdown())
+}
+```
 
-`claudeCompat("/absolute/plugin/path")` loads supported local Claude plugin components. It is a compatibility loader, not the Claude SDK API. Unsupported components produce diagnostics; inspect them instead of assuming a plugin's entire original behavior is present. Remote marketplace installation is outside v2.
+The facade hides `skill` by default, so enable it deliberately. A skill description helps the model decide whether to load its content; registration alone does not guarantee invocation. Optional fields include `baseDir`, `allowedTools`, `model` and `disableModelInvocation`. Setting `disableModelInvocation` prevents autonomous model invocation of that skill.
 
-Filesystem conventions (`.cognitio`, instruction files and local skill directories) are opt-in through non-isolated configuration and `settingSources`. Programmatic options do not require writing those files.
+Skills provide instructions, not a trusted execution boundary. A model can still make mistakes, and application side effects need validation and permissions independent of prompt text.
+
+## Bundle related capabilities
+
+An inline plugin can include skills, commands, agents, hooks and MCP descriptors. Skill, command and agent names receive the plugin namespace; inspect `session.getAppliedSettings()` for the effective configuration and diagnostics. Use unique plugin names within a session.
+
+Programmatic definitions work with the SDK's default empty `settingSources`. They are held in runtime memory, so re-register the intended definitions when resuming after a runtime restart. Persisting a transcript does not persist JavaScript callbacks or all runtime overrides.
+
+## Load a compatible local plugin
+
+`claudeCompat("/absolute/plugin/path")` describes a supported local Claude-compatible plugin directory. This is an advanced compatibility path: it translates supported components, and unsupported components appear as diagnostics. It does not provide the Claude SDK API or guarantee every behavior of the original plugin. Paths refer to files the runtime can access; inspect diagnostics before relying on the plugin. Remote marketplace installation is outside v2.
+
+Filesystem instruction and skill discovery is separately controlled by [defaults and isolation](/defaults-and-isolation) and `settingSources`. You do not need to enable filesystem discovery to use the programmatic examples above.

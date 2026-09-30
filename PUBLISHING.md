@@ -112,6 +112,8 @@ For a new empty destination, add its GitHub URL as `origin` and push this fresh 
 
 ## 6. Deploy documentation
 
+The documentation site is [cognitio-agent.mintlify.site](https://cognitio-agent.mintlify.site). Its source is this repository's `main` branch, under `packages/docs`.
+
 Preview the existing documentation from the repository root with Node.js 22+ and the pinned Bun version:
 
 ```sh
@@ -135,7 +137,7 @@ To deploy the prepared site:
 4. Enable **docs.json is in a subdirectory**, enter `/packages/docs` without a trailing slash, and save. The configuration file is `packages/docs/docs.json`.
 5. Check the deployment in the dashboard and open the site URL shown in **Overview**. Future pushes to the configured branch trigger automatic deployments.
 
-See Mintlify's [GitHub integration](https://www.mintlify.com/docs/deploy/github) and [monorepo setup](https://www.mintlify.com/docs/deploy/monorepo) guides. No Mintlify account or hosted site has been provisioned by this repository. After deployment, configure the chosen domain in Mintlify and add its actual URL to the package metadata. Documentation files and generated references are committed; hosting does not require regenerating the SDK during deployment.
+See Mintlify's [GitHub integration](https://www.mintlify.com/docs/deploy/github) and [monorepo setup](https://www.mintlify.com/docs/deploy/monorepo) guides. The package homepage points to the documentation site. Manage GitHub integration and domain settings in the Mintlify project. Documentation files and generated references are committed; hosting does not require regenerating the SDK during deployment.
 
 ## 7. Maintain models and provider dependencies
 

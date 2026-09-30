@@ -1,13 +1,64 @@
 ---
 title: "HTTP API overview"
-description: "Use the runtime protocol directly when you need lower-level control."
+description: "Advanced: inspect the runtime protocol when building a custom client or deployment integration."
 ---
-The HTTP reference is generated from **this runtime's** OpenAPI document, not an upstream hosted specification. Start the server with `cognitio serve`, then inspect `/doc` for its schema.
 
-The JavaScript SDK uses ordinary HTTP requests for session operations and Server-Sent Events for output/control requests. Runtime configuration is session-scoped and ephemeral; callback functions stay in the SDK process.
+For the TypeScript examples, use the [TypeScript setup](/installation#typescript-projects), including `"type": "module"` and the `tsx` runner.
+Most applications should use the [TypeScript SDK](/quickstart). It manages subscriptions, callback dispatch, session configuration, result assembly and cleanup. The HTTP API is useful when building another language client or integrating an externally operated runtime.
 
-A typical flow is: create a session, register runtime configuration/callback descriptors, establish event subscriptions, submit a prompt, process events/control requests, receive a terminal result, then close local resources. The SDK implements the races and teardown rules; use its high-level API unless you need a custom protocol client.
+The endpoint reference describes the Cognitio runtime packaged with this SDK. Use the [complete OpenAPI document](/openapi.json) for session and control endpoint schemas. In v2, the live `/doc` route exposes a limited control-plane schema, not the complete API. Check `/global/health` for the running runtime version when assessing compatibility.
 
-The server is process/filesystem privileged. Authentication, storage isolation and network deployment belong to the server operator. Do not expose an unauthenticated runtime on an untrusted network.
+## Inspect a bundled runtime without a model call
 
-The endpoint explorer includes runtime config, checkpoints, MCP, sessions, permissions, messages, skills, commands and diagnostics. See [events and control](/http-api/events-and-control) for the asynchronous part OpenAPI alone does not describe.
+Install `cognitio-agent-sdk` and use Node.js 22+. This complete example starts the bundled local runtime, reads health and the limited live schema metadata, and stops it. It does not need a provider key. Save it as `inspect-http.ts`; run `node --import tsx inspect-http.ts`.
+
+```ts
+import { createAgentClient } from "cognitio-agent-sdk"
+
+const client = await createAgentClient({ spawn: { port: 0 } })
+try {
+  const health = await fetch(new URL("/global/health", client.baseUrl))
+  if (!health.ok) throw new Error(`Health failed: HTTP ${health.status}`)
+  console.log(await health.json())
+  const response = await fetch(new URL("/doc", client.baseUrl))
+  if (!response.ok) throw new Error(`Schema failed: HTTP ${response.status}`)
+  const schema = await response.json() as { openapi?: string; paths?: Record<string, unknown> }
+  console.log("OpenAPI", schema.openapi, "paths", Object.keys(schema.paths ?? {}).length)
+} finally {
+  await client.close()
+}
+```
+
+For an externally operated runtime, use its URL and authentication headers instead. See [remote runtimes](/cookbook/remote) for a two-process example and credential handling.
+
+## Understand the responsibilities
+
+| Interface | Purpose |
+| --- | --- |
+| `GET /global/health` | Check runtime health and version. |
+| `GET /doc` | Inspect the limited live control-plane schema. |
+| Session endpoints | Create, inspect, fork, update and delete stored sessions. |
+| Runtime-config endpoints | Register serializable per-session policy and callback descriptors. |
+| Prompt endpoints | Submit model input; async submission is separate from terminal completion. |
+| `GET /event` | Receive events for the selected runtime instance/directory. |
+| Session control endpoints | Resolve or cancel pending callback requests. |
+
+The SDK's `AgentMessage` stream is a higher-level API than raw HTTP events. Do not expect raw SSE payloads to have the same field names or envelopes as `Agent.stream()` results.
+
+## Build a correct session flow
+
+1. Select the server-side directory/workspace and use it consistently for related requests.
+2. Create or attach to a session and install the intended runtime configuration.
+3. Establish the event/control subscription and wait until it is ready.
+4. Submit input, service callback requests, and track the session's terminal outcome.
+5. Close subscriptions and callback resources. Delete the session only when your application's retention policy requires it.
+
+Instance-scoped requests use a `directory` query parameter or the `x-cognitio-directory` header; the header value is URI-encoded by the SDK. Paths refer to the runtime host. Using the wrong directory context can target a different runtime instance even when the URL and session ID look correct.
+
+A successful async prompt submission does not mean the model turn has completed. See [events and control](/http-api/events-and-control) for readiness, cancellation and reconnection rules. The generated endpoint schemas provide exact request bodies; a generic POST wrapper does not implement the required session state machine.
+
+## State and deployment boundaries
+
+Transcripts live in the runtime database. Session runtime overrides and callback descriptors are ephemeral; callback functions remain in the client process. A server restart can preserve the transcript while requiring policies and callbacks to be reattached.
+
+The runtime runs with its process's filesystem and network privileges. The operator owns authentication, persistent storage, process supervision and network access. Default isolated SDK spawn separates configuration/state discovery; it is not a filesystem or OS sandbox. Keep unauthenticated development servers on loopback and use authenticated protected transport for deployments.
