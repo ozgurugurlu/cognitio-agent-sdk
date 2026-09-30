@@ -2,7 +2,7 @@ import { sdkError } from "../../errors.js"
 import type { ChildProcess } from "node:child_process"
 import launch from "cross-spawn"
 import { type Config } from "./gen/types.gen.js"
-import { stopAndWait, bindAbort, ChildTerminationError, registerAutoCleanup } from "./process.js"
+import { stopAndWait, drainOutput, bindAbort, ChildTerminationError, registerAutoCleanup } from "./process.js"
 import { describeMissingBinary, resolveServerBinary } from "./resolve-binary.js"
 import { EXPECTED_SERVER_VERSION } from "./runtime-version.js"
 
@@ -194,7 +194,8 @@ export async function createCognitioServer(options?: ServerOptions) {
     let failure: unknown
     let failed = false
     let resolved = false
-    const fail = (reason: unknown) => {
+    let draining = false
+    const fail = (reason: unknown, afterDrain?: () => unknown) => {
       if (failed) return
       failed = true
       failure = reason
@@ -204,11 +205,19 @@ export async function createCognitioServer(options?: ServerOptions) {
       // process. `resolved` gates the stdout handler below.
       resolved = true
       clear()
+      draining = afterDrain !== undefined
+      const drained = afterDrain
+        ? drainOutput(proc, shutdownTimeout).then(() => {
+            draining = false
+            failure = afterDrain()
+            startupFailure = failure
+          })
+        : Promise.resolve()
       // Reject with the original startup reason once the child settled. If
       // termination could NOT be confirmed, surface that via an AggregateError
       // (carrying the ChildTerminationError) so the caller knows the child may
       // still be alive and can preserve any resources it owns (leak-safe).
-      void settle().then(
+      void Promise.all([settle(), drained]).then(
         () => reject(failure),
         (killErr) =>
           reject(
@@ -226,8 +235,9 @@ export async function createCognitioServer(options?: ServerOptions) {
     }, timeout)
     let output = ""
     proc.stdout?.on("data", (chunk) => {
-      if (resolved) return
+      if (resolved && !draining) return
       output += chunk.toString()
+      if (resolved) return
       const lines = output.split("\n")
       for (const line of lines.slice(0, -1)) {
         if (line.startsWith("agent server listening at ")) {
@@ -245,27 +255,32 @@ export async function createCognitioServer(options?: ServerOptions) {
       }
     })
     proc.stderr?.on("data", (chunk) => {
-      if (resolved) return
+      if (resolved && !draining) return
       output += chunk.toString()
     })
     proc.on("exit", (code) => {
       clearTimeout(id)
-      let msg = `Server exited with code ${code}`
-      if (output.trim()) {
-        msg += `\nServer output: ${output}`
+      const exitError = () => {
+        let msg = `Server exited with code ${code}`
+        if (output.trim()) {
+          msg += `\nServer output: ${output}`
+        }
+        // On win32 a failed PATH lookup never reaches the `error` handler below.
+        // `cross-spawn` sees no `.com`/`.exe` extension on an unresolved command,
+        // decides a shell is needed, and spawns `%ComSpec%` — which exists — so
+        // the child starts, the shell reports "'cognitio' is not recognized", and
+        // it exits non-zero. There is no ENOENT to catch, which would leave
+        // `describeMissingBinary` unreachable on exactly the two targets that
+        // need it most. Appending it here is text-only and cannot change control
+        // flow; the real fix belongs with a Windows runner that can verify it.
+        if (process.platform === "win32" && binary.source === "path") {
+          msg += `\n\n${describeMissingBinary(binary, process.platform, process.arch)}`
+        }
+        return sdkError("binary", msg)
       }
-      // On win32 a failed PATH lookup never reaches the `error` handler below.
-      // `cross-spawn` sees no `.com`/`.exe` extension on an unresolved command,
-      // decides a shell is needed, and spawns `%ComSpec%` — which exists — so
-      // the child starts, the shell reports "'cognitio' is not recognized", and
-      // it exits non-zero. There is no ENOENT to catch, which would leave
-      // `describeMissingBinary` unreachable on exactly the two targets that
-      // need it most. Appending it here is text-only and cannot change control
-      // flow; the real fix belongs with a Windows runner that can verify it.
-      if (process.platform === "win32" && binary.source === "path") {
-        msg += `\n\n${describeMissingBinary(binary, process.platform, process.arch)}`
-      }
-      fail(sdkError("binary", msg))
+      // Reserve the exit failure now, but format pre-readiness diagnostics
+      // only after the pipes drain. Buffered readiness must never win here.
+      fail(exitError(), resolved ? undefined : exitError)
     })
     proc.on("error", (error) => {
       clearTimeout(id)

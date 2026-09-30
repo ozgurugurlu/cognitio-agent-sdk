@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test"
-import { spawn } from "node:child_process"
+import { spawn, type ChildProcess } from "node:child_process"
+import { once } from "node:events"
+import { PassThrough } from "node:stream"
 import {
   ChildTerminationError,
   createCognitioServer,
@@ -156,6 +158,81 @@ describe("vendored createCognitioServer — spawnProcess", () => {
     })
     await expect(promise).rejects.toThrow(/exited with code 7[\s\S]*boom/)
     expect(exited).toBe(true)
+  })
+
+  test("an exited real child drains stderr and cannot become ready from buffered stdout", async () => {
+    const events: string[] = []
+    let child: ChildProcess | undefined
+    let closed: Promise<unknown> | undefined
+    const controller = new AbortController()
+    try {
+      const pending = createCognitioServer({
+        command: process.execPath,
+        signal: controller.signal,
+        spawnProcess() {
+          child = spawn(process.execPath, [
+            "-e",
+            'process.stdout.write("agent server listening at http://127.0.0.1:5555\\n"); process.stderr.write("boom\\n"); process.exitCode = 7',
+          ])
+          closed = once(child, "close")
+          child.stderr!.on("data", () => events.push("stderr"))
+          child.once("exit", () => {
+            events.push("exit")
+            queueMicrotask(() => controller.abort(new Error("abort after exit")))
+          })
+          child.once("close", () => events.push("close"))
+          // Exercise real buffered pipes without faking the process or events.
+          queueMicrotask(() => {
+            child!.stdout!.pause()
+            child!.stderr!.pause()
+          })
+          return child
+        },
+      })
+      await expect(pending).rejects.toThrow(/exited with code 7[\s\S]*boom/)
+      await closed
+      expect(events.indexOf("exit")).toBeLessThan(events.indexOf("stderr"))
+      expect(events.indexOf("stderr")).toBeLessThan(events.indexOf("close"))
+      expect(child!.exitCode).toBe(7)
+    } finally {
+      if (child && child.exitCode == null && child.signalCode == null) child.kill("SIGKILL")
+      await closed
+    }
+  })
+
+  test.each([0, 30])("an adapter with open pipes has a bounded %dms diagnostic wait", async (shutdownTimeout) => {
+    const fake = createFakeChild()
+    const stdout = new PassThrough()
+    const stderr = new PassThrough()
+    Object.assign(fake.child, { stdout, stderr })
+    const controller = new AbortController()
+    const baseline = [stdout, stderr].map((stream) =>
+      ["end", "close", "error"].map((event) => stream.listenerCount(event)),
+    )
+    try {
+      const pending = createCognitioServer({
+        timeout: 10,
+        shutdownTimeout,
+        signal: controller.signal,
+        spawnProcess() {
+          queueMicrotask(() => {
+            fake.exit(7)
+            controller.abort(new Error("later abort"))
+            fake.error(new Error("later error"))
+            stderr.write("last diagnostic\n")
+            stdout.write("agent server listening at http://127.0.0.1:5555\n")
+          })
+          return fake.child
+        },
+      })
+      await expect(pending).rejects.toThrow(/exited with code 7[\s\S]*last diagnostic/)
+      expect([stdout, stderr].map((stream) =>
+        ["end", "close", "error"].map((event) => stream.listenerCount(event)),
+      )).toEqual(baseline)
+    } finally {
+      stdout.destroy()
+      stderr.destroy()
+    }
   })
 
   // POSIX only: it needs a real long-lived process (`sleep`) and signal-0

@@ -2,7 +2,7 @@
 
 Extract a contact into a Zod-validated object. The only extra dependency is Zod 4.1.8.
 
-This folder is independently copyable. It installs `cognitio-agent-sdk@2.0.0` from the public npm registry, including its native runtime; no monorepo build or global runtime installation is needed.
+This folder is independently copyable. It installs `cognitio-agent-sdk@2.0.1` from the public npm registry, including its native runtime; no monorepo build or global runtime installation is needed.
 
 ## Run
 

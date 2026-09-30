@@ -3,7 +3,9 @@ import { spawn } from "node:child_process"
 import { EventEmitter } from "node:events"
 import fs from "node:fs/promises"
 import path from "node:path"
+import os from "node:os"
 import { createCognitioServer, type ServerOptions } from "../src/v2/server.js"
+import { createCognitioServer as createLegacyServer } from "../src/server.js"
 import { autoCleanupCount, ChildTerminationError, registerAutoCleanup, stopAndWait } from "../src/process.js"
 
 const FAKE = path.join(import.meta.dir, "fixtures", "fake-server.mjs")
@@ -146,6 +148,29 @@ describe.skipIf(process.platform === "win32")("createCognitioServer options", ()
 
   test("early exit rejects with the child output", async () => {
     await expect(start({ env: { FAKE_MODE: "exit" } })).rejects.toThrow(/exited with code 7[\s\S]*boom/)
+  })
+
+  test("early exit drains a pipe still held by a short-lived descendant", async () => {
+    await expect(start({ env: { FAKE_MODE: "exit-buffered" } })).rejects.toThrow(/exited with code 7[\s\S]*boom/)
+  })
+
+  test("the legacy root server also drains early-exit diagnostics", async () => {
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), "cognitio-legacy-diagnostics-"))
+    const previousPath = process.env.PATH
+    const previousMode = process.env.FAKE_MODE
+    try {
+      await fs.copyFile(FAKE, path.join(directory, "cognitio"))
+      await fs.chmod(path.join(directory, "cognitio"), 0o755)
+      process.env.PATH = `${directory}${path.delimiter}${previousPath ?? ""}`
+      process.env.FAKE_MODE = "exit-buffered"
+      await expect(createLegacyServer()).rejects.toThrow(/exited with code 7[\s\S]*boom/)
+    } finally {
+      if (previousPath === undefined) delete process.env.PATH
+      else process.env.PATH = previousPath
+      if (previousMode === undefined) delete process.env.FAKE_MODE
+      else process.env.FAKE_MODE = previousMode
+      await fs.rm(directory, { recursive: true, force: true })
+    }
   })
 
   test("readiness timeout rejects after the child has been reaped", async () => {

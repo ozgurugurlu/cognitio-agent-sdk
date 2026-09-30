@@ -1,6 +1,6 @@
 # Cognitio Agent SDK cookbook projects
 
-Small, independently copyable Node.js 22 projects using the public `cognitio-agent-sdk@2.0.0` package. Cognitio Agent SDK is built on OpenCode; npm installs the matching native runtime automatically.
+Small, independently copyable Node.js 22 projects using the public `cognitio-agent-sdk@2.0.1` package. Cognitio Agent SDK is built on OpenCode; npm installs the matching native runtime automatically.
 
 | Project                                                  | Demonstrates                                           |
 | -------------------------------------------------------- | ------------------------------------------------------ |

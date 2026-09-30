@@ -1,6 +1,6 @@
 import launch from "cross-spawn"
 import { type Config } from "./gen/types.gen.js"
-import { stop, bindAbort } from "./process.js"
+import { stop, drainOutput, bindAbort } from "./process.js"
 
 export type ServerOptions = {
   hostname?: string
@@ -41,25 +41,41 @@ export async function createCognitioServer(options?: ServerOptions) {
   let clear = () => {}
 
   const url = await new Promise<string>((resolve, reject) => {
-    const id = setTimeout(() => {
+    let resolved = false
+    let failed = false
+    let draining = false
+    const fail = (reason: unknown, afterDrain?: () => unknown) => {
+      if (failed) return
+      failed = true
+      resolved = true
+      clearTimeout(id)
       clear()
+      if (!afterDrain) {
+        reject(reason)
+        return
+      }
+      draining = true
+      void drainOutput(proc).then(() => {
+        draining = false
+        reject(afterDrain())
+      })
+    }
+    const id = setTimeout(() => {
+      fail(new Error(`Timeout waiting for server to start after ${options.timeout}ms`))
       stop(proc)
-      reject(new Error(`Timeout waiting for server to start after ${options.timeout}ms`))
     }, options.timeout)
     let output = ""
-    let resolved = false
     proc.stdout?.on("data", (chunk) => {
-      if (resolved) return
+      if (resolved && !draining) return
       output += chunk.toString()
+      if (resolved) return
       const lines = output.split("\n")
       for (const line of lines.slice(0, -1)) {
         if (line.startsWith("agent server listening at ")) {
           const match = line.match(/at\s+(https?:\/\/[^\s]+)/)
           if (!match) {
-            clear()
+            fail(new Error(`Failed to parse server url from output: ${line}`))
             stop(proc)
-            clearTimeout(id)
-            reject(new Error(`Failed to parse server url from output: ${line}`))
             return
           }
           clearTimeout(id)
@@ -70,23 +86,25 @@ export async function createCognitioServer(options?: ServerOptions) {
       }
     })
     proc.stderr?.on("data", (chunk) => {
+      if (resolved && !draining) return
       output += chunk.toString()
     })
     proc.on("exit", (code) => {
       clearTimeout(id)
-      let msg = `Server exited with code ${code}`
-      if (output.trim()) {
-        msg += `\nServer output: ${output}`
+      const exitError = () => {
+        let msg = `Server exited with code ${code}`
+        if (output.trim()) {
+          msg += `\nServer output: ${output}`
+        }
+        return new Error(msg)
       }
-      reject(new Error(msg))
+      fail(exitError(), resolved ? undefined : exitError)
     })
     proc.on("error", (error) => {
-      clearTimeout(id)
-      reject(error)
+      fail(error)
     })
     clear = bindAbort(proc, options.signal, () => {
-      clearTimeout(id)
-      reject(options.signal?.reason)
+      fail(options.signal?.reason)
     })
   })
 

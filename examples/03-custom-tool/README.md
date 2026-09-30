@@ -2,7 +2,7 @@
 
 Give the agent a deterministic multiplication function that runs in your Node.js process. This project uses a JSON Schema and needs no schema-library dependency.
 
-This folder is independently copyable. It installs `cognitio-agent-sdk@2.0.0` from the public npm registry, including its native runtime; no monorepo build or global runtime installation is needed.
+This folder is independently copyable. It installs `cognitio-agent-sdk@2.0.1` from the public npm registry, including its native runtime; no monorepo build or global runtime installation is needed.
 
 ## Run
 

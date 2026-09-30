@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 // Fake `cognitio serve` binary for server.test.ts. Knobs via env:
-//   FAKE_MODE:           serve (default) | exit | silent | bad-url
+//   FAKE_MODE:           serve (default) | exit | exit-buffered | silent | bad-url
 //   FAKE_SIGTERM_IGNORE: "1" → ignore SIGTERM (forces the SIGKILL path)
 //   FAKE_EXIT_DELAY_MS:  delay before exiting in "exit" mode
 import http from "node:http"
+import { spawn } from "node:child_process"
 
 const mode = process.env.FAKE_MODE ?? "serve"
 const exitDelay = Number(process.env.FAKE_EXIT_DELAY_MS ?? "0")
@@ -12,7 +13,16 @@ if (process.env.FAKE_SIGTERM_IGNORE === "1") {
   process.on("SIGTERM", () => {})
 }
 
-if (mode === "exit") {
+if (mode === "exit-buffered") {
+  // Keep stderr open after this process exits. The descendant waits for its
+  // stdin to close on our exit, writes one diagnostic, then exits naturally.
+  const child = spawn(process.execPath, [
+    "-e",
+    'process.stdin.resume(); process.stdin.once("end", () => setTimeout(() => process.stderr.write("boom\\n"), 20))',
+  ], { stdio: ["pipe", "ignore", "inherit"] })
+  child.unref()
+  process.exit(7)
+} else if (mode === "exit") {
   console.error("boom")
   setTimeout(() => process.exit(7), exitDelay)
 } else {

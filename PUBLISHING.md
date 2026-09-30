@@ -63,13 +63,13 @@ This command performs strict preflight and installed-package verification again,
 
 If an upload is interrupted, rerun the same command against the unchanged artifacts and source commit. Existing exact versions are skipped only when their registry integrity matches the staged tarball. All nine names are checked for collisions before the first upload. Investigate registry errors before retrying; do not change artifact contents for a version already published. Any change to published package contents, including bundled documentation, needs a new version.
 
-Verify the actual registry installation from a fresh directory after publication. The example uses the published `2.0.0`; use the exact version being verified for later releases:
+Verify the actual registry installation from a fresh directory after publication. The example uses the published `2.0.1`; use the exact version being verified for later releases:
 
 ```sh
 mkdir cognitio-registry-smoke
 cd cognitio-registry-smoke
 npm init -y
-npm install cognitio-agent-sdk@2.0.0
+npm install cognitio-agent-sdk@2.0.1
 node --input-type=module -e 'import { createAgentClient } from "cognitio-agent-sdk"; const client = await createAgentClient(); try { const session = await client.sessions.create({}); console.log(session.id); await session.close() } finally { await client.close() }'
 ```
 

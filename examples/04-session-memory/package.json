@@ -11,6 +11,6 @@
     "check": "node --check index.mjs"
   },
   "dependencies": {
-    "cognitio-agent-sdk": "2.0.0"
+    "cognitio-agent-sdk": "2.0.1"
   }
 }

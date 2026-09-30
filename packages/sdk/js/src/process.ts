@@ -1,4 +1,5 @@
 import { type ChildProcess, spawnSync } from "node:child_process"
+import { Readable } from "node:stream"
 
 const tracked = new Set<ChildProcess>()
 let exitHandler: (() => void) | undefined
@@ -33,6 +34,44 @@ export function stop(proc: ChildProcess) {
     if (!out.error && out.status === 0) return
   }
   proc.kill()
+}
+
+/**
+ * Best-effort startup diagnostics after the process has exited. Node's `exit`
+ * does not imply its pipes have drained. Bound the wait because descendants
+ * can retain a pipe and custom spawn handles need not emit `close`.
+ */
+export function drainOutput(proc: ChildProcess, timeout = 1000): Promise<void> {
+  const pending = new Set(
+    [proc.stdout, proc.stderr].filter(
+      (stream): stream is Readable => stream instanceof Readable && !stream.readableEnded && !stream.destroyed,
+    ),
+  )
+  if (pending.size === 0) return Promise.resolve()
+  return new Promise((resolve) => {
+    const cleanup: (() => void)[] = []
+    const finish = () => {
+      clearTimeout(timer)
+      cleanup.forEach((remove) => remove())
+      resolve()
+    }
+    const timer = setTimeout(finish, Math.max(0, Math.min(timeout, 1000)))
+    pending.forEach((stream) => {
+      const done = () => {
+        pending.delete(stream)
+        if (pending.size === 0) finish()
+      }
+      stream.once("end", done)
+      stream.once("close", done)
+      stream.once("error", done)
+      cleanup.push(() => {
+        stream.off("end", done)
+        stream.off("close", done)
+        stream.off("error", done)
+      })
+      stream.resume()
+    })
+  })
 }
 
 /** Thrown by `stopAndWait` when a child's termination cannot be confirmed. */

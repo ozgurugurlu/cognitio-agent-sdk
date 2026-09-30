@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Preserves buffered startup diagnostics when a runtime exits before its output
+  pipes finish draining, with a bounded wait and the original failure reason.
+- Updates documentation and standalone cookbooks to install the published
+  `2.0.1` package.
+
 ## 2.0.1 — Public package links and documentation
 
 - Points npm repository and issue links to the Cognitio GitHub repository, and
