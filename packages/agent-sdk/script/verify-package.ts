@@ -55,7 +55,7 @@ function fail(name: string, detail: string): never {
   throw new Error(`${name}: ${detail}`)
 }
 
-function run(command: string, args: string[], options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}) {
+function run(command: string, args: string[], options: { cwd?: string; env?: NodeJS.ProcessEnv; input?: Uint8Array } = {}) {
   return spawnSync(command, args, {
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
@@ -66,7 +66,8 @@ function run(command: string, args: string[], options: { cwd?: string; env?: Nod
 
 function extract(tarball: string, into: string): string {
   mkdirSync(into, { recursive: true })
-  const result = run("tar", ["-xzf", tarball, "-C", into])
+  // GNU tar treats a Windows drive-letter archive path as a remote host.
+  const result = run("tar", ["-xzf", "-"], { cwd: into, input: readFileSync(tarball) })
   if (result.status !== 0) fail("extract", result.stderr)
   return path.join(into, "package")
 }
@@ -407,9 +408,8 @@ async function main(): Promise<void> {
             .filter((line) => line.startsWith("{"))
             .join(" "),
         )
-        const unpacked = run("du", ["-sh", path.join(consumer, "node_modules")])
-          .stdout.split("\t")[0]
-          ?.trim()
+        const diskUsage = run("du", ["-sh", path.join(consumer, "node_modules")])
+        const unpacked = diskUsage.status === 0 ? diskUsage.stdout?.split("\t")[0]?.trim() : undefined
         if (unpacked) sizes.push(`${manager} node_modules ${unpacked}`)
       }
     }
