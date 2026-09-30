@@ -1,11 +1,12 @@
 import { describe, expect, test } from "bun:test"
+import { spawn } from "node:child_process"
+import { once } from "node:events"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
 import { Agent, createAgentClient, createSdkMcpServer, defineTool, isSdkError } from "../src/index.js"
 import { normalizeRuntimeConfig } from "../src/internal/runtime-config.js"
 import { startSdkMcpServers, stopSdkMcpHosts } from "../src/tools/mcp-server.js"
 import { startMockServer, waitFor } from "./mock-server.js"
-import { createFakeChild } from "./fake-child.js"
 import { stopAndWait, registerAutoCleanup, autoCleanupCount } from "../src/internal/runtime-client/process.js"
 
 describe("v2 public contracts", () => {
@@ -55,21 +56,41 @@ describe("v2 public contracts", () => {
   })
 
   test("custom child handles with undefined exit properties are stopped and awaited", async () => {
-    const fake = createFakeChild({
-      pid: process.pid,
-      kill: () => {
-        fake.exit(0)
-        return true
+    // Windows stops a process tree by PID before calling handle.kill(). Use a
+    // real owned child, never the test runner's PID, even for this custom handle.
+    const child = spawn(process.execPath, ["-e", 'setInterval(() => {}, 1000); process.stdout.write("ready\\n")'], {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+    const exited = once(child, "exit")
+    exited.catch(() => {})
+    let didExit = false
+    child.once("exit", () => {
+      didExit = true
+    })
+    const handle = new Proxy(child, {
+      get(target, property) {
+        if (property === "exitCode" || property === "signalCode") return undefined
+        const value = Reflect.get(target, property, target)
+        return typeof value === "function" ? value.bind(target) : value
       },
     })
-    Object.defineProperty(fake.child, "exitCode", { value: undefined })
-    Object.defineProperty(fake.child, "signalCode", { value: undefined })
     const count = autoCleanupCount()
-    const unregister = registerAutoCleanup(fake.child)
-    await stopAndWait(fake.child, 10)
-    expect(fake.signals).toHaveLength(1)
-    expect(autoCleanupCount()).toBe(count)
-    unregister()
+    const unregister = registerAutoCleanup(handle)
+    try {
+      const ready = await once(child.stdout, "data", { signal: AbortSignal.timeout(10000) })
+      expect(String(ready[0])).toBe("ready\n")
+      expect(child.pid).toBeGreaterThan(0)
+      expect(child.pid).not.toBe(process.pid)
+      expect(handle.exitCode).toBeUndefined()
+      expect(handle.signalCode).toBeUndefined()
+      await stopAndWait(handle, 1000)
+      expect(didExit).toBe(true)
+      expect(autoCleanupCount()).toBe(count)
+    } finally {
+      unregister()
+      if (!didExit) child.kill("SIGKILL")
+      await exited
+    }
   })
   test("reasoning and session policies normalize without dropping fields", () => {
     const input = {
