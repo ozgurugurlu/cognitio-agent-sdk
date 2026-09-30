@@ -5,8 +5,8 @@
  *
  * | Identity                | Value                          |
  * | ----------------------- | ------------------------------ |
- * | this npm package        | `2.0.0`                 |
- * | the platform packages   | `2.0.0` (exact pins)    |
+ * | this npm package        | `2.0.1`                 |
+ * | the platform packages   | `2.0.1` (exact pins)    |
  * | the compiled server     | `1.14.19+cognitio.runtime.4`  |
  *
  * Stamping the SDK's own version into the binary would make `cognitio --version`

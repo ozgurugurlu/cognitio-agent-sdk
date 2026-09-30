@@ -30,7 +30,7 @@
     },
     "packages/agent-sdk": {
       "name": "cognitio-agent-sdk",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "dependencies": {
         "@modelcontextprotocol/sdk": "1.27.1",
         "cross-spawn": "catalog:",

@@ -1,8 +1,19 @@
 # Changelog
 
+## 2.0.1 — Public package links and documentation
+
+- Points npm repository and issue links to the Cognitio GitHub repository, and
+  the homepage to the live Mintlify documentation.
+- Uses absolute documentation, example, contribution and license links in the
+  npm README, and adds the support email address.
+- Corrects examples and API documentation for tool restrictions, callback input
+  validation, runtime ownership and file rewind semantics.
+- Leaves SDK behavior and the bundled runtime compatibility version
+  `1.14.19+cognitio.runtime.4` unchanged.
+
 ## 2.0.0 — Cognitio Agent SDK
 
-Prepared public release; registry publication is a separate release gate.
+First public npm release.
 
 - Rebrands the self-contained SDK to `cognitio-agent-sdk`, built on OpenCode.
   Eight `cognitio-agent-sdk-<platform>-<arch>[-musl]` packages carry the bundled

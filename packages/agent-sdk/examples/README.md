@@ -41,9 +41,9 @@ bun packages/agent-sdk/examples/01-simple.ts
 | `10-applied-settings.ts`  | Inspect the effective runtime policy                                                     |
 | `11-session-features.ts`  | Rewind a file in a disposable Git workspace, run a command, fork, and compact with hooks |
 
-For example 08, also set `COGNITIO_BASE_URL` to an existing Cognitio runtime URL. Configure provider credentials on that server. Example 11 requires Git and creates/removes its own temporary directory.
+For example 08, also set `COGNITIO_BASE_URL` to an existing Cognitio runtime URL. Configure provider credentials on that server. Example 11 requires Git, creates its own temporary directory and owns a dedicated local runtime. It closes that runtime before removing the directory; customize it through `spawn` options. It does not accept a borrowed client or remote URL.
 
-Examples export `run(options)` so applications and tests can inject a model or borrowed client. Each function closes its own Agent; a borrowed client stays open. Running a file directly also calls `shutdown()` at process teardown. When importing `run()` into a service, the caller controls shared-runtime shutdown and must not close it while other requests are using it.
+Examples export `run(options)` so applications and tests can inject a model. The other local examples also accept a borrowed client, which stays open after the example closes its Agent. Running a file directly also calls `shutdown()` at process teardown. When importing an example that uses a shared runtime into a service, the caller controls shared-runtime shutdown and must not close it while other requests are using it.
 
 The `EXAMPLE_*` prompt labels let the deterministic provider select a reproducible response; they are ordinary prompt text and do not enable special runtime behavior. Permission hooks/classifiers only decide unresolved requests: an `allowedTools` grant can settle permission before callbacks, so examples 04 and 09 deliberately use an ask rule. Text-only examples deny all tools. The structured-output example allows the case-sensitive `StructuredOutput` tool; denying `*` would block schema submission too. Custom tools validate callback input explicitly before using it.
 

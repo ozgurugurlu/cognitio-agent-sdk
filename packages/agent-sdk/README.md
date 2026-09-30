@@ -2,6 +2,8 @@
 
 Build agents in TypeScript and JavaScript with tools, streaming, subagents, hooks, permissions, persistent sessions, and structured output. **Built on OpenCode.**
 
+[Documentation](https://cognitio-agent.mintlify.site) · [Quickstart](https://cognitio-agent.mintlify.site/quickstart) · [API reference](https://cognitio-agent.mintlify.site/api-reference/index) · [GitHub](https://github.com/ozgurugurlu/cognitio-agent-sdk)
+
 Cognitio packages the runtime with the SDK, so applications do not need a separately installed CLI. The high-level `Agent` and `query()` APIs sit above an HTTP runtime; `createAgentClient()` provides direct session management and remote-server connections.
 
 ## Get started
@@ -78,11 +80,11 @@ Capability parity with Claude Agent SDK guides development. APIs and stream shap
 
 ## Documentation
 
-The [documentation source](../docs/) contains the Mintlify site, guides, examples, migration notes, and API reference. Start with [the quickstart](../docs/quickstart.mdx).
+Start with the [quickstart](https://cognitio-agent.mintlify.site/quickstart), then explore the [built-in tools](https://cognitio-agent.mintlify.site/concepts/built-in-tools), [guides and cookbooks](https://cognitio-agent.mintlify.site/cookbook/examples), and [SDK reference](https://cognitio-agent.mintlify.site/api-reference/index). See the [changelog](https://cognitio-agent.mintlify.site/changelog) for release updates.
 
-Copy a standalone application from [examples/](../../examples/) to try chat, structured extraction, a custom tool, or conversation memory. Each project installs the public npm package independently. The [SDK feature examples](examples/) cover additional source-checkout integrations and the deterministic verification suite.
+Copy a [standalone example application](https://github.com/ozgurugurlu/cognitio-agent-sdk/tree/main/examples) to try chat, structured extraction, a custom tool, or conversation memory. Each project installs the public npm package independently. The [SDK feature examples](https://github.com/ozgurugurlu/cognitio-agent-sdk/tree/main/packages/agent-sdk/examples) cover additional source-checkout integrations.
 
-For contributors, see [CONTRIBUTING.md](../../CONTRIBUTING.md). Maintainers should read [PUBLISHING.md](../../PUBLISHING.md) for public npm release, verification, and preparing a public GitHub repository.
+For contributions, see [CONTRIBUTING.md](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/CONTRIBUTING.md). For help, start with [troubleshooting](https://cognitio-agent.mintlify.site/troubleshooting) or contact [ugurlu.oozgur@gmail.com](mailto:ugurlu.oozgur@gmail.com).
 
 ## Supported runtimes
 
@@ -90,4 +92,4 @@ The public package includes prebuilt binaries for macOS, Linux (glibc and musl),
 
 ## License and attribution
 
-MIT. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE). Cognitio Agent SDK is built on [OpenCode](https://github.com/anomalyco/opencode), and is an independent project.
+MIT. See [LICENSE](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/LICENSE) and [NOTICE](https://github.com/ozgurugurlu/cognitio-agent-sdk/blob/main/NOTICE). Cognitio Agent SDK is built on [OpenCode](https://github.com/anomalyco/opencode), and is an independent project.

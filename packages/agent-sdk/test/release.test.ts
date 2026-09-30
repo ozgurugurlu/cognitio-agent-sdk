@@ -19,6 +19,9 @@ function repository() {
     return result.stdout.trim()
   }
   git("init")
+  // These byte-for-byte archive assertions must not inherit host Git settings.
+  git("config", "core.autocrlf", "false")
+  git("config", "core.eol", "lf")
   git("config", "user.name", "Release Test")
   git("config", "user.email", "release-test@example.invalid")
   writeFileSync(path.join(directory, "package.json"), "{}\n")

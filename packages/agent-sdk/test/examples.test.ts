@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { spawn } from "node:child_process"
+import { EventEmitter, once } from "node:events"
 import { mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -11,6 +12,7 @@ import {
   type AgentClient,
   type AgentOptions,
   type CognitioConfig,
+  type SpawnOptions,
 } from "cognitio-agent-sdk"
 import { run as simple } from "../examples/01-simple.js"
 import { run as customTool } from "../examples/02-custom-tool.js"
@@ -130,7 +132,7 @@ function options(): AgentOptions {
   return { client, cwd: temporary, model: "examples/example-model" }
 }
 
-beforeAll(async () => {
+function runtimeOptions(overrides: SpawnOptions = {}) {
   const config: CognitioConfig = {
     model: "examples/example-model",
     lsp: false,
@@ -152,27 +154,32 @@ beforeAll(async () => {
       },
     },
   }
-  client = await createAgentClient({
+  return {
     directory: temporary,
     spawn: {
+      ...overrides,
       isolated: true,
       port: 0,
-      timeout: 60000,
-      scratchDir: scratch,
+      timeout: overrides.timeout ?? 60000,
+      scratchDir: overrides.scratchDir ?? scratch,
       config,
-      env: { COGNITIO_DISABLE_MODELS_FETCH: "1", COGNITIO_EXPERIMENTAL_DISABLE_FILEWATCHER: "1" },
-      spawnProcess(request) {
-        return spawn(
-          process.execPath,
-          [...sourceRuntimeArgs, ...request.args],
-          {
-            env: request.env,
-            stdio: ["ignore", "pipe", "pipe"],
-          },
-        )
+      env: {
+        ...overrides.env,
+        COGNITIO_DISABLE_MODELS_FETCH: "1",
+        COGNITIO_EXPERIMENTAL_DISABLE_FILEWATCHER: "1",
+      },
+      spawnProcess(request: Parameters<NonNullable<SpawnOptions["spawnProcess"]>>[0]) {
+        return spawn(process.execPath, [...sourceRuntimeArgs, ...request.args], {
+          env: request.env,
+          stdio: ["ignore", "pipe", "pipe"],
+        })
       },
     },
-  })
+  }
+}
+
+beforeAll(async () => {
+  client = await createAgentClient(runtimeOptions())
 }, 90000)
 
 afterAll(async () => {
@@ -314,7 +321,14 @@ describe("documented examples against the real runtime", () => {
   }, 30000)
 
   test("11 session features: real rewind, command, fork, plugin and compaction hooks", async () => {
-    const output = await sessionFeatures(options())
+    await expect(sessionFeatures(options())).rejects.toThrow("requires an owned local runtime")
+    await expect(sessionFeatures({ baseUrl: client.baseUrl })).rejects.toThrow("requires an owned local runtime")
+    const existingScratch = readdirSync(scratch)
+    const output = await sessionFeatures({ ...options(), client: undefined, spawn: runtimeOptions().spawn })
+    expect(readdirSync(scratch)).toEqual(existingScratch)
+    expect((await fetch(new URL("/global/health", client.baseUrl), { signal: AbortSignal.timeout(5000) })).status).toBe(
+      200,
+    )
     expect(output.restoredText).toBe("original\n")
     expect(output.rewind.affectedFiles.some((file) => file.endsWith("example.txt"))).toBe(true)
     expect(output.command.subtype).toBe("success")
@@ -330,58 +344,181 @@ describe("documented examples against the real runtime", () => {
       true,
     )
     expect(requests.some((request) => JSON.stringify(request.messages).includes("EXAMPLE_HOOK_INSTRUCTION"))).toBe(true)
-  }, 30000)
+  }, 90000)
 })
 
-// Run complete published snippets with only their connection/model options
-// injected. Their calls, result handling, and cleanup are the documented code.
-for (const file of [
-  "../../docs/quickstart.mdx",
-  "../../../README.md",
-  "../../docs/cookbook/remote.mdx",
-  "../../docs/migration/claude-agent-sdk.mdx",
-]) {
-  const source = readFileSync(path.resolve(import.meta.dir, file), "utf8")
-  const blocks = [...source.matchAll(/```(?:js|ts)\n([\s\S]*?)```/g)]
+// Execute the documented bodies unchanged after importing the public API.
+// Only runtime/model connections, nonsecret environment values, and process
+// signal delivery are injected; no provider credentials or OS signals escape.
+function publishedSnippets(file: string) {
+  return [
+    ...readFileSync(path.resolve(import.meta.dir, file), "utf8").matchAll(
+      /^```(?:js|ts)(?:[ \t][^\r\n]*)?\r?\n([\s\S]*?)^```[ \t]*\r?$/gm,
+    ),
+  ]
     .map((match) => match[1]!)
     .filter((block) => block.includes('from "cognitio-agent-sdk"') && block.includes("await"))
+}
+
+async function runPublishedSnippet(
+  block: string,
+  fixture: {
+    connect?: typeof createAgentClient
+    env?: Record<string, string>
+    signals?: EventEmitter
+  } = {},
+) {
+  const output: unknown[][] = []
+  const AgentWithRuntime = class extends Agent {
+    constructor(config: AgentOptions) {
+      super({ ...config, ...options(), client: config.client ?? client, spawn: undefined, baseUrl: undefined })
+    }
+  }
+  const queryWithRuntime = (input: Parameters<typeof query>[0]) =>
+    query({
+      ...input,
+      options: { ...input.options, ...options(), spawn: undefined, baseUrl: undefined },
+    })
+  const connect =
+    fixture.connect ??
+    ((config: Parameters<typeof createAgentClient>[0]) =>
+      createAgentClient({ ...config, baseUrl: client.baseUrl, directory: temporary, spawn: undefined }))
+  const body = new Bun.Transpiler({ loader: "ts" }).transformSync(
+    block.replace(/import\s+\{[^}]+\}\s+from\s+["']cognitio-agent-sdk["'];?\s*/g, ""),
+  )
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor as new (
+    ...arguments_: string[]
+  ) => (...values: unknown[]) => Promise<unknown>
+  const signals = fixture.signals ?? new EventEmitter()
+  await new AsyncFunction("Agent", "query", "shutdown", "createAgentClient", "console", "process", body)(
+    AgentWithRuntime,
+    queryWithRuntime,
+    shutdown,
+    connect,
+    { log: (...values: unknown[]) => output.push(values) },
+    {
+      env: {
+        OPENAI_API_KEY: "local-snippet-test-only",
+        ANTHROPIC_API_KEY: "local-snippet-test-only",
+        ...fixture.env,
+      },
+      once: signals.once.bind(signals),
+    },
+  )
+  expect(output.length).toBeGreaterThan(0)
+  expect(output.every((values) => values[0] !== undefined)).toBe(true)
+  return output
+}
+
+for (const [file, count] of [
+  ["../../docs/quickstart.mdx", 1],
+  ["../../../README.md", 2],
+  ["../../docs/migration/claude-agent-sdk.mdx", 1],
+] as const) {
+  const blocks = publishedSnippets(file)
+  // Changing a title or fence must never silently remove a documented example.
+  if (blocks.length !== count) throw new Error(`Expected ${count} complete snippets in ${file}, found ${blocks.length}`)
   for (const [index, block] of blocks.entries()) {
     test(`published snippet ${file} #${index + 1}`, async () => {
-      const output: unknown[][] = []
-      const AgentWithRuntime = class extends Agent {
-        constructor(config: AgentOptions) {
-          super({ ...config, ...options(), client: config.client ?? client, spawn: undefined, baseUrl: undefined })
-        }
-      }
-      const queryWithRuntime = (input: Parameters<typeof query>[0]) =>
-        query({
-          ...input,
-          options: { ...input.options, ...options(), spawn: undefined, baseUrl: undefined },
-        })
-      const connect = (config: Parameters<typeof createAgentClient>[0]) =>
-        createAgentClient({
-          ...config,
-          baseUrl: client.baseUrl,
-          directory: temporary,
-          spawn: undefined,
-        })
-      const body = new Bun.Transpiler({ loader: "ts" }).transformSync(
-        block.replace(/import\s+\{[^}]+\}\s+from\s+["']cognitio-agent-sdk["'];?\s*/g, ""),
-      )
-      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor as new (
-        ...arguments_: string[]
-      ) => (...values: unknown[]) => Promise<unknown>
-      await new AsyncFunction("Agent", "query", "shutdown", "createAgentClient", "console", body)(
-        AgentWithRuntime,
-        queryWithRuntime,
-        shutdown,
-        connect,
-        { log: (...values: unknown[]) => output.push(values) },
-      )
-      expect(output.length).toBeGreaterThan(0)
-      expect(output.every((values) => values[0] !== undefined)).toBe(true)
+      const firstRequest = requests.length
+      await runPublishedSnippet(block)
+      expect(requests.length).toBeGreaterThan(firstRequest)
     }, 30000)
   }
+}
+
+const remoteSnippets = publishedSnippets("../../docs/cookbook/remote.mdx")
+if (remoteSnippets.length !== 3) throw new Error("Expected the remote owner and both remote client snippets")
+for (const authenticated of [false, true]) {
+  test(`published remote snippets: owner shutdown and ${authenticated ? "authenticated" : "local"} client`, async () => {
+    const ownedScratch = realpathSync(mkdtempSync(path.join(os.tmpdir(), "cognitio-snippet-owner-")))
+    const signals = new EventEmitter()
+    const connections: AgentClient[] = []
+    const username = "snippet-user"
+    const password = "local-snippet-password-only"
+    const headers = authenticated
+      ? { Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}` }
+      : undefined
+    let owner: Promise<AgentClient> | undefined
+    const connect: typeof createAgentClient = async (config) => {
+      if (config?.spawn) {
+        if (owner) throw new Error("The owner snippet started more than one runtime")
+        owner = createAgentClient(
+          runtimeOptions({
+            ...config.spawn,
+            scratchDir: ownedScratch,
+            timeout: 15000,
+            env: authenticated ? { COGNITIO_SERVER_USERNAME: username, COGNITIO_SERVER_PASSWORD: password } : {},
+          }),
+        )
+        return owner
+      }
+      if (!owner) throw new Error("The client snippet ran before its runtime owner")
+      const connection = await createAgentClient({
+        ...config,
+        baseUrl: (await owner).baseUrl,
+        directory: temporary,
+      })
+      connections.push(connection)
+      return connection
+    }
+    const ready = once(signals, "ready", { signal: AbortSignal.timeout(15000) })
+    signals.on("newListener", (event) => {
+      if (event === "SIGTERM") queueMicrotask(() => signals.emit("ready"))
+    })
+    const running = runPublishedSnippet(remoteSnippets[0]!, { connect, signals })
+    // Observe a startup rejection immediately while waiting for signal handlers.
+    running.catch(() => {})
+    try {
+      await Promise.race([
+        ready,
+        running.then(() => {
+          throw new Error("Owner exited before client connection")
+        }),
+      ])
+      if (!owner) throw new Error("The owner snippet did not start a runtime")
+      const host = await owner
+      const health = () =>
+        fetch(new URL("/global/health", host.baseUrl), { headers, signal: AbortSignal.timeout(5000) })
+      expect(readdirSync(ownedScratch)).toHaveLength(1)
+      expect((await health()).status).toBe(200)
+      if (authenticated) {
+        expect(
+          (await fetch(new URL("/global/health", host.baseUrl), { signal: AbortSignal.timeout(5000) })).status,
+        ).toBe(401)
+      }
+      const firstRequest = requests.length
+      await runPublishedSnippet(remoteSnippets[authenticated ? 2 : 1]!, {
+        connect,
+        env: {
+          COGNITIO_REMOTE_URL: host.baseUrl,
+          COGNITIO_REMOTE_USERNAME: username,
+          COGNITIO_REMOTE_PASSWORD: password,
+        },
+      })
+      expect(requests.length).toBeGreaterThan(firstRequest)
+      expect(connections).toHaveLength(1)
+      await expect(connections[0]!.sessions.create()).rejects.toMatchObject({ kind: "closed" })
+      // The client snippet closes its handles without taking the host with it.
+      expect((await health()).status).toBe(200)
+      expect(readdirSync(ownedScratch)).toHaveLength(1)
+      expect(signals.emit("SIGTERM")).toBe(true)
+      await running
+      // These assertions precede defensive test cleanup: the documented finally
+      // block itself must have stopped the process and removed its scratch.
+      expect(readdirSync(ownedScratch)).toEqual([])
+      await expect(health()).rejects.toThrow()
+      expect(
+        (await fetch(new URL("/global/health", client.baseUrl), { signal: AbortSignal.timeout(5000) })).status,
+      ).toBe(200)
+    } finally {
+      const host = await owner?.catch(() => undefined)
+      signals.emit("SIGTERM")
+      await Promise.allSettled([...connections.map((connection) => connection.close()), host?.close(), running])
+      signals.removeAllListeners()
+      rmSync(ownedScratch, { recursive: true, force: true })
+    }
+  }, 30000)
 }
 
 test.skipIf(!process.env.COGNITIO_EXAMPLES_LIVE)(

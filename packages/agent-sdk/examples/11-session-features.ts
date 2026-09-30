@@ -5,13 +5,20 @@ import path from "node:path"
 import { Agent, defineCommand, definePlugin, defineSkill, type AgentOptions } from "cognitio-agent-sdk"
 import { exampleOptions, runExample } from "./support/options.js"
 
-/** Uses a disposable Git workspace so rewind cannot touch the caller's project. */
+/**
+ * Uses a disposable Git workspace and an owned local runtime so rewind cannot
+ * touch the caller's project. Pass spawn options to customize that runtime;
+ * borrowed clients and remote connections cannot own this workspace's cleanup.
+ */
 export async function run(options: AgentOptions = {}) {
+  if (options.client !== undefined || options.baseUrl !== undefined)
+    throw new Error("This disposable-workspace example requires an owned local runtime; pass spawn options instead.")
   const workspace = realpathSync(mkdtempSync(path.join(os.tmpdir(), "cognitio-session-example-")))
   const file = path.join(workspace, "example.txt")
   const hooks: string[] = []
   const agent = new Agent({
     ...exampleOptions(options),
+    spawn: options.spawn ?? {},
     cwd: undefined,
     directory: undefined,
     disallowedTools: ["*"],
@@ -84,11 +91,10 @@ export async function run(options: AgentOptions = {}) {
       settings: await session.getAppliedSettings(),
     }
   } finally {
-    try {
-      await agent.close()
-    } finally {
-      rmSync(workspace, { recursive: true, force: true })
-    }
+    // Closing the dedicated runtime releases its instance resources before
+    // removing the directory. A shared runtime could keep it locked on Windows.
+    await agent.close()
+    rmSync(workspace, { recursive: true, force: true })
   }
 }
 

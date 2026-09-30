@@ -142,7 +142,7 @@ describe("version pinning", () => {
   })
 
   test("the SDK is on the stable v2 line with the latest tag", () => {
-    expect(manifest.version).toBe("2.0.0")
+    expect(manifest.version).toBe("2.0.1")
     expect(distTag(manifest.version)).toBe("latest")
     expect(distTag("2.0.0")).toBe("latest")
   })
