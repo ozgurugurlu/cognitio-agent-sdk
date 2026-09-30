@@ -3325,24 +3325,29 @@ describe("cognitio-agent-sdk — protocol smoke (mock server)", () => {
     const client = await createAgentClient({ baseUrl: mock.baseUrl })
     try {
       const session = await client.sessions.create({ cwd: "/tmp/agent-sdk-overlap" })
-      mock.setPromptAsyncHandler(async (req) => {
-        await sleep(80)
-        mock.emit({
-          type: "session.result",
-          properties: {
-            sessionID: req.sessionID,
-            parentMessageID: requestMessageID(req.body),
-            subtype: "success",
-            numTurns: 1,
-            totalCostUsd: 0,
-          },
-        })
-        return new Response(null, { status: 204 })
-      })
+      // Acknowledge the request while keeping the turn open until both overlap
+      // checks complete. This tests the query guard without a timer race.
+      mock.setPromptAsyncHandler(() => new Response(null, { status: 204 }))
 
       const running = session.send("first")
-      await waitFor(() => (mock.capturedPromptAsync.length === 1 ? true : undefined))
+      // Cleanup may reject this promise if an earlier assertion fails; the
+      // explicit success assertion below still observes its actual outcome.
+      running.catch(() => {})
+      const request = await waitFor(() => mock.capturedPromptAsync[0])
       await expect(session.send("second")).rejects.toThrow(/active send\(\)\/stream\(\)/)
+      await expect(session.stream("third").next()).rejects.toThrow(/active send\(\)\/stream\(\)/)
+      expect(mock.capturedPromptAsync).toHaveLength(1)
+      mock.emit({
+        type: "session.result",
+        properties: {
+          sessionID: request.sessionID,
+          parentMessageID: requestMessageID(request.body),
+          subtype: "success",
+          numTurns: 1,
+          totalCostUsd: 0,
+        },
+      })
+      mock.emit({ type: "session.idle", properties: { sessionID: request.sessionID } })
       await expect(running).resolves.toMatchObject({ subtype: "success" })
     } finally {
       await client.close()
