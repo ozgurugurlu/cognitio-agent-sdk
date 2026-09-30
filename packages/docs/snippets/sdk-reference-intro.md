@@ -16,4 +16,3 @@ See [AgentOptions](/api-reference/interfaces/AgentOptions) for agent configurati
 The **SDK reference** is the interface most applications use. The **[runtime HTTP API](/http-api/overview)** and protocol types under **Advanced** describe the underlying server for direct integrations; you do not need them to use `Agent`.
 
 ## Exported API
-

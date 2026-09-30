@@ -1,11 +1,12 @@
 {
-  "sourceCommit": "f98f95668f67657b964621939d1d834b47c679f6",
+  "sourceCommit": "c810f06514057a3a9f3df39c093bbe2f6f89fc95",
   "product": "Cognitio Agent SDK",
   "historyIncluded": false,
   "files": [
     ".changeset/README.md",
     ".changeset/config.json",
     ".editorconfig",
+    ".gitattributes",
     ".github/workflows/cognitio-maintenance.yml",
     ".github/workflows/cognitio-sdk.yml",
     ".gitignore",
