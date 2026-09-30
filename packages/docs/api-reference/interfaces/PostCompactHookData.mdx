@@ -1,0 +1,63 @@
+---
+title: "Interface: PostCompactHookData"
+description: "Generated from the public TypeScript API."
+---
+
+
+Outcome supplied after compaction, including the boundary ID and preserved message metadata.
+
+## Properties
+
+### auto
+
+```ts
+auto: boolean;
+```
+
+***
+
+### compactionId?
+
+```ts
+optional compactionId?: string;
+```
+
+***
+
+### overflow?
+
+```ts
+optional overflow?: boolean;
+```
+
+***
+
+### preCompactTokenCount?
+
+```ts
+optional preCompactTokenCount?: number;
+```
+
+***
+
+### preservedMessageIds?
+
+```ts
+optional preservedMessageIds?: string[];
+```
+
+***
+
+### result
+
+```ts
+result: "continue" | "stop";
+```
+
+***
+
+### trigger
+
+```ts
+trigger: "manual" | "auto";
+```

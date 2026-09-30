@@ -1,0 +1,28 @@
+---
+title: "StepFinishPart"
+description: "Exact type definition referenced by the public SDK."
+---
+
+This definition is generated from the same source as the SDK. Protocol types describe the runtime HTTP API; prefer the high-level SDK for session ownership and callbacks.
+
+```ts
+export type StepFinishPart = {
+  id: string
+  sessionID: string
+  messageID: string
+  type: "step-finish"
+  reason: string
+  snapshot?: string
+  cost: number
+  tokens: {
+    total?: number
+    input: number
+    output: number
+    reasoning: number
+    cache: {
+      read: number
+      write: number
+    }
+  }
+}
+```

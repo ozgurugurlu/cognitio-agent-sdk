@@ -1,0 +1,82 @@
+---
+title: "Interface: RateLimitEvent"
+description: "Generated from the public TypeScript API."
+---
+
+
+Emitted when a provider rate-limits a request. `retryAfterSeconds` is the
+parsed retry-after header when present, otherwise the backoff delay the
+server chose; it is absent when the provider marked the error
+non-retryable (the run then fails without retrying).
+
+## Properties
+
+### activeSessionId
+
+```ts
+activeSessionId: string;
+```
+
+***
+
+### attempt?
+
+```ts
+optional attempt?: number;
+```
+
+***
+
+### message?
+
+```ts
+optional message?: string;
+```
+
+***
+
+### model?
+
+```ts
+optional model?: string;
+```
+
+***
+
+### provider
+
+```ts
+provider: string;
+```
+
+***
+
+### raw?
+
+```ts
+optional raw?: unknown;
+```
+
+***
+
+### retryAfterSeconds?
+
+```ts
+optional retryAfterSeconds?: number;
+```
+
+***
+
+### sessionId
+
+```ts
+sessionId: string;
+```
+
+***
+
+### type
+
+```ts
+type: "rate_limit";
+```

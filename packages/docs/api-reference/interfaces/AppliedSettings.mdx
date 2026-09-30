@@ -1,0 +1,341 @@
+---
+title: "Interface: AppliedSettings"
+description: "Generated from the public TypeScript API."
+---
+
+
+Snapshot returned by `session.getAppliedSettings()`.
+
+## Properties
+
+### agents
+
+```ts
+agents: string[];
+```
+
+Names of agent definitions available for subagent dispatch.
+
+***
+
+### appendSystemPrompt?
+
+```ts
+optional appendSystemPrompt?: object;
+```
+
+#### length
+
+```ts
+length: number;
+```
+
+***
+
+### autoPermissionClassifierModel?
+
+```ts
+optional autoPermissionClassifierModel?: ModelId;
+```
+
+***
+
+### backgroundTaskPolicy?
+
+```ts
+optional backgroundTaskPolicy?: object;
+```
+
+#### mode
+
+```ts
+mode: "foreground";
+```
+
+***
+
+### canUseTool?
+
+```ts
+optional canUseTool?: object;
+```
+
+#### registered
+
+```ts
+registered: boolean;
+```
+
+***
+
+### checkpointing?
+
+```ts
+optional checkpointing?: CheckpointingConfig;
+```
+
+***
+
+### commands
+
+```ts
+commands: object[];
+```
+
+#### name
+
+```ts
+name: string;
+```
+
+#### pluginName?
+
+```ts
+optional pluginName?: string;
+```
+
+#### source
+
+```ts
+source: "skill" | "runtime" | "plugin";
+```
+
+***
+
+### compaction?
+
+```ts
+optional compaction?: object;
+```
+
+#### auto?
+
+```ts
+optional auto?: boolean;
+```
+
+#### includeFiles?
+
+```ts
+optional includeFiles?: boolean;
+```
+
+***
+
+### effort?
+
+```ts
+optional effort?: "high" | "medium" | "low" | "max";
+```
+
+***
+
+### hookCounts?
+
+```ts
+optional hookCounts?: Partial<Record<HookEventName, number>>;
+```
+
+***
+
+### includeEnvironment?
+
+```ts
+optional includeEnvironment?: boolean;
+```
+
+***
+
+### maxBudgetUsd?
+
+```ts
+optional maxBudgetUsd?: number;
+```
+
+***
+
+### maxTurns?
+
+```ts
+optional maxTurns?: number;
+```
+
+***
+
+### model?
+
+```ts
+optional model?: ModelId;
+```
+
+***
+
+### permissionMode?
+
+```ts
+optional permissionMode?: PermissionMode;
+```
+
+***
+
+### plugins
+
+```ts
+plugins: object[];
+```
+
+#### agentCount
+
+```ts
+agentCount: number;
+```
+
+#### commandCount
+
+```ts
+commandCount: number;
+```
+
+#### diagnostics?
+
+```ts
+optional diagnostics?: string[];
+```
+
+#### hookEventCount
+
+```ts
+hookEventCount: number;
+```
+
+#### mcpServerCount
+
+```ts
+mcpServerCount: number;
+```
+
+#### name
+
+```ts
+name: string;
+```
+
+#### skillCount
+
+```ts
+skillCount: number;
+```
+
+#### source
+
+```ts
+source: "inline" | "claude";
+```
+
+***
+
+### registeredHooks
+
+```ts
+registeredHooks: HookEventName[];
+```
+
+Names of hook events with at least one registered callback.
+
+***
+
+### sessionId
+
+```ts
+sessionId: string;
+```
+
+***
+
+### settingSources
+
+```ts
+settingSources: ("user" | "local" | "project")[];
+```
+
+***
+
+### skills
+
+```ts
+skills: object[];
+```
+
+#### name
+
+```ts
+name: string;
+```
+
+#### pluginName?
+
+```ts
+optional pluginName?: string;
+```
+
+#### source
+
+```ts
+source: "runtime" | "plugin";
+```
+
+***
+
+### systemPrompt?
+
+```ts
+optional systemPrompt?: object;
+```
+
+#### hasAppend
+
+```ts
+hasAppend: boolean;
+```
+
+#### mode
+
+```ts
+mode: "custom" | "default" | "preset" | "neutral";
+```
+
+"neutral" = the SDK-injected neutral base prompt (detected via the stored config).
+
+#### preset?
+
+```ts
+optional preset?: "default" | "none";
+```
+
+***
+
+### thinkingConfig?
+
+```ts
+optional thinkingConfig?: ThinkingConfig;
+```
+
+***
+
+### tools
+
+```ts
+tools: object;
+```
+
+#### allowed
+
+```ts
+allowed: string[];
+```
+
+#### disallowed
+
+```ts
+disallowed: string[];
+```

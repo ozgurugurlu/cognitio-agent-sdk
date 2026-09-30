@@ -1,0 +1,26 @@
+---
+title: "EventSystemCompactBoundary"
+description: "Exact type definition referenced by the public SDK."
+---
+
+This definition is generated from the same source as the SDK. Protocol types describe the runtime HTTP API; prefer the high-level SDK for session ownership and callbacks.
+
+```ts
+export type EventSystemCompactBoundary = {
+  type: "system.compact_boundary"
+  properties: {
+    sessionID: string
+    messageID: string
+    partID?: string
+    checkpointId?: string
+    auto: boolean
+    overflow: boolean
+    tailStartMessageID?: string
+    trigger?: "auto" | "manual"
+    preCompactTokenCount?: number
+    compactionId?: string
+    preservedMessageIds?: Array<string>
+    summaryText?: string
+  }
+}
+```

@@ -1,0 +1,74 @@
+---
+title: "Interface: McpResourceDefinition"
+description: "Generated from the public TypeScript API."
+---
+
+
+An SDK-hosted MCP resource with a stable URI and a caller-side read callback.
+
+## Properties
+
+### description?
+
+```ts
+optional description?: string;
+```
+
+***
+
+### mimeType?
+
+```ts
+optional mimeType?: string;
+```
+
+***
+
+### name
+
+```ts
+name: string;
+```
+
+***
+
+### uri
+
+```ts
+uri: string;
+```
+
+## Methods
+
+### read()
+
+```ts
+read(context):
+  | {
+[key: string]: unknown;
+}
+  | Promise<{
+[key: string]: unknown;
+}>;
+```
+
+Read this resource for the requesting session.
+
+#### Parameters
+
+##### context
+
+[`ToolContext`](ToolContext)
+
+Session identity and cancellation signal.
+
+#### Returns
+
+  \| \{
+\[`key`: `string`\]: `unknown`;
+\}
+  \| `Promise`\<\{
+\[`key`: `string`\]: `unknown`;
+\}\>
+
+MCP resource contents.

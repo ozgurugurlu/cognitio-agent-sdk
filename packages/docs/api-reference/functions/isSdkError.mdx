@@ -1,0 +1,31 @@
+---
+title: "Function: isSdkError()"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+function isSdkError(error): error is SdkError;
+```
+
+Recognize SDK setup/lifecycle failures without depending on class identity.
+
+## Parameters
+
+### error
+
+`unknown`
+
+Any caught value, including a deserialized error record.
+
+## Returns
+
+`error is SdkError`
+
+True when the value carries the SDK error name, kind, and message.
+
+## Example
+
+```ts
+if (isSdkError(error) && error.kind === "configuration") console.error(error.message)
+```

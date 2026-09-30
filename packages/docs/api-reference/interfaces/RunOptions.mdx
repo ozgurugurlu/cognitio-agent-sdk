@@ -1,0 +1,113 @@
+---
+title: "Interface: RunOptions"
+description: "Generated from the public TypeScript API."
+---
+
+
+Flat per-run overrides.
+
+Raw `runtimeConfig` is intentionally not accepted; construct another
+`Agent` for runtime fields outside this curated set.
+
+## Example
+
+```ts
+const result = await agent.run("Review this change.", {
+  model: "anthropic/claude-sonnet-4-5",
+  maxTurns: 4,
+})
+```
+
+## Extended by
+
+- [`AgentStreamOptions`](AgentStreamOptions)
+
+## Properties
+
+### cwd?
+
+```ts
+optional cwd?: string;
+```
+
+Working directory for this fresh session.
+
+***
+
+### maxBudgetUsd?
+
+```ts
+optional maxBudgetUsd?: number;
+```
+
+Maximum run cost before an `error_max_budget` result.
+
+***
+
+### maxTurns?
+
+```ts
+optional maxTurns?: number;
+```
+
+Maximum model turns before an `error_max_turns` result.
+
+***
+
+### model?
+
+```ts
+optional model?: ModelId;
+```
+
+`provider/model` id for this session.
+
+***
+
+### outputFormat?
+
+```ts
+optional outputFormat?: OutputFormatSpec<unknown>;
+```
+
+Structured-output contract for this session.
+
+***
+
+### permission?
+
+```ts
+optional permission?: PermissionRuleset;
+```
+
+Server permission rules, distinct from `permissionMode`.
+
+***
+
+### permissionMode?
+
+```ts
+optional permissionMode?: PermissionMode;
+```
+
+Runtime permission behavior for this session.
+
+***
+
+### signal?
+
+```ts
+optional signal?: AbortSignal;
+```
+
+Abort the active turn; terminal `error_aborted` still resolves normally.
+
+***
+
+### title?
+
+```ts
+optional title?: string;
+```
+
+Explicit session title; otherwise the prompt's first line is used.

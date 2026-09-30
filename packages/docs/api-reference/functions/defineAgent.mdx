@@ -1,0 +1,41 @@
+---
+title: "Function: defineAgent()"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+function defineAgent<T>(def): T;
+```
+
+Validate a session-scoped helper or subagent definition while preserving its type.
+
+## Type Parameters
+
+### T
+
+`T` *extends* [`AgentDefinition`](../interfaces/AgentDefinition)
+
+## Parameters
+
+### def
+
+`T`
+
+Prompt, model, tools and child-session policy.
+
+## Returns
+
+`T`
+
+The validated definition.
+
+## Throws
+
+A configuration error for invalid prompt, model, tool rules, or MCP descriptors.
+
+## Example
+
+```ts
+const reviewer = defineAgent({ prompt: "Review correctness.", tools: ["read", "grep"], spawnMode: "fresh" })
+```

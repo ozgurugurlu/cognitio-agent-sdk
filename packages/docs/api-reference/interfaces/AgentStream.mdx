@@ -1,0 +1,168 @@
+---
+title: "Interface: AgentStream"
+description: "Generated from the public TypeScript API."
+---
+
+
+A normalized Agent event stream with active-session controls.
+
+`interrupt()` affects the current turn. `close()` disposes the iterator and
+transient Session and is idempotent. Session startup is lazy.
+
+## Example
+
+```ts
+const stream: AgentStream = agent.stream("Explain this change.")
+console.log(await stream.sessionId())
+for await (const message of stream) console.log(message.type)
+```
+
+## Extends
+
+- `AsyncGenerator`\<[`AgentMessage`](../type-aliases/AgentMessage), [`ResultMessage`](ResultMessage), `void`\>
+
+## Methods
+
+### close()
+
+```ts
+close(): Promise<void>;
+```
+
+Dispose the stream and its transient session idempotently.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+A promise settled after owned resources are handled.
+
+#### Throws
+
+When one or more teardown stages fail.
+
+#### Example
+
+```ts
+await stream.close()
+```
+
+***
+
+### interrupt()
+
+```ts
+interrupt(): Promise<void>;
+```
+
+Abort the active turn without disposing a multi-turn iterator.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+A promise settled after the abort request.
+
+#### Throws
+
+When startup or the abort request fails.
+
+#### Example
+
+```ts
+await stream.interrupt()
+```
+
+***
+
+### sessionId()
+
+```ts
+sessionId(): Promise<string>;
+```
+
+Start lazily when needed and return the server session id.
+
+#### Returns
+
+`Promise`\<`string`\>
+
+The transient server session id.
+
+#### Throws
+
+When session creation fails or the stream is already closed.
+
+#### Example
+
+```ts
+console.log(await stream.sessionId())
+```
+
+***
+
+### setModel()
+
+```ts
+setModel(model): Promise<void>;
+```
+
+Change the active session's model.
+
+#### Parameters
+
+##### model
+
+[`ModelId`](../type-aliases/ModelId)
+
+New `provider/model` id.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+A promise settled after the server applies the model.
+
+#### Throws
+
+When the stream is closed, the id is invalid, or the request fails.
+
+#### Example
+
+```ts
+await stream.setModel("anthropic/claude-sonnet-4-5")
+```
+
+***
+
+### setPermissionMode()
+
+```ts
+setPermissionMode(mode): Promise<void>;
+```
+
+Change the active session's permission mode.
+
+#### Parameters
+
+##### mode
+
+[`PermissionMode`](../type-aliases/PermissionMode)
+
+New runtime permission mode.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+A promise settled after the server applies the mode.
+
+#### Throws
+
+When the stream is closed or the request fails.
+
+#### Example
+
+```ts
+await stream.setPermissionMode("dontAsk")
+```

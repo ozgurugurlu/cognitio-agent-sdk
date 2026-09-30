@@ -1,0 +1,46 @@
+---
+title: "Type Alias: CanUseToolCallback"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+type CanUseToolCallback = (toolName, input, ctx) =>
+  | Promise<PermissionDecision>
+  | PermissionDecision;
+```
+
+Application permission callback returning allow, deny or ask, optionally with replacement tool input.
+
+## Parameters
+
+### toolName
+
+`string`
+
+### input
+
+`Record`\<`string`, `unknown`\>
+
+### ctx
+
+#### rootSessionId?
+
+`string`
+
+#### sessionId
+
+`string`
+
+#### signal
+
+`AbortSignal`
+
+#### toolCallId?
+
+`string`
+
+## Returns
+
+  \| `Promise`\<[`PermissionDecision`](/api-reference/supporting/PermissionDecision)\>
+  \| [`PermissionDecision`](/api-reference/supporting/PermissionDecision)

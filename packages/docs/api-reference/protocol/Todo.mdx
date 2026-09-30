@@ -1,0 +1,23 @@
+---
+title: "Todo"
+description: "Exact type definition referenced by the public SDK."
+---
+
+This definition is generated from the same source as the SDK. Protocol types describe the runtime HTTP API; prefer the high-level SDK for session ownership and callbacks.
+
+```ts
+export type Todo = {
+  /**
+   * Brief description of the task
+   */
+  content: string
+  /**
+   * Current status of the task
+   */
+  status: "pending" | "in_progress" | "completed" | "cancelled"
+  /**
+   * Priority level of the task
+   */
+  priority: "high" | "medium" | "low"
+}
+```

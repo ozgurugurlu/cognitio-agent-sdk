@@ -1,0 +1,33 @@
+---
+title: "Function: shutdown()"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+function shutdown(): Promise<void>;
+```
+
+Close all canonical and dedicated clients owned by the facade.
+
+Injected clients are borrowed and are never closed. Concurrent calls share
+one shutdown operation; a later facade operation may create a fresh
+canonical client.
+
+## Returns
+
+`Promise`\<`void`\>
+
+A promise that settles after every owned client has been handled.
+
+## Throws
+
+When teardown fails; multiple failures are combined in an `AggregateError`.
+
+## Example
+
+```ts
+import { shutdown } from "cognitio-agent-sdk"
+
+await shutdown()
+```

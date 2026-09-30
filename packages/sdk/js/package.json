@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@cognitio/sdk",
+  "version": "1.20.0",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsgo --noEmit && tsgo -p tsconfig.test.json",
+    "build": "bun ./script/build.ts",
+    "check:client": "bun ./script/build.ts --check",
+    "test": "bun test",
+    "test:ci": "bun run check:client && mkdir -p .artifacts/unit && bun test --reporter=junit --reporter-outfile=.artifacts/unit/junit.xml"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./server": "./src/server.ts",
+    "./v2": "./src/v2/index.ts",
+    "./v2/client": "./src/v2/client.ts",
+    "./v2/gen/client": "./src/v2/gen/client/index.ts",
+    "./v2/server": "./src/v2/server.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.90.10",
+    "@tsconfig/node22": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/cross-spawn": "catalog:",
+    "@types/node": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "cross-spawn": "catalog:"
+  }
+}

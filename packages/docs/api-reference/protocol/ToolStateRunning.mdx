@@ -1,0 +1,22 @@
+---
+title: "ToolStateRunning"
+description: "Exact type definition referenced by the public SDK."
+---
+
+This definition is generated from the same source as the SDK. Protocol types describe the runtime HTTP API; prefer the high-level SDK for session ownership and callbacks.
+
+```ts
+export type ToolStateRunning = {
+  status: "running"
+  input: {
+    [key: string]: unknown
+  }
+  title?: string
+  metadata?: {
+    [key: string]: unknown
+  }
+  time: {
+    start: number
+  }
+}
+```

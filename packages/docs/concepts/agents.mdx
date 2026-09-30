@@ -1,0 +1,33 @@
+---
+title: "Agents and query"
+description: "Choose a reusable agent, a one-shot stream or an explicit client."
+---
+`Agent` stores a configuration profile and manages its client. Each `run()` and `stream()` creates a fresh session. A single instance can serve multiple independent requests; use explicit sessions for a conversation.
+
+```ts
+import { Agent, shutdown } from "cognitio-agent-sdk"
+
+const agent = new Agent({
+  model: "anthropic/claude-sonnet-4-5",
+  instructions: "Review documents for clarity.",
+  maxTurns: 8,
+})
+try {
+  const result = await agent.run("Review this paragraph: ...")
+  console.log(result.text, result.isError, result.sessionId)
+} finally {
+  await agent.close().finally(() => shutdown())
+}
+```
+
+`RunResult` extends the terminal `ResultMessage` with `text` and `isError`. A completed transport can still produce an unsuccessful result; check `subtype` or `isError`. Setup, transport and lifecycle failures can throw.
+
+`query({ prompt, options })` is an asynchronous iterable with terminal result access. It owns its temporary Agent and closes that Agent at completion, failure or iterator cancellation. The default shared runtime remains alive. Read the [streaming guide](/concepts/streaming) before sharing or abandoning an iterator.
+
+`createAgentClient()` exposes `sessions.create/get/resume/fork/list/delete`, transport metadata and explicit transport ownership. Use it for services that already manage runtime lifetimes.
+
+Default Agents share a process-wide client. `Agent.close()` closes that Agent's streams and session handles; the shared runtime stays available until `shutdown()`. Call `shutdown()` at application teardown: it closes all facade-owned canonical and dedicated clients and can interrupt other Agents using them.
+
+Explicit connection options such as `spawn` or `baseUrl` create a dedicated client, which that Agent closes. An injected `client` is borrowed and is never closed by either `Agent.close()` or `shutdown()`; its creator must close it. Closing a remote client does not stop the remote server.
+
+See the generated `Agent`, `AgentOptions`, `RunOptions`, `QueryOptions` and `AgentClient` reference pages for every option.

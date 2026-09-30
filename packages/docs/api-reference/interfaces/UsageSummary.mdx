@@ -1,0 +1,55 @@
+---
+title: "Interface: UsageSummary"
+description: "Generated from the public TypeScript API."
+---
+
+
+Token and cost accounting for a completed run, including optional provider/model breakdowns.
+
+## Properties
+
+### cacheCreationInputTokens?
+
+```ts
+optional cacheCreationInputTokens?: number;
+```
+
+***
+
+### cacheReadInputTokens?
+
+```ts
+optional cacheReadInputTokens?: number;
+```
+
+***
+
+### inputTokens
+
+```ts
+inputTokens: number;
+```
+
+***
+
+### outputTokens
+
+```ts
+outputTokens: number;
+```
+
+***
+
+### perModel?
+
+```ts
+optional perModel?: Record<string, Omit<UsageSummary, "perModel">>;
+```
+
+***
+
+### reasoningTokens?
+
+```ts
+optional reasoningTokens?: number;
+```

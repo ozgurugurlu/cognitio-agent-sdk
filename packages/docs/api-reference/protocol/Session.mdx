@@ -1,0 +1,46 @@
+---
+title: "Session"
+description: "Exact type definition referenced by the public SDK."
+---
+
+This definition is generated from the same source as the SDK. Protocol types describe the runtime HTTP API; prefer the high-level SDK for session ownership and callbacks.
+
+```ts
+export type Session = {
+  id: string
+  slug: string
+  projectID: string
+  workspaceID?: string
+  directory: string
+  parentID?: string
+  forkedFrom?: string
+  summary?: {
+    additions: number
+    deletions: number
+    files: number
+    diffs?: Array<SnapshotFileDiff>
+  }
+  share?: {
+    url: string
+  }
+  title: string
+  tags?: Array<string>
+  version: string
+  time: {
+    created: number
+    updated: number
+    compacting?: number
+    archived?: number
+  }
+  permission?: PermissionRuleset
+  revert?: {
+    messageID: string
+    partID?: string
+    snapshot?: string
+    checkpointId?: string
+    diff?: string
+  }
+}
+```
+
+Related types: [PermissionRuleset](/api-reference/protocol/PermissionRuleset), [SnapshotFileDiff](/api-reference/protocol/SnapshotFileDiff).

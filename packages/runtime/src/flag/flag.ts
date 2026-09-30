@@ -1,0 +1,137 @@
+import { Config } from "effect"
+
+function truthy(key: string) {
+  const value = process.env[key]?.toLowerCase()
+  return value === "true" || value === "1"
+}
+
+function falsy(key: string) {
+  const value = process.env[key]?.toLowerCase()
+  return value === "false" || value === "0"
+}
+
+function number(key: string) {
+  const value = process.env[key]
+  if (!value) return undefined
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined
+}
+
+// Read lazily: COGNITIO_ISOLATED arrives via spawn env and implies the
+// fail-closed flags below, so it must never freeze at module load.
+function isolated() {
+  return truthy("COGNITIO_ISOLATED")
+}
+
+const COGNITIO_EXPERIMENTAL = truthy("COGNITIO_EXPERIMENTAL")
+const COGNITIO_DISABLE_CLAUDE_CODE = truthy("COGNITIO_DISABLE_CLAUDE_CODE")
+const COGNITIO_DISABLE_CLAUDE_CODE_SKILLS =
+  COGNITIO_DISABLE_CLAUDE_CODE || truthy("COGNITIO_DISABLE_CLAUDE_CODE_SKILLS")
+const copy = process.env["COGNITIO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT"]
+
+export const Flag = {
+  OTEL_EXPORTER_OTLP_ENDPOINT: process.env["OTEL_EXPORTER_OTLP_ENDPOINT"],
+  OTEL_EXPORTER_OTLP_HEADERS: process.env["OTEL_EXPORTER_OTLP_HEADERS"],
+  // Evaluated at access time: resource() is called lazily per exporter and
+  // tests toggle the service name per-case.
+  get OTEL_SERVICE_NAME() {
+    return process.env["OTEL_SERVICE_NAME"]
+  },
+  OTEL_METRIC_EXPORT_INTERVAL: number("OTEL_METRIC_EXPORT_INTERVAL"),
+  // Evaluated at access time so tests can toggle it per-case.
+  get OTEL_METRICS_INCLUDE_SESSION_ID() {
+    return truthy("OTEL_METRICS_INCLUDE_SESSION_ID")
+  },
+
+  COGNITIO_AUTO_SHARE: truthy("COGNITIO_AUTO_SHARE"),
+  COGNITIO_AUTO_HEAP_SNAPSHOT: truthy("COGNITIO_AUTO_HEAP_SNAPSHOT"),
+  COGNITIO_GIT_BASH_PATH: process.env["COGNITIO_GIT_BASH_PATH"],
+  COGNITIO_CONFIG: process.env["COGNITIO_CONFIG"],
+  COGNITIO_CONFIG_CONTENT: process.env["COGNITIO_CONFIG_CONTENT"],
+  get COGNITIO_DISABLE_AUTOUPDATE() {
+    return isolated() || truthy("COGNITIO_DISABLE_AUTOUPDATE")
+  },
+  COGNITIO_ALWAYS_NOTIFY_UPDATE: truthy("COGNITIO_ALWAYS_NOTIFY_UPDATE"),
+  COGNITIO_DISABLE_PRUNE: truthy("COGNITIO_DISABLE_PRUNE"),
+  COGNITIO_DISABLE_TERMINAL_TITLE: truthy("COGNITIO_DISABLE_TERMINAL_TITLE"),
+  COGNITIO_SHOW_TTFD: truthy("COGNITIO_SHOW_TTFD"),
+  COGNITIO_PERMISSION: process.env["COGNITIO_PERMISSION"],
+  COGNITIO_DISABLE_DEFAULT_PLUGINS: truthy("COGNITIO_DISABLE_DEFAULT_PLUGINS"),
+  get COGNITIO_DISABLE_LSP_DOWNLOAD() {
+    return isolated() || truthy("COGNITIO_DISABLE_LSP_DOWNLOAD")
+  },
+  COGNITIO_ENABLE_EXPERIMENTAL_MODELS: truthy("COGNITIO_ENABLE_EXPERIMENTAL_MODELS"),
+  COGNITIO_DISABLE_AUTOCOMPACT: truthy("COGNITIO_DISABLE_AUTOCOMPACT"),
+  COGNITIO_DISABLE_MODELS_FETCH: truthy("COGNITIO_DISABLE_MODELS_FETCH"),
+  COGNITIO_DISABLE_MOUSE: truthy("COGNITIO_DISABLE_MOUSE"),
+  COGNITIO_DISABLE_CLAUDE_CODE,
+  COGNITIO_DISABLE_CLAUDE_CODE_PROMPT: COGNITIO_DISABLE_CLAUDE_CODE || truthy("COGNITIO_DISABLE_CLAUDE_CODE_PROMPT"),
+  COGNITIO_DISABLE_CLAUDE_CODE_SKILLS,
+  get COGNITIO_DISABLE_EXTERNAL_SKILLS() {
+    return isolated() || COGNITIO_DISABLE_CLAUDE_CODE_SKILLS || truthy("COGNITIO_DISABLE_EXTERNAL_SKILLS")
+  },
+  COGNITIO_FAKE_VCS: process.env["COGNITIO_FAKE_VCS"],
+  COGNITIO_SERVER_PASSWORD: process.env["COGNITIO_SERVER_PASSWORD"],
+  COGNITIO_SERVER_USERNAME: process.env["COGNITIO_SERVER_USERNAME"],
+  COGNITIO_ENABLE_QUESTION_TOOL: truthy("COGNITIO_ENABLE_QUESTION_TOOL"),
+
+  // Experimental
+  COGNITIO_EXPERIMENTAL,
+  COGNITIO_EXPERIMENTAL_FILEWATCHER: Config.boolean("COGNITIO_EXPERIMENTAL_FILEWATCHER").pipe(
+    Config.withDefault(false),
+  ),
+  COGNITIO_EXPERIMENTAL_DISABLE_FILEWATCHER: Config.boolean("COGNITIO_EXPERIMENTAL_DISABLE_FILEWATCHER").pipe(
+    Config.withDefault(false),
+  ),
+  COGNITIO_EXPERIMENTAL_ICON_DISCOVERY: COGNITIO_EXPERIMENTAL || truthy("COGNITIO_EXPERIMENTAL_ICON_DISCOVERY"),
+  COGNITIO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT:
+    copy === undefined ? process.platform === "win32" : truthy("COGNITIO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT"),
+  COGNITIO_ENABLE_EXA: truthy("COGNITIO_ENABLE_EXA") || COGNITIO_EXPERIMENTAL || truthy("COGNITIO_EXPERIMENTAL_EXA"),
+  COGNITIO_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS: number("COGNITIO_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS"),
+  COGNITIO_EXPERIMENTAL_OUTPUT_TOKEN_MAX: number("COGNITIO_EXPERIMENTAL_OUTPUT_TOKEN_MAX"),
+  COGNITIO_EXPERIMENTAL_OXFMT: COGNITIO_EXPERIMENTAL || truthy("COGNITIO_EXPERIMENTAL_OXFMT"),
+  COGNITIO_EXPERIMENTAL_LSP_TY: truthy("COGNITIO_EXPERIMENTAL_LSP_TY"),
+  COGNITIO_EXPERIMENTAL_LSP_TOOL: COGNITIO_EXPERIMENTAL || truthy("COGNITIO_EXPERIMENTAL_LSP_TOOL"),
+  COGNITIO_EXPERIMENTAL_PLAN_MODE: COGNITIO_EXPERIMENTAL || truthy("COGNITIO_EXPERIMENTAL_PLAN_MODE"),
+  COGNITIO_EXPERIMENTAL_MARKDOWN: !falsy("COGNITIO_EXPERIMENTAL_MARKDOWN"),
+  COGNITIO_MODELS_URL: process.env["COGNITIO_MODELS_URL"],
+  COGNITIO_MODELS_PATH: process.env["COGNITIO_MODELS_PATH"],
+  COGNITIO_DISABLE_EMBEDDED_WEB_UI: truthy("COGNITIO_DISABLE_EMBEDDED_WEB_UI"),
+  COGNITIO_DB: process.env["COGNITIO_DB"],
+  COGNITIO_DISABLE_CHANNEL_DB: truthy("COGNITIO_DISABLE_CHANNEL_DB"),
+  COGNITIO_SKIP_MIGRATIONS: truthy("COGNITIO_SKIP_MIGRATIONS"),
+  COGNITIO_STRICT_CONFIG_DEPS: truthy("COGNITIO_STRICT_CONFIG_DEPS"),
+
+  COGNITIO_WORKSPACE_ID: process.env["COGNITIO_WORKSPACE_ID"],
+  COGNITIO_EXPERIMENTAL_HTTPAPI: truthy("COGNITIO_EXPERIMENTAL_HTTPAPI"),
+  COGNITIO_EXPERIMENTAL_WORKSPACES: COGNITIO_EXPERIMENTAL || truthy("COGNITIO_EXPERIMENTAL_WORKSPACES"),
+
+  // Evaluated at access time (not module load) because tests, the CLI, and
+  // external tooling set these env vars at runtime.
+  get COGNITIO_DISABLE_PROJECT_CONFIG() {
+    return isolated() || truthy("COGNITIO_DISABLE_PROJECT_CONFIG")
+  },
+  get COGNITIO_TUI_CONFIG() {
+    return process.env["COGNITIO_TUI_CONFIG"]
+  },
+  get COGNITIO_CONFIG_DIR() {
+    return process.env["COGNITIO_CONFIG_DIR"]
+  },
+  get COGNITIO_PURE() {
+    return isolated() || truthy("COGNITIO_PURE")
+  },
+  // Master switch for hermetic (SDK-spawned) servers: fail-closed, implies the
+  // five isolation flags above and gates host reads/writes across config/auth.
+  get COGNITIO_ISOLATED() {
+    return isolated()
+  },
+  get COGNITIO_PLUGIN_META_FILE() {
+    return process.env["COGNITIO_PLUGIN_META_FILE"]
+  },
+  get COGNITIO_CLIENT() {
+    return process.env["COGNITIO_CLIENT"] ?? "cli"
+  },
+  get COGNITIO_TASK_HEARTBEAT_MS() {
+    return number("COGNITIO_TASK_HEARTBEAT_MS")
+  },
+}

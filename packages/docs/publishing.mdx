@@ -1,0 +1,27 @@
+---
+title: "Publishing and documentation deployment"
+description: "Use the release guide to publish a public SDK."
+---
+The repository's `PUBLISHING.md` is the maintainer runbook. It covers all supported platform artifacts, provenance, package dry runs, authenticated npm publication and clean public-source export.
+
+The publication order is platform packages first, then `cognitio-agent-sdk`, because the main package pins their exact versions. All eight targets must be present before a release passes its publication gate. A dry run must pass before registry writes.
+
+Internal implementation plans and reference source are excluded from a separate, history-free public-source export. Adding a `.gitignore` entry alone cannot remove those files from existing private history. Push the exported repository to a newly chosen public GitHub remote; keep the private GitLab repository separate.
+
+## Deploy this documentation
+
+The site source is `packages/docs`. It uses Mintlify's `docs.json`, generated TypeScript API reference and the local runtime `openapi.json`. Configure the Mintlify project to use that subdirectory and the intended public repository/branch. Connecting the repository and choosing a production domain require the project owner's Mintlify account.
+
+For local development after installing repository dependencies:
+
+```sh
+bun run --cwd packages/agent-sdk build
+bun run --cwd packages/docs generate
+bun run --cwd packages/docs check
+bun run --cwd packages/docs validate
+bun run --cwd packages/docs dev
+```
+
+The preview uses port 3333. Regenerate the API reference after changing public SDK declarations. Regenerate OpenAPI and both clients after changing runtime routes. CI checks for drift and validates documentation/examples before publication.
+
+Deployment instructions follow the [official Mintlify CLI](https://www.mintlify.com/docs/cli/install). A locally validated site is ready to connect; it is not a claim that a production domain is already live.

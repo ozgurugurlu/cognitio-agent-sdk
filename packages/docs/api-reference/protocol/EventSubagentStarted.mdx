@@ -1,0 +1,22 @@
+---
+title: "EventSubagentStarted"
+description: "Exact type definition referenced by the public SDK."
+---
+
+This definition is generated from the same source as the SDK. Protocol types describe the runtime HTTP API; prefer the high-level SDK for session ownership and callbacks.
+
+```ts
+export type EventSubagentStarted = {
+  type: "subagent.started"
+  properties: {
+    sessionID: string
+    parentSessionID: string
+    childSessionID: string
+    agent: string
+    messageID: string
+    callID?: string
+    taskID: string
+    spawnMode: "fresh" | "inherit"
+  }
+}
+```

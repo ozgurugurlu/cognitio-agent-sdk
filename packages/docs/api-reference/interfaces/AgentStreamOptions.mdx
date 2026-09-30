@@ -1,0 +1,155 @@
+---
+title: "Interface: AgentStreamOptions"
+description: "Generated from the public TypeScript API."
+---
+
+
+Per-stream overrides.
+
+## Example
+
+```ts
+const stream = agent.stream("Explain the diff.", {
+  includePartialMessages: true,
+})
+```
+
+## Extends
+
+- [`RunOptions`](RunOptions)
+
+## Properties
+
+### cwd?
+
+```ts
+optional cwd?: string;
+```
+
+Working directory for this fresh session.
+
+#### Inherited from
+
+[`RunOptions`](RunOptions).[`cwd`](RunOptions#cwd)
+
+***
+
+### includePartialMessages?
+
+```ts
+optional includePartialMessages?: boolean;
+```
+
+Yield text/reasoning delta envelopes in addition to assembled messages.
+
+***
+
+### maxBudgetUsd?
+
+```ts
+optional maxBudgetUsd?: number;
+```
+
+Maximum run cost before an `error_max_budget` result.
+
+#### Inherited from
+
+[`RunOptions`](RunOptions).[`maxBudgetUsd`](RunOptions#maxbudgetusd)
+
+***
+
+### maxTurns?
+
+```ts
+optional maxTurns?: number;
+```
+
+Maximum model turns before an `error_max_turns` result.
+
+#### Inherited from
+
+[`RunOptions`](RunOptions).[`maxTurns`](RunOptions#maxturns)
+
+***
+
+### model?
+
+```ts
+optional model?: ModelId;
+```
+
+`provider/model` id for this session.
+
+#### Inherited from
+
+[`RunOptions`](RunOptions).[`model`](RunOptions#model)
+
+***
+
+### outputFormat?
+
+```ts
+optional outputFormat?: OutputFormatSpec<unknown>;
+```
+
+Structured-output contract for this session.
+
+#### Inherited from
+
+[`RunOptions`](RunOptions).[`outputFormat`](RunOptions#outputformat)
+
+***
+
+### permission?
+
+```ts
+optional permission?: PermissionRuleset;
+```
+
+Server permission rules, distinct from `permissionMode`.
+
+#### Inherited from
+
+[`RunOptions`](RunOptions).[`permission`](RunOptions#permission)
+
+***
+
+### permissionMode?
+
+```ts
+optional permissionMode?: PermissionMode;
+```
+
+Runtime permission behavior for this session.
+
+#### Inherited from
+
+[`RunOptions`](RunOptions).[`permissionMode`](RunOptions#permissionmode)
+
+***
+
+### signal?
+
+```ts
+optional signal?: AbortSignal;
+```
+
+Abort the active turn; terminal `error_aborted` still resolves normally.
+
+#### Inherited from
+
+[`RunOptions`](RunOptions).[`signal`](RunOptions#signal)
+
+***
+
+### title?
+
+```ts
+optional title?: string;
+```
+
+Explicit session title; otherwise the prompt's first line is used.
+
+#### Inherited from
+
+[`RunOptions`](RunOptions).[`title`](RunOptions#title)

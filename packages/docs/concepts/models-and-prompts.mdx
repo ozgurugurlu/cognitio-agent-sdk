@@ -1,0 +1,41 @@
+---
+title: "Models and prompts"
+description: "Use provider/model IDs and control the model context."
+---
+Model IDs have the form `provider/model`. `models.anthropic("claude-sonnet-4-5")` is a typed string helper, not a provider object. Unknown strings remain accepted so a new or private model does not require an SDK release.
+
+```ts
+import { Agent, models } from "cognitio-agent-sdk"
+const agent = new Agent({
+  model: models.anthropic("claude-sonnet-4-5"),
+  instructions: "You are a precise research assistant.",
+  includeEnvironment: false,
+})
+```
+
+## Prompt composition
+
+`instructions` is shorthand for a custom system prompt and cannot be combined with `systemPrompt`. Use `appendSystemPrompt` for an addition. The neutral base prompt is exported as `NEUTRAL_BASE_PROMPT`.
+
+`systemPrompt: { type: "preset", preset: "default", append: "..." }` chooses the coding prompt. `preset: "none"` disables that preset. Environment context and instruction/skill channels are separately controlled by `includeEnvironment`, `settingSources` and tool policy.
+
+## Reasoning controls
+
+`effort` accepts `low`, `medium`, `high` or `max`. `thinkingConfig` accepts `{ type: "adaptive" }`, `{ type: "disabled" }`, or `{ type: "enabled", budgetTokens: 4096 }`. Enabled thinking requires at least 1024 tokens. Support is provider/model specific; unsupported configurations fail explicitly instead of silently being ignored.
+
+```ts
+const agent = new Agent({
+  model: "anthropic/claude-sonnet-4-5",
+  thinkingConfig: { type: "enabled", budgetTokens: 4096 },
+})
+```
+
+## Catalog and private providers
+
+The runtime validates model catalog data before using limits and prices. `COGNITIO_MODELS_PATH` selects a preferred local catalog file. An unreadable file or invalid JSON can fall back to the bundled snapshot or remote catalog; a parsed catalog with an invalid schema is rejected. The path setting alone does not disable background refresh.
+
+Set `COGNITIO_DISABLE_MODELS_FETCH=1` to disable automatic remote catalog fetching. `COGNITIO_MODELS_URL` selects a mirror base URL without a trailing slash; the runtime appends `/api.json`. For an isolated SDK child, supply these variables through `spawn.env`: parent `COGNITIO_*` variables are not automatically forwarded. A validated refresh invalidates provider metadata on subsequent access.
+
+Add a private OpenAI-compatible provider through `spawn.config.provider`, including its `npm`, `options.baseURL`, credentials and model limits. No Cognitio-hosted inference service or gateway is implied by this SDK.
+
+Mutable dynamically installed provider packages use a daily cache generation; `COGNITIO_PROVIDER_CACHE_TTL_MS` overrides the positive TTL. Exact package versions remain pinned. Bundled provider upgrades arrive through SDK releases.

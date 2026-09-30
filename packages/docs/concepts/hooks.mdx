@@ -1,0 +1,44 @@
+---
+title: "Hooks"
+description: "Observe and influence agent lifecycle events."
+---
+Hooks are local callbacks registered by event name. Entries may specify a tool matcher, timeout and asynchronous notification behavior.
+
+```ts
+const agent = new Agent({
+  model: "anthropic/claude-sonnet-4-5",
+  hooks: {
+    PreToolUse: [{
+      matcher: /^bash$/,
+      callback(event) {
+        console.log(event.sessionId, event.toolCallId, event.data)
+        return { additionalContext: "Prefer read-only commands." }
+      },
+    }],
+    PreCompact: [() => ({ customInstructions: "Preserve requirements and unresolved questions." })],
+  },
+})
+```
+
+## Supported events
+
+| Area | Events |
+| --- | --- |
+| Tools | `PreToolUse`, `PostToolUse` |
+| Prompt and run | `UserPromptSubmit`, `Notification`, `Stop`, `SubagentStop` |
+| Context | `PreCompact`, `PostCompact` |
+| Session | `SessionStart`, `SessionEnd`, `SessionStateChange` |
+| Shell | `BeforeShellExecution`, `AfterShellExecution` |
+| Permissions | `PermissionAsked`, `PermissionReplied` |
+
+The v2 hook names are Cognitio's contract. They are not a one-for-one alias list for all hooks in newer Claude SDK releases.
+
+## Results and deadlines
+
+`HookResult` can carry continuation/stop decisions, permission decisions, updated input/output, system messages, additional context and compaction instructions. The fields honored depend on the event. `watchPaths` is reserved and has no watcher effect in v2.
+
+`timeoutMs` limits the callback request. Use `event.signal` to cancel work. An `async` notification hook cannot synchronously change a decision already made by the runtime. Do not rely on it for authorization.
+
+Regex matchers are normalized to serializable descriptors. Avoid stateful global/sticky regular expressions. `defineHook()` provides typed registration assistance; see its API reference.
+
+Hooks inherited by a subagent route through the owning root session's control dispatcher. Closing the owner cancels its local callback machinery.

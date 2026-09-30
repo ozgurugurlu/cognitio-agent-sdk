@@ -1,0 +1,149 @@
+---
+title: "Interface: ResultMessage"
+description: "Generated from the public TypeScript API."
+---
+
+
+Terminal event yielded at the end of every successful or failed run.
+
+## Extended by
+
+- [`RunResult`](RunResult)
+
+## Properties
+
+### durationMs
+
+```ts
+durationMs: number;
+```
+
+***
+
+### error?
+
+```ts
+optional error?: object;
+```
+
+#### cause?
+
+```ts
+optional cause?: unknown;
+```
+
+#### message
+
+```ts
+message: string;
+```
+
+***
+
+### messageId?
+
+```ts
+optional messageId?: string;
+```
+
+***
+
+### modelUsage?
+
+```ts
+optional modelUsage?: Record<string, ModelUsageSummary>;
+```
+
+***
+
+### parentMessageId?
+
+```ts
+optional parentMessageId?: string;
+```
+
+***
+
+### sessionId
+
+```ts
+sessionId: string;
+```
+
+***
+
+### stopReason?
+
+```ts
+optional stopReason?: string;
+```
+
+***
+
+### structuredOutput?
+
+```ts
+optional structuredOutput?: unknown;
+```
+
+***
+
+### subtype
+
+```ts
+subtype:
+  | "success"
+  | "error_aborted"
+  | "error_during_execution"
+  | "error_max_turns"
+  | "error_max_budget"
+  | "error_max_structured_output_retries";
+```
+
+***
+
+### text?
+
+```ts
+optional text?: string;
+```
+
+Assistant text from every text part of the turn's final assistant
+message, identified by `messageId`.
+
+Identical to the `text` on the `assistant` stream message with the same
+`messageId`, so this and the last streamed assistant text can never
+disagree.
+
+`undefined` when the turn produced no assistant text (a tool-only final
+step, a result without a message id, or a hard failure before any matching
+assistant message was observed). Use `text ?? ""` for a plain string —
+which is exactly what `RunResult.text` does.
+
+Unlike Claude Agent SDK's `result` (success variant only), this is also
+populated on error subtypes: on `error_aborted` it is the partial answer
+produced before the interrupt.
+
+***
+
+### totalCostUsd?
+
+```ts
+optional totalCostUsd?: number;
+```
+
+***
+
+### turns
+
+```ts
+turns: number;
+```
+
+***
+
+### usage?
+
+```ts
+optional usage?: UsageSummary;
+```

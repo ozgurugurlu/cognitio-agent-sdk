@@ -1,0 +1,55 @@
+---
+title: "Executable examples"
+description: "Run the same feature examples used by the verification suite."
+---
+
+## Standalone projects
+
+Start with root `examples/` for independently installable applications using the public npm package. Each directory has its own README, npm lockfile, environment template and complete Node.js entry point. Copy one directory, install with `npm ci`, configure `.env`, and run `npm start`.
+
+| Project | Recipe |
+| --- | --- |
+| `examples/01-chat` | [A small text-only CLI](/cookbook/chat-cli) |
+| `examples/02-structured-output` | [Validated extraction with Zod](/cookbook/structured-extraction) |
+| `examples/03-custom-tool` | [An application calculator tool](/cookbook/custom-tool) |
+| `examples/04-session-memory` | [Close a handle and resume a conversation](/cookbook/session-memory) |
+
+These projects use a real provider and incur model usage. Each declares small turn/cost limits, validates unsuccessful results, and closes its owned resources. They do not require a source runtime build.
+
+## Feature integration examples
+
+The source repository includes `packages/agent-sdk/examples/`. Examples use the public SDK exports and are verified against a real runtime with a deterministic local model endpoint. This tests the SDK/runtime integration without requiring paid provider calls. A separate live-provider smoke checks provider connectivity when credentials are supplied.
+
+| Example                   | Demonstrates                                                                                        |
+| ------------------------- | --------------------------------------------------------------------------------------------------- |
+| `01-simple.ts`            | Agent run and cleanup                                                                               |
+| `02-custom-tool.ts`       | A typed local tool                                                                                  |
+| `03-subagent.ts`          | Session-scoped delegation                                                                           |
+| `04-hooks.ts`             | Hook and permission callbacks                                                                       |
+| `05-structured-output.ts` | Schema validation                                                                                   |
+| `06-session-resume.ts`    | Conversation persistence and resume                                                                 |
+| `07-mcp-external.ts`      | An external MCP endpoint                                                                            |
+| `08-remote.ts`            | Borrowing a remote runtime                                                                          |
+| `09-auto-permissions.ts`  | Auto-mode configuration                                                                             |
+| `10-applied-settings.ts`  | Inspecting effective policy                                                                         |
+| `11-session-features.ts`  | Real file rewind, commands, plugin skills, forks and compaction hooks in a disposable Git workspace |
+
+After cloning the public source, run `bun install --frozen-lockfile`, then build the SDK with `bun run --cwd packages/agent-sdk build`. To run an individual example against a real provider, also build your host binary with `bun run --cwd packages/agent-sdk build:binaries --single`. Set `COGNITIO_BIN_PATH` to the absolute `bin/cognitio` path (`bin/cognitio.exe` on Windows) inside the host directory printed under `packages/agent-sdk/dist-binaries/`; staging does not install the platform package. The examples README includes a macOS command. Registry installations already include their host binary.
+
+Each file exports `run(options)` for application reuse. Run an example directly with Bun:
+
+```sh
+export ANTHROPIC_API_KEY="your-api-key"
+export COGNITIO_MODEL="anthropic/claude-sonnet-4-5"
+bun packages/agent-sdk/examples/02-custom-tool.ts
+```
+
+Example 08 additionally needs `COGNITIO_BASE_URL` for an existing runtime. Example 07 starts and closes its own separate HTTP MCP server. Example 11 requires Git and works only in its own temporary workspace. See the examples README for connection overrides and optional dependencies.
+
+```sh
+bun run --cwd packages/agent-sdk test:examples
+```
+
+The deterministic suite is a release gate. It rebuilds and imports the public package, starts the real runtime from source, and checks actual effects and results, including tool execution, subagent turns, permission decisions, schemas, transcripts, MCP, usage, file rewind and compaction. Only the model endpoint is deterministic. It also checks that runtime scratch storage is removed after cleanup.
+
+A live-provider smoke runs only when `COGNITIO_EXAMPLES_LIVE=1` is set and otherwise reports a skip. It uses the selected provider account and can incur a model charge. This is separate from the deterministic suite and from packed-install verification on plain Node.

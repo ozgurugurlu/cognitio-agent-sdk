@@ -1,0 +1,90 @@
+---
+title: "Interface: McpPromptDefinition"
+description: "Generated from the public TypeScript API."
+---
+
+
+An SDK-hosted MCP prompt; required arguments are checked before the callback runs.
+
+## Properties
+
+### arguments?
+
+```ts
+optional arguments?: object[];
+```
+
+#### description?
+
+```ts
+optional description?: string;
+```
+
+#### name
+
+```ts
+name: string;
+```
+
+#### required?
+
+```ts
+optional required?: boolean;
+```
+
+***
+
+### description?
+
+```ts
+optional description?: string;
+```
+
+***
+
+### name
+
+```ts
+name: string;
+```
+
+## Methods
+
+### get()
+
+```ts
+get(arguments_, context):
+  | {
+[key: string]: unknown;
+}
+  | Promise<{
+[key: string]: unknown;
+}>;
+```
+
+Render this prompt after required arguments have been validated.
+
+#### Parameters
+
+##### arguments\_
+
+`Record`\<`string`, `string`\>
+
+String arguments supplied by the MCP client.
+
+##### context
+
+[`ToolContext`](ToolContext)
+
+Session identity and cancellation signal.
+
+#### Returns
+
+  \| \{
+\[`key`: `string`\]: `unknown`;
+\}
+  \| `Promise`\<\{
+\[`key`: `string`\]: `unknown`;
+\}\>
+
+MCP prompt messages.

@@ -1,0 +1,29 @@
+---
+title: "Checkpoints and rewind"
+description: "Save and restore workspace file state."
+---
+```ts
+const session = await agent.createSession()
+const checkpoint = await session.checkpoint("before-change")
+await session.send("Update the example file.")
+const restored = await session.rewind(checkpoint.id)
+console.log(restored.affectedFiles)
+```
+
+Checkpointing requires a Git-backed workspace and runtime snapshots enabled (`spawn.config.snapshot` must not be `false`). Initialize a repository with `git init` before using this example.
+
+A checkpoint records eligible file state and a transcript boundary. `listCheckpoints()` lists handles; `rewind()` restores captured files and reports affected paths. It does not rewind or delete conversation messages. Rewind cannot undo external API calls, emails, database writes or shell side effects outside the captured workspace.
+
+## Automatic policy
+
+```ts
+const agent = new Agent({
+  checkpointing: { enabled: true, beforeTools: true, beforeCompaction: true },
+})
+```
+
+`enableFileCheckpointing: true` is the simple switch. The detailed policy controls automatic snapshots before tools and compaction. Manual `checkpoint()` remains available independently. Compaction boundaries can carry the checkpoint ID in the raw runtime event.
+
+Checkpoints belong to the runtime's persistent storage. Their durability follows [session persistence](/concepts/sessions): deleting isolated scratch storage removes them. Forks preserve applicable checkpoint lineage; a checkpoint ID from an unrelated session is rejected.
+
+Snapshots cover eligible files within the session directory. They honor Git ignore rules, including matching files tracked in the source repository, and exclude newly encountered files larger than 2 MiB. Do not use checkpoints as a complete workspace backup. Review affected files after a rewind when another process can modify the same workspace.

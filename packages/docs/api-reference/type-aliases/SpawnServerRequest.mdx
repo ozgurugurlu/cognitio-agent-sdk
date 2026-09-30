@@ -1,0 +1,46 @@
+---
+title: "Type Alias: SpawnServerRequest"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+type SpawnServerRequest = object;
+```
+
+The fully-resolved spawn, handed to `ServerOptions.spawnProcess`.
+
+By the time this exists the binary has already been chosen; a custom spawner
+decides *how* to run it, never *which* one to run.
+
+## Properties
+
+### args
+
+```ts
+args: string[];
+```
+
+***
+
+### command
+
+```ts
+command: string;
+```
+
+***
+
+### env
+
+```ts
+env: Record<string, string>;
+```
+
+***
+
+### signal?
+
+```ts
+optional signal?: AbortSignal;
+```

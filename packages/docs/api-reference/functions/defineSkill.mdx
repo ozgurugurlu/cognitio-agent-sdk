@@ -1,0 +1,41 @@
+---
+title: "Function: defineSkill()"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+function defineSkill<T>(def): T;
+```
+
+Validate and preserve a programmatic skill definition.
+
+## Type Parameters
+
+### T
+
+`T` *extends* [`SkillDefinition`](../interfaces/SkillDefinition)
+
+## Parameters
+
+### def
+
+`T`
+
+Skill name, description, content and optional runtime constraints.
+
+## Returns
+
+`T`
+
+The same definition with inferred literal types.
+
+## Throws
+
+Invalid required fields or model/tool policy.
+
+## Example
+
+```ts
+const definition = defineSkill({ name: "style", description: "Plain writing", content: "Use clear words." })
+```

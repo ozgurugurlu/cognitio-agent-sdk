@@ -1,0 +1,14 @@
+---
+title: "Type Alias: PromptInput"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+type PromptInput =
+  | string
+  | PromptTurn
+| AsyncIterable<string | PromptTurn>;
+```
+
+Input to a run: text, a turn containing typed parts, or an asynchronous sequence of turns processed in order.

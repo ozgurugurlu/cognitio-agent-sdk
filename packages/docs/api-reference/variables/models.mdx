@@ -1,0 +1,184 @@
+---
+title: "Variable: models"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+const models: object;
+```
+
+Pure model-id string helpers.
+
+These helpers only concatenate a provider prefix. They do not create a
+provider client, read an API key, perform I/O, validate availability, or
+depend on `@ai-sdk/*`. Known ids receive completions, while arbitrary
+current or private ids remain accepted.
+
+## Type Declaration
+
+### anthropic()
+
+```ts
+anthropic(model): ModelId;
+```
+
+Prefix an Anthropic model name.
+
+#### Parameters
+
+##### model
+
+  \| `string` & `object`
+  \| [`AnthropicModelId`](../type-aliases/AnthropicModelId)
+
+Known or arbitrary provider-local model name.
+
+#### Returns
+
+[`ModelId`](../type-aliases/ModelId)
+
+An `anthropic/<model>` id.
+
+### deepseek()
+
+```ts
+deepseek(model): ModelId;
+```
+
+Prefix a DeepSeek model name.
+
+#### Parameters
+
+##### model
+
+  \| `string` & `object`
+  \| [`DeepseekModelId`](../type-aliases/DeepseekModelId)
+
+Known or arbitrary provider-local model name.
+
+#### Returns
+
+[`ModelId`](../type-aliases/ModelId)
+
+A `deepseek/<model>` id.
+
+### google()
+
+```ts
+google(model): ModelId;
+```
+
+Prefix a Google model name.
+
+#### Parameters
+
+##### model
+
+  \| `string` & `object`
+  \| [`GoogleModelId`](../type-aliases/GoogleModelId)
+
+Known or arbitrary provider-local model name.
+
+#### Returns
+
+[`ModelId`](../type-aliases/ModelId)
+
+A `google/<model>` id.
+
+### groq()
+
+```ts
+groq(model): ModelId;
+```
+
+Prefix a Groq model name.
+
+#### Parameters
+
+##### model
+
+`string` & `object` \| [`GroqModelId`](../type-aliases/GroqModelId)
+
+Known or arbitrary provider-local model name.
+
+#### Returns
+
+[`ModelId`](../type-aliases/ModelId)
+
+A `groq/<model>` id.
+
+### mistral()
+
+```ts
+mistral(model): ModelId;
+```
+
+Prefix a Mistral model name.
+
+#### Parameters
+
+##### model
+
+  \| `string` & `object`
+  \| [`MistralModelId`](../type-aliases/MistralModelId)
+
+Known or arbitrary provider-local model name.
+
+#### Returns
+
+[`ModelId`](../type-aliases/ModelId)
+
+A `mistral/<model>` id.
+
+### openai()
+
+```ts
+openai(model): ModelId;
+```
+
+Prefix an OpenAI model name.
+
+#### Parameters
+
+##### model
+
+  \| `string` & `object`
+  \| [`OpenaiModelId`](../type-aliases/OpenaiModelId)
+
+Known or arbitrary provider-local model name.
+
+#### Returns
+
+[`ModelId`](../type-aliases/ModelId)
+
+An `openai/<model>` id.
+
+### xai()
+
+```ts
+xai(model): ModelId;
+```
+
+Prefix an xAI model name.
+
+#### Parameters
+
+##### model
+
+`string` & `object` \| [`XaiModelId`](../type-aliases/XaiModelId)
+
+Known or arbitrary provider-local model name.
+
+#### Returns
+
+[`ModelId`](../type-aliases/ModelId)
+
+An `xai/<model>` id.
+
+## Example
+
+```ts
+const model = models.anthropic("claude-sonnet-4-5")
+// "anthropic/claude-sonnet-4-5"
+```

@@ -1,0 +1,13 @@
+---
+title: "HTTP API overview"
+description: "Use the runtime protocol directly when you need lower-level control."
+---
+The HTTP reference is generated from **this runtime's** OpenAPI document, not an upstream hosted specification. Start the server with `cognitio serve`, then inspect `/doc` for its schema.
+
+The JavaScript SDK uses ordinary HTTP requests for session operations and Server-Sent Events for output/control requests. Runtime configuration is session-scoped and ephemeral; callback functions stay in the SDK process.
+
+A typical flow is: create a session, register runtime configuration/callback descriptors, establish event subscriptions, submit a prompt, process events/control requests, receive a terminal result, then close local resources. The SDK implements the races and teardown rules; use its high-level API unless you need a custom protocol client.
+
+The server is process/filesystem privileged. Authentication, storage isolation and network deployment belong to the server operator. Do not expose an unauthenticated runtime on an untrusted network.
+
+The endpoint explorer includes runtime config, checkpoints, MCP, sessions, permissions, messages, skills, commands and diagnostics. See [events and control](/http-api/events-and-control) for the asynchronous part OpenAPI alone does not describe.

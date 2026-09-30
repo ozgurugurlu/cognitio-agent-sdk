@@ -1,0 +1,97 @@
+import z from "zod"
+import { randomBytes } from "crypto"
+
+const prefixes = {
+  event: "evt",
+  session: "ses",
+  message: "msg",
+  permission: "per",
+  question: "que",
+  user: "usr",
+  part: "prt",
+  pty: "pty",
+  tool: "tool",
+  workspace: "wrk",
+  entry: "ent",
+  checkpoint: "chk",
+} as const
+
+export function schema(prefix: keyof typeof prefixes) {
+  return z.string().startsWith(prefixes[prefix])
+}
+
+const LENGTH = 26
+
+// State for monotonic ID generation
+let lastTimestamp = 0
+let counter = 0
+
+export function ascending(prefix: keyof typeof prefixes, given?: string) {
+  return generateID(prefix, "ascending", given)
+}
+
+export function descending(prefix: keyof typeof prefixes, given?: string) {
+  return generateID(prefix, "descending", given)
+}
+
+function generateID(prefix: keyof typeof prefixes, direction: "descending" | "ascending", given?: string): string {
+  if (!given) {
+    return create(prefixes[prefix], direction)
+  }
+
+  if (!given.startsWith(prefixes[prefix])) {
+    throw new Error(`ID ${given} does not start with ${prefixes[prefix]}`)
+  }
+  return given
+}
+
+function randomBase62(length: number): string {
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+  let result = ""
+  const bytes = randomBytes(length)
+  for (let i = 0; i < length; i++) {
+    result += chars[bytes[i] % 62]
+  }
+  return result
+}
+
+export function create(prefix: string, direction: "descending" | "ascending", timestamp?: number): string {
+  const currentTimestamp = timestamp ?? Date.now()
+
+  if (currentTimestamp !== lastTimestamp) {
+    lastTimestamp = currentTimestamp
+    counter = 0
+  }
+  counter++
+
+  let now = BigInt(currentTimestamp) * BigInt(0x1000) + BigInt(counter)
+
+  now = direction === "descending" ? ~now : now
+
+  const timeBytes = Buffer.alloc(6)
+  for (let i = 0; i < 6; i++) {
+    timeBytes[i] = Number((now >> BigInt(40 - 8 * i)) & BigInt(0xff))
+  }
+
+  return prefix + "_" + timeBytes.toString("hex") + randomBase62(LENGTH - 12)
+}
+
+/**
+ * Extract the timestamp from an ascending ID without changing persisted IDs.
+ *
+ * The six-byte prefix stores 36 timestamp bits and a 12-bit counter. Resolve
+ * its wrapping timestamp to the era nearest `referenceTime` (about a one-year
+ * window either side). Older archival IDs require a reference from their
+ * persisted creation time; the prefix alone cannot encode that information.
+ * Descending IDs are not supported.
+ */
+export function timestamp(id: string, referenceTime = Date.now()): number {
+  const prefix = id.split("_")[0]
+  const hex = id.slice(prefix.length + 1, prefix.length + 13)
+  const encoded = BigInt("0x" + hex)
+  const lower = Number(encoded / BigInt(0x1000))
+  const period = 2 ** 36
+  return lower + Math.round((referenceTime - lower) / period) * period
+}
+
+export * as Identifier from "./id"

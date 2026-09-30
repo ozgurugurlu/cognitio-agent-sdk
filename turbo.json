@@ -1,0 +1,51 @@
+{
+  "$schema": "https://v2-8-13.turborepo.dev/schema.json",
+  "globalEnv": ["CI", "COGNITIO_DISABLE_SHARE"],
+  "globalPassThroughEnv": ["CI", "COGNITIO_DISABLE_SHARE"],
+  "tasks": {
+    "typecheck": {},
+    "build": {
+      "dependsOn": [],
+      "outputs": ["dist/**"]
+    },
+    "@cognitio/desktop-electron#build": {
+      "dependsOn": ["cognitio#build"],
+      "outputs": ["out/**", "dist/**"]
+    },
+    "cognitio#test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "passThroughEnv": ["*"]
+    },
+    "cognitio#test:ci": {
+      "dependsOn": ["^build"],
+      "outputs": [".artifacts/unit/junit.xml"],
+      "passThroughEnv": ["*"]
+    },
+    "@cognitio/sdk#test:ci": {
+      "dependsOn": ["^build"],
+      "outputs": [".artifacts/unit/junit.xml"],
+      "passThroughEnv": ["*"]
+    },
+    "cognitio-agent-sdk#test:ci": {
+      "dependsOn": ["^build"],
+      "outputs": [".artifacts/unit/junit.xml"],
+      "passThroughEnv": ["*"]
+    },
+    "cognitio-agent-sdk#verify:package": {
+      "dependsOn": ["build"],
+      "outputs": [],
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "@cognitio/app#test": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "@cognitio/app#test:ci": {
+      "dependsOn": ["^build"],
+      "outputs": [".artifacts/unit/junit.xml"],
+      "passThroughEnv": ["*"]
+    }
+  }
+}

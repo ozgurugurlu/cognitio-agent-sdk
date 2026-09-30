@@ -1,0 +1,29 @@
+---
+title: "Function: createAgentClient()"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+function createAgentClient(options?): Promise<AgentClient>;
+```
+
+Create a session client against a remote runtime or an isolated local server.
+
+## Parameters
+
+### options?
+
+[`ClientOptions`](../interfaces/ClientOptions)
+
+Connection, process, workspace, and control-channel options.
+
+## Returns
+
+`Promise`\<[`AgentClient`](../interfaces/AgentClient)\>
+
+A client that owns its session handles and local server process.
+
+## Throws
+
+If the local binary cannot start or the connection configuration is invalid.

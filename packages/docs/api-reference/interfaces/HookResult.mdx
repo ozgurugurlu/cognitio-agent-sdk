@@ -1,0 +1,95 @@
+---
+title: "Interface: HookResult"
+description: "Generated from the public TypeScript API."
+---
+
+
+Structured result shape (mirrors Claude Code hook JSON).
+
+## Properties
+
+### additionalContext?
+
+```ts
+optional additionalContext?: string;
+```
+
+***
+
+### continue?
+
+```ts
+optional continue?: boolean;
+```
+
+***
+
+### customInstructions?
+
+```ts
+optional customInstructions?: string;
+```
+
+Honored by `PreCompact`; multiple hook values are joined with blank lines.
+
+***
+
+### initialUserMessage?
+
+```ts
+optional initialUserMessage?: string;
+```
+
+***
+
+### permissionDecision?
+
+```ts
+optional permissionDecision?:
+  | "allow"
+  | "deny"
+  | "ask"
+  | PermissionDecision;
+```
+
+***
+
+### stopReason?
+
+```ts
+optional stopReason?: string;
+```
+
+***
+
+### systemMessage?
+
+```ts
+optional systemMessage?: string;
+```
+
+***
+
+### updatedInput?
+
+```ts
+optional updatedInput?: Record<string, unknown>;
+```
+
+***
+
+### updatedToolOutput?
+
+```ts
+optional updatedToolOutput?: unknown;
+```
+
+***
+
+### watchPaths?
+
+```ts
+optional watchPaths?: string[];
+```
+
+Reserved for future compatibility; no watcher effect in v2.

@@ -1,0 +1,221 @@
+---
+title: "Interface: SessionNamespace"
+description: "Generated from the public TypeScript API."
+---
+
+
+Session creation, discovery, attachment, branching and deletion operations scoped through an AgentClient.
+
+## Methods
+
+### continue()
+
+```ts
+continue(options?): Promise<Session>;
+```
+
+Attach to the latest matching persisted session.
+
+#### Parameters
+
+##### options?
+
+Optional working-directory filter.
+
+###### cwd?
+
+`string`
+
+#### Returns
+
+`Promise`\<[`Session`](../classes/Session)\>
+
+The selected session handle.
+
+#### Throws
+
+If no matching session is available.
+
+***
+
+### create()
+
+```ts
+create(options?): Promise<Session>;
+```
+
+Create and attach a fresh runtime session.
+
+#### Parameters
+
+##### options?
+
+[`SessionCreateOptions`](SessionCreateOptions)
+
+Working directory, metadata and runtime policy.
+
+#### Returns
+
+`Promise`\<[`Session`](../classes/Session)\>
+
+A session with a ready callback dispatcher.
+
+#### Throws
+
+Configuration or transport errors.
+
+***
+
+### delete()
+
+```ts
+delete(sessionId): Promise<void>;
+```
+
+Delete a server session after releasing an active local handle.
+
+#### Parameters
+
+##### sessionId
+
+`string`
+
+Session to delete.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Completion when deletion succeeds.
+
+#### Throws
+
+Transport or cleanup errors.
+
+***
+
+### fork()
+
+```ts
+fork(sessionId, options?): Promise<Session>;
+```
+
+Branch a transcript into a new session and attach its SDK resources.
+
+#### Parameters
+
+##### sessionId
+
+`string`
+
+Source session ID.
+
+##### options?
+
+Optional message boundary, metadata and runtime overrides.
+
+###### messageId?
+
+`string`
+
+###### permission?
+
+[`PermissionRuleset`](/api-reference/protocol/PermissionRuleset)
+
+###### runtimeConfig?
+
+[`RuntimeConfig`](RuntimeConfig)
+
+###### title?
+
+`string`
+
+#### Returns
+
+`Promise`\<[`Session`](../classes/Session)\>
+
+The independent fork.
+
+#### Throws
+
+If the source or boundary is invalid.
+
+***
+
+### get()
+
+```ts
+get(sessionId): Promise<Session>;
+```
+
+Attach to a persisted session without applying overrides. Reuses an active local handle.
+
+#### Parameters
+
+##### sessionId
+
+`string`
+
+Existing runtime session ID.
+
+#### Returns
+
+`Promise`\<[`Session`](../classes/Session)\>
+
+The attached session.
+
+#### Throws
+
+If the session cannot be located.
+
+***
+
+### list()
+
+```ts
+list(filter?): Promise<Session[]>;
+```
+
+List persisted session metadata matching optional filters.
+
+#### Parameters
+
+##### filter?
+
+[`SessionListFilter`](SessionListFilter)
+
+Directory, tags and pagination filters.
+
+#### Returns
+
+`Promise`\<[`Session`](/api-reference/protocol/Session)[]\>
+
+Matching session records.
+
+#### Throws
+
+Transport errors.
+
+***
+
+### resume()
+
+```ts
+resume(sessionId, options?): Promise<Session>;
+```
+
+Attach and optionally apply runtime overrides before starting the local dispatcher. Active handles reject overrides.
+
+#### Parameters
+
+##### sessionId
+
+`string`
+
+##### options?
+
+[`SessionResumeOptions`](SessionResumeOptions)
+
+#### Returns
+
+`Promise`\<[`Session`](../classes/Session)\>

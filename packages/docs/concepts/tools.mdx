@@ -1,0 +1,46 @@
+---
+title: "Tools"
+description: "Combine built-in tools with functions in your application."
+---
+Built-ins cover reading, writing, editing, glob/grep, shell commands, web access, subagents, skills and todos. Available tools depend on runtime configuration. High-level defaults hide interactive/headless-inappropriate tools; see [defaults](/defaults-and-isolation).
+
+## Define a tool
+
+This example uses Zod 4. Add it to your application's dependencies with `npm install zod@4`, or use JSON Schema directly.
+
+```ts
+import { Agent, defineTool } from "cognitio-agent-sdk"
+import { z } from "zod"
+
+const inputSchema = z.object({ a: z.number(), b: z.number() })
+const add = defineTool({
+  name: "add",
+  description: "Add two numbers.",
+  inputSchema,
+  execute(input) {
+    const values = inputSchema.parse(input)
+    return { sum: values.a + values.b }
+  },
+})
+const agent = new Agent({
+  model: "anthropic/claude-sonnet-4-5",
+  tools: [add],
+  allowedTools: ["sdk_add"],
+})
+```
+
+Direct Agent tools are exposed as `sdk_<sanitized-name>`. Tool names must remain unique after sanitization. `execute` receives tool arguments and a `ToolContext` with the session ID, cancellation signal and an optional tool call ID. Respect the signal for network and long-running operations.
+
+The schema describes arguments to the model/MCP client; v2 does not automatically parse callback input with Zod or validate it against arbitrary JSON Schema. Validate inside `execute` before using the values or performing side effects, as the example does. This also applies to input replaced by a permission callback. Use a JSON Schema-compatible shape for the declared schema; keep additional refinements or transformations in the parser you call inside `execute`.
+
+Use `inputJsonSchema` or a JSON Schema object in `inputSchema` when you do not use Zod. Tool outputs must be representable through the control channel; return plain data or strings.
+
+## Tool policies
+
+`allowedTools` and `disallowedTools` accept built-in names, MCP names and supported permission patterns such as `bash(npm:*)`. Denies take precedence. A nonempty allowlist limits tools to matching entries; `allowedTools: []` leaves the allowlist unrestricted and also overrides the facade's default hidden-tool profile. Use `disallowedTools: ["*"]` to deny every tool, including the synthetic `StructuredOutput` tool. For schema-only output, allow `StructuredOutput` explicitly as shown in [structured output](/concepts/structured-output). A tool policy controls visibility and execution; permissions decide whether an available operation may proceed.
+
+For many MCP tools, `enableToolSearch: "auto"` defers tool discovery until needed. `always`, `never`, `true` and `false` are also supported. `metadata.searchHint` improves keyword search; `metadata.alwaysLoad` keeps a tool present.
+
+Tool annotations describe read-only, destructive, idempotent and open-world behavior. They are descriptive hints, not a replacement for authorization in the tool implementation.
+
+Custom callbacks execute in the SDK process even when the runtime is remote or isolated. Host them intentionally and keep privileged operations behind your application's policy.

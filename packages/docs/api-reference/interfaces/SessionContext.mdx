@@ -1,0 +1,95 @@
+---
+title: "Interface: SessionContext"
+description: "Generated from the public TypeScript API."
+---
+
+
+Dependencies and runtime metadata used to construct a Session. Applications normally obtain handles from Agent or AgentClient instead.
+
+## Properties
+
+### client
+
+```ts
+client: CognitioClient;
+```
+
+***
+
+### control?
+
+```ts
+optional control?: ControlOptions;
+```
+
+***
+
+### createOptions
+
+```ts
+createOptions: SessionCreateOptions | undefined;
+```
+
+***
+
+### directory
+
+```ts
+directory: string;
+```
+
+***
+
+### onClose?
+
+```ts
+optional onClose?: (sessionId, session) => void;
+```
+
+Called when a handle closes so its owning client can release its registration.
+
+#### Parameters
+
+##### sessionId
+
+`string`
+
+##### session
+
+[`Session`](../classes/Session)
+
+#### Returns
+
+`void`
+
+***
+
+### runtimeConfig?
+
+```ts
+optional runtimeConfig?: RuntimeConfig;
+```
+
+***
+
+### sdkMcpHosts?
+
+```ts
+optional sdkMcpHosts?: SdkMcpHost[];
+```
+
+***
+
+### session
+
+```ts
+session: Session;
+```
+
+***
+
+### workspaceId?
+
+```ts
+optional workspaceId?: string;
+```

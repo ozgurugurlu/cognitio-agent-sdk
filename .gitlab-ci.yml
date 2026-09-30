@@ -1,0 +1,74 @@
+image: node:22-bookworm
+
+stages: [verify, release_verify]
+
+variables:
+  COGNITIO_DISABLE_MODELS_FETCH: "1"
+
+before_script:
+  - npm install --global bun@1.3.11
+  - bun install --frozen-lockfile
+
+sdk:
+  stage: verify
+  script:
+    - bun run --cwd packages/agent-sdk check:openapi
+    - bun run --cwd packages/agent-sdk check:client
+    - bun run --cwd packages/agent-sdk check:models
+    - bun run --cwd packages/agent-sdk typecheck
+    - bun run --cwd packages/sdk/js typecheck
+    - bun run --cwd packages/agent-sdk test:ci
+    - bun run --cwd packages/sdk/js test:ci
+    - bun run --cwd packages/agent-sdk build:binaries --single
+    - bun run --cwd packages/agent-sdk verify:release
+    - bun run --cwd packages/docs check
+    - bun run --cwd packages/docs validate
+    - bun run --cwd packages/agent-sdk test:examples
+    - |
+      for manifest in examples/*/package.json; do
+        directory="${manifest%/package.json}"
+        npm ci --prefix "$directory" --no-audit --no-fund
+        npm run --prefix "$directory" check
+      done
+  artifacts:
+    when: always
+    reports:
+      junit: packages/agent-sdk/.artifacts/unit/junit.xml
+
+runtime:
+  stage: verify
+  parallel: 4
+  script:
+    - bun run --cwd packages/runtime typecheck
+    - bun run --cwd packages/runtime test:ci --shard "$CI_NODE_INDEX/$CI_NODE_TOTAL"
+    - if [ "$CI_NODE_INDEX" = "1" ]; then bun run --cwd packages/runtime test:node; fi
+  artifacts:
+    when: always
+    reports:
+      junit: packages/runtime/.artifacts/unit/junit-*.xml
+
+# Full cross-compilation is deliberate: ordinary pipelines keep host-only
+# verification, while release candidates can verify all eight immutable inputs.
+release_dry_run:
+  stage: release_verify
+  timeout: 2 hours
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $COGNITIO_RELEASE_DRY_RUN == "1"'
+      when: on_success
+      allow_failure: false
+    # Match the existing branch/tag pipelines; do not create an extra MR-only
+    # pipeline containing just this optional job.
+    - if: '$CI_PIPELINE_SOURCE != "schedule" && $CI_PIPELINE_SOURCE != "merge_request_event"'
+      when: manual
+      allow_failure: true
+    - when: never
+  script:
+    - bun run --cwd packages/agent-sdk build:binaries
+    - bun run --cwd packages/agent-sdk pack:release
+    - bun run --cwd packages/agent-sdk release:check
+  artifacts:
+    when: always
+    expire_in: 14 days
+    # Retain provenance, not multi-gigabyte binaries or duplicate tarballs.
+    paths:
+      - packages/agent-sdk/dist-binaries/manifest.json

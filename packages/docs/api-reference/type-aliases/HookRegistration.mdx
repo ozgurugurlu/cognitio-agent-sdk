@@ -1,0 +1,11 @@
+---
+title: "Type Alias: HookRegistration"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+type HookRegistration = { [Event in HookEventName]?: (HookEntry<Event> | HookCallback<Event>)[] };
+```
+
+Hook callback lists keyed by event name. Entries can be plain callbacks or matcher/timeout registrations.

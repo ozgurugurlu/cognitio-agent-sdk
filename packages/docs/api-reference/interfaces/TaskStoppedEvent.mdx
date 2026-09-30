@@ -1,0 +1,111 @@
+---
+title: "Interface: TaskStoppedEvent"
+description: "Generated from the public TypeScript API."
+---
+
+
+Terminal lifecycle event for a stopped runtime task, including its final status.
+
+## Properties
+
+### activeSessionId
+
+```ts
+activeSessionId: string;
+```
+
+***
+
+### agent
+
+```ts
+agent: string;
+```
+
+***
+
+### durationMs
+
+```ts
+durationMs: number;
+```
+
+***
+
+### error?
+
+```ts
+optional error?: string;
+```
+
+***
+
+### messageId
+
+```ts
+messageId: string;
+```
+
+***
+
+### partId
+
+```ts
+partId: string;
+```
+
+***
+
+### raw?
+
+```ts
+optional raw?: unknown;
+```
+
+***
+
+### sessionId
+
+```ts
+sessionId: string;
+```
+
+***
+
+### status
+
+```ts
+status: "error" | "completed" | "interrupted";
+```
+
+***
+
+### taskId
+
+```ts
+taskId: string;
+```
+
+***
+
+### title?
+
+```ts
+optional title?: string;
+```
+
+***
+
+### tool
+
+```ts
+tool: string;
+```
+
+***
+
+### type
+
+```ts
+type: "task.stopped";
+```

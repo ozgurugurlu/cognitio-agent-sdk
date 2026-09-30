@@ -1,0 +1,61 @@
+---
+title: "Interface: HookEventPayload<Event>"
+description: "Generated from the public TypeScript API."
+---
+
+
+A hook invocation with session/tool identity, cancellation signal and event-specific data.
+
+## Type Parameters
+
+### Event
+
+`Event` *extends* [`HookEventName`](../type-aliases/HookEventName) = [`HookEventName`](../type-aliases/HookEventName)
+
+## Properties
+
+### data
+
+```ts
+data: HookData<Event>;
+```
+
+***
+
+### event
+
+```ts
+event: Event;
+```
+
+***
+
+### rootSessionId?
+
+```ts
+optional rootSessionId?: string;
+```
+
+***
+
+### sessionId
+
+```ts
+sessionId: string;
+```
+
+***
+
+### signal
+
+```ts
+signal: AbortSignal;
+```
+
+***
+
+### toolCallId?
+
+```ts
+optional toolCallId?: string;
+```

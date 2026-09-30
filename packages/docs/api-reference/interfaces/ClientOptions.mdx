@@ -1,0 +1,70 @@
+---
+title: "Interface: ClientOptions"
+description: "Generated from the public TypeScript API."
+---
+
+
+Options to `createAgentClient`.
+
+- Pass `baseUrl` to connect to an already-running server (remote transport).
+- Omit `baseUrl` to spawn a local `cognitio serve` via the existing SDK.
+
+## Properties
+
+### baseUrl?
+
+```ts
+optional baseUrl?: string;
+```
+
+Absolute URL of a running cognitio server. If set, no server is spawned.
+
+***
+
+### control?
+
+```ts
+optional control?: ControlOptions;
+```
+
+Control-channel dispatcher readiness and reconnect tuning.
+
+***
+
+### directory?
+
+```ts
+optional directory?: string;
+```
+
+Working directory sent to the server on session creation.
+
+***
+
+### headers?
+
+```ts
+optional headers?: Record<string, string>;
+```
+
+Headers sent on every remote HTTP/SSE request, including Authorization. Requires baseUrl.
+
+***
+
+### spawn?
+
+```ts
+optional spawn?: SpawnOptions;
+```
+
+Override spawn behavior. Not used when `baseUrl` is provided.
+
+***
+
+### workspaceId?
+
+```ts
+optional workspaceId?: string;
+```
+
+Optional workspace id passed through to the server.

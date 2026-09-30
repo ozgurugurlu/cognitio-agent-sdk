@@ -1,0 +1,46 @@
+---
+title: "Sessions"
+description: "Create, continue, resume and fork conversations."
+---
+## Maintain a conversation
+
+```ts
+import { Agent, shutdown } from "cognitio-agent-sdk"
+
+const agent = new Agent({ model: "anthropic/claude-sonnet-4-5" })
+try {
+  const session = await agent.createSession({ title: "Planning" })
+  await session.send("My project uses PostgreSQL.")
+  const result = await session.send("Suggest a migration strategy.")
+  console.log(result.text)
+  await session.rename("Database migration")
+  await session.tag("planning")
+  console.log(await session.messages())
+} finally {
+  await agent.close().finally(() => shutdown())
+}
+```
+
+A session permits one active query at a time. `interrupt()` stops the current model/tool turn; `abort()` is an alias. `close()` closes the local handle and its dispatcher. It does not normally delete the persisted server session.
+
+## Resume and change policy
+
+`agent.resume(id)` reattaches to an existing server session. Explicit options on the Agent override stored runtime settings; unspecified options preserve them. Callback tools and hooks must be provided again by the attaching process. Runtime metadata is restored if attachment fails. Active local handles cannot have their runtime configuration replaced underneath them.
+
+The low-level form accepts `client.sessions.resume(id, { runtimeConfig, title, permission })`. Explicit empty collections clear prior values (`hooks: {}`, `sdkMcpServers: []`, `agents: {}`); `canUseTool: false` removes a prior permission callback. A session's original working directory is immutable; use a new session for a different workspace.
+
+## Fork
+
+`agent.fork(id, { messageId })` creates an independent branch of a transcript. Without a message ID it forks the current conversation. Bare runtime forks copy serializable policy while dropping registrations that require callbacks in another process. The SDK binds the current Agent's callbacks for its fork.
+
+## Persistence and ownership
+
+An isolated local runtime stores its database in temporary scratch state. Closing its owning low-level client removes that state unless scratch preservation was requested. A default Agent uses the process-wide client: `Agent.close()` leaves that runtime available, and `shutdown()` closes it. An Agent with explicit local `spawn` options owns a dedicated client and closes it with `Agent.close()`.
+
+To resume across application restarts, run a persistent remote runtime, or deliberately configure persistent local state. Merely recording a session ID does not preserve an isolated runtime. Preserving scratch for debugging does not automatically reconnect a later Agent to that database.
+
+Persisted transcripts and runtime policy have different lifetimes: runtime overrides and callback descriptors are held in memory. Restarting a persistent server keeps its database but resets those overrides. Supply the intended policy and callbacks again when resuming after restart.
+
+Remote sessions are retained by default. `deleteSessionsOnClose: true` deletes sessions created or forked by that Agent. Resumed sessions are retained. Use `client.sessions.delete(id)` for explicit deletion.
+
+`session.getTodos()` returns current todos; `session.todos({ signal })` watches snapshots until cancelled. Enable `todowrite` in the tool policy when the agent should maintain them.

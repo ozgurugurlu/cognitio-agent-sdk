@@ -1,0 +1,20 @@
+---
+title: "QuestionRequest"
+description: "Exact type definition referenced by the public SDK."
+---
+
+This definition is generated from the same source as the SDK. Protocol types describe the runtime HTTP API; prefer the high-level SDK for session ownership and callbacks.
+
+```ts
+export type QuestionRequest = {
+  id: string
+  sessionID: string
+  /**
+   * Questions to ask
+   */
+  questions: Array<QuestionInfo>
+  tool?: QuestionTool
+}
+```
+
+Related types: [QuestionInfo](/api-reference/protocol/QuestionInfo), [QuestionTool](/api-reference/protocol/QuestionTool).

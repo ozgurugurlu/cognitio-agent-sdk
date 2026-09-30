@@ -1,0 +1,206 @@
+---
+title: "Interface: RunResult"
+description: "Generated from the public TypeScript API."
+---
+
+
+Terminal Agent result. Execution-limit and abort subtypes resolve normally;
+inspect `isError` rather than relying on rejection.
+
+## Example
+
+```ts
+const result = await agent.run("Summarize the repository.")
+if (result.isError) console.error(result.subtype)
+else console.log(result.text)
+```
+
+## Extends
+
+- [`ResultMessage`](ResultMessage)
+
+## Properties
+
+### durationMs
+
+```ts
+durationMs: number;
+```
+
+#### Inherited from
+
+[`ResultMessage`](ResultMessage).[`durationMs`](ResultMessage#durationms)
+
+***
+
+### error?
+
+```ts
+optional error?: object;
+```
+
+#### cause?
+
+```ts
+optional cause?: unknown;
+```
+
+#### message
+
+```ts
+message: string;
+```
+
+#### Inherited from
+
+[`ResultMessage`](ResultMessage).[`error`](ResultMessage#error)
+
+***
+
+### isError
+
+```ts
+isError: boolean;
+```
+
+Exactly `subtype !== "success"`.
+
+***
+
+### messageId?
+
+```ts
+optional messageId?: string;
+```
+
+#### Inherited from
+
+[`ResultMessage`](ResultMessage).[`messageId`](ResultMessage#messageid)
+
+***
+
+### modelUsage?
+
+```ts
+optional modelUsage?: Record<string, ModelUsageSummary>;
+```
+
+#### Inherited from
+
+[`ResultMessage`](ResultMessage).[`modelUsage`](ResultMessage#modelusage)
+
+***
+
+### parentMessageId?
+
+```ts
+optional parentMessageId?: string;
+```
+
+#### Inherited from
+
+[`ResultMessage`](ResultMessage).[`parentMessageId`](ResultMessage#parentmessageid)
+
+***
+
+### sessionId
+
+```ts
+sessionId: string;
+```
+
+#### Inherited from
+
+[`ResultMessage`](ResultMessage).[`sessionId`](ResultMessage#sessionid)
+
+***
+
+### stopReason?
+
+```ts
+optional stopReason?: string;
+```
+
+#### Inherited from
+
+[`ResultMessage`](ResultMessage).[`stopReason`](ResultMessage#stopreason)
+
+***
+
+### structuredOutput?
+
+```ts
+optional structuredOutput?: unknown;
+```
+
+#### Inherited from
+
+[`ResultMessage`](ResultMessage).[`structuredOutput`](ResultMessage#structuredoutput)
+
+***
+
+### subtype
+
+```ts
+subtype:
+  | "success"
+  | "error_aborted"
+  | "error_during_execution"
+  | "error_max_turns"
+  | "error_max_budget"
+  | "error_max_structured_output_retries";
+```
+
+#### Inherited from
+
+[`ResultMessage`](ResultMessage).[`subtype`](ResultMessage#subtype)
+
+***
+
+### text
+
+```ts
+text: string;
+```
+
+Final assistant text, or `""` when the terminal message had no text.
+
+#### Overrides
+
+[`ResultMessage`](ResultMessage).[`text`](ResultMessage#text)
+
+***
+
+### totalCostUsd?
+
+```ts
+optional totalCostUsd?: number;
+```
+
+#### Inherited from
+
+[`ResultMessage`](ResultMessage).[`totalCostUsd`](ResultMessage#totalcostusd)
+
+***
+
+### turns
+
+```ts
+turns: number;
+```
+
+#### Inherited from
+
+[`ResultMessage`](ResultMessage).[`turns`](ResultMessage#turns)
+
+***
+
+### usage?
+
+```ts
+optional usage?: UsageSummary;
+```
+
+#### Inherited from
+
+[`ResultMessage`](ResultMessage).[`usage`](ResultMessage#usage)

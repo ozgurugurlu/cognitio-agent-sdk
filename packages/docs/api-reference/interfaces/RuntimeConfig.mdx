@@ -1,0 +1,301 @@
+---
+title: "Interface: RuntimeConfig"
+description: "Generated from the public TypeScript API."
+---
+
+
+Per-session runtime configuration applied to each accepted turn. Local
+callbacks stay in the SDK process; the server stores serializable descriptors.
+Runtime configuration is ephemeral and must be supplied after a server restart.
+
+## Extended by
+
+- [`AgentOptions`](AgentOptions)
+
+## Properties
+
+### agents?
+
+```ts
+optional agents?: Record<string, AgentDefinition>;
+```
+
+Session-scoped helper and subagent definitions, keyed by name.
+
+***
+
+### allowedTools?
+
+```ts
+optional allowedTools?: string[];
+```
+
+Nonempty tool allowlist, including scoped expressions such as bash(npm:*). An empty array adds no allowlist restriction; use disallowedTools: ["*"] to hide ordinary tools. Matching grants can bypass the permission callback.
+
+***
+
+### appendSystemPrompt?
+
+```ts
+optional appendSystemPrompt?: string;
+```
+
+Append application instructions after the selected base system prompt.
+
+***
+
+### autoPermissionClassifierModel?
+
+```ts
+optional autoPermissionClassifierModel?: ModelId;
+```
+
+Provider/model used to classify unresolved permissions in auto mode.
+
+***
+
+### backgroundTaskPolicy?
+
+```ts
+optional backgroundTaskPolicy?: object;
+```
+
+V2 awaits tasks within the current turn. Detached durable jobs are outside this release.
+
+#### mode
+
+```ts
+mode: "foreground";
+```
+
+***
+
+### canUseTool?
+
+```ts
+optional canUseTool?: false | CanUseToolCallback;
+```
+
+Answer unresolved tool approval requests. Explicit allow rules can approve a tool before this callback runs. Set false to disable a prior callback on resume.
+
+***
+
+### checkpointing?
+
+```ts
+optional checkpointing?: CheckpointingConfig;
+```
+
+Fine-grained file checkpoint policy.
+
+***
+
+### commands?
+
+```ts
+optional commands?: CommandDefinition[];
+```
+
+Programmatic commands invoked by Session.command(name, arguments).
+
+***
+
+### compaction?
+
+```ts
+optional compaction?: object;
+```
+
+Per-session automatic compaction and summary formatting.
+
+#### auto?
+
+```ts
+optional auto?: boolean;
+```
+
+#### includeFiles?
+
+```ts
+optional includeFiles?: boolean;
+```
+
+***
+
+### disallowedTools?
+
+```ts
+optional disallowedTools?: string[];
+```
+
+Tool denylist. ["*"] disables tool execution, including the runtime's StructuredOutput tool. Use deterministic deny rules for operations that must never be approved.
+
+***
+
+### effort?
+
+```ts
+optional effort?: "high" | "medium" | "low" | "max";
+```
+
+Provider-specific reasoning effort; unsupported combinations are rejected.
+
+***
+
+### enableFileCheckpointing?
+
+```ts
+optional enableFileCheckpointing?: boolean;
+```
+
+Enable automatic file checkpointing. Requires a Git-backed workspace with runtime snapshots enabled.
+
+***
+
+### enableToolSearch?
+
+```ts
+optional enableToolSearch?: boolean | "always" | "auto" | "never";
+```
+
+Control deferred tool discovery. Directly loaded tools remain governed by normal tool policy.
+
+***
+
+### hooks?
+
+```ts
+optional hooks?: HookRegistration;
+```
+
+Callbacks keyed by lifecycle event. Callbacks remain local and must be rebound after restarting the application. An empty object clears prior hooks on resume.
+
+***
+
+### includeEnvironment?
+
+```ts
+optional includeEnvironment?: boolean;
+```
+
+Include working directory and platform context in the model's system prompt.
+
+***
+
+### instructions?
+
+```ts
+optional instructions?: string;
+```
+
+Full custom system prompt (sugar for a custom systemPrompt). Cannot be combined with systemPrompt.
+
+***
+
+### maxBudgetUsd?
+
+```ts
+optional maxBudgetUsd?: number;
+```
+
+Positive estimated USD budget; a reached limit ends with error_max_budget. Provider accounting is authoritative.
+
+***
+
+### maxTurns?
+
+```ts
+optional maxTurns?: number;
+```
+
+Positive maximum number of assistant turns before error_max_turns.
+
+***
+
+### model?
+
+```ts
+optional model?: ModelId;
+```
+
+Provider/model identifier used for the main agent turn.
+
+***
+
+### outputFormat?
+
+```ts
+optional outputFormat?: OutputFormatSpec<unknown>;
+```
+
+Expected structured JSON output schema and bounded schema retry policy.
+
+***
+
+### permissionMode?
+
+```ts
+optional permissionMode?: PermissionMode;
+```
+
+Approval policy for unresolved tool requests. This does not create an OS sandbox.
+
+***
+
+### plugins?
+
+```ts
+optional plugins?: PluginSpec[];
+```
+
+Inline plugin bundles or local Claude-format plugin directories.
+
+***
+
+### sdkMcpServers?
+
+```ts
+optional sdkMcpServers?: RuntimeMcpServer[];
+```
+
+SDK-hosted or external MCP descriptors. An explicit empty array clears prior MCP registrations on resume.
+
+***
+
+### settingSources?
+
+```ts
+optional settingSources?: ("user" | "local" | "project")[];
+```
+
+Instruction/config resource sources to load. SDK sessions default to an empty array.
+
+***
+
+### skills?
+
+```ts
+optional skills?: SkillDefinition[];
+```
+
+Programmatic reusable skill descriptions and content.
+
+***
+
+### systemPrompt?
+
+```ts
+optional systemPrompt?: SystemPromptSpec;
+```
+
+Replace the base prompt with a string/custom prompt, or explicitly select the coding preset.
+
+***
+
+### thinkingConfig?
+
+```ts
+optional thinkingConfig?: ThinkingConfig;
+```
+
+Provider reasoning configuration; unsupported model/provider combinations fail explicitly.

@@ -1,0 +1,37 @@
+---
+title: "Interface: SessionResumeOptions"
+description: "Generated from the public TypeScript API."
+---
+
+
+Overrides applied atomically before a resumed handle starts its local control dispatcher.
+
+## Properties
+
+### permission?
+
+```ts
+optional permission?: PermissionRuleset;
+```
+
+Replace persisted permission rules.
+
+***
+
+### runtimeConfig?
+
+```ts
+optional runtimeConfig?: RuntimeConfig;
+```
+
+Explicit policy fields to merge into the stored configuration before attaching.
+
+***
+
+### title?
+
+```ts
+optional title?: string;
+```
+
+Replace the persisted session title.

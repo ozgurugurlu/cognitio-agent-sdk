@@ -1,0 +1,89 @@
+---
+title: "Variable: PermissionDecision"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+PermissionDecision: object;
+```
+
+Construct portable permission decisions for canUseTool and supported hooks.
+
+## Type Declaration
+
+### allow()
+
+```ts
+allow(updatedInput?): PermissionDecision;
+```
+
+Approve the request, optionally replacing its input.
+
+#### Parameters
+
+##### updatedInput?
+
+`Record`\<`string`, `unknown`\>
+
+Validated replacement tool arguments.
+
+#### Returns
+
+[`PermissionDecision`](/api-reference/supporting/PermissionDecision)
+
+An allow decision.
+
+#### Example
+
+```ts
+return PermissionDecision.allow()
+```
+
+### ask()
+
+```ts
+ask(): PermissionDecision;
+```
+
+Delegate to the remaining permission path; this is not approval.
+
+#### Returns
+
+[`PermissionDecision`](/api-reference/supporting/PermissionDecision)
+
+An ask decision.
+
+#### Example
+
+```ts
+return PermissionDecision.ask()
+```
+
+### deny()
+
+```ts
+deny(message?): PermissionDecision;
+```
+
+Reject a request with an optional explanation.
+
+#### Parameters
+
+##### message?
+
+`string`
+
+Reason shown to the runtime/model.
+
+#### Returns
+
+[`PermissionDecision`](/api-reference/supporting/PermissionDecision)
+
+A deny decision.
+
+#### Example
+
+```ts
+return PermissionDecision.deny("Read-only agent")
+```

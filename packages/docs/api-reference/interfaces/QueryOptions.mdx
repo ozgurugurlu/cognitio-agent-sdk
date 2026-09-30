@@ -1,0 +1,648 @@
+---
+title: "Interface: QueryOptions"
+description: "Generated from the public TypeScript API."
+---
+
+
+Migration-oriented one-shot query options.
+
+The call shape follows Claude Agent SDK conventions, but Cognitio stream
+message shapes remain native to this package. Resume applies explicit
+runtime overrides and reattaches supplied callbacks before work starts;
+changing the existing working directory is rejected. A configured fork applies
+the full facade profile to the new session.
+
+## Example
+
+```ts
+const options: QueryOptions = {
+  model: "anthropic/claude-sonnet-4-5",
+  resume: "ses_existing",
+}
+```
+
+## Extends
+
+- [`AgentOptions`](AgentOptions)
+
+## Properties
+
+### agents?
+
+```ts
+optional agents?: Record<string, AgentDefinition>;
+```
+
+Session-scoped helper and subagent definitions, keyed by name.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`agents`](AgentOptions#agents)
+
+***
+
+### allowedTools?
+
+```ts
+optional allowedTools?: string[];
+```
+
+Nonempty tool allowlist, including scoped expressions such as bash(npm:*). An empty array adds no allowlist restriction; use disallowedTools: ["*"] to hide ordinary tools. Matching grants can bypass the permission callback.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`allowedTools`](AgentOptions#allowedtools)
+
+***
+
+### appendSystemPrompt?
+
+```ts
+optional appendSystemPrompt?: string;
+```
+
+Append application instructions after the selected base system prompt.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`appendSystemPrompt`](AgentOptions#appendsystemprompt)
+
+***
+
+### autoPermissionClassifierModel?
+
+```ts
+optional autoPermissionClassifierModel?: ModelId;
+```
+
+Provider/model used to classify unresolved permissions in auto mode.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`autoPermissionClassifierModel`](AgentOptions#autopermissionclassifiermodel)
+
+***
+
+### backgroundTaskPolicy?
+
+```ts
+optional backgroundTaskPolicy?: object;
+```
+
+V2 awaits tasks within the current turn. Detached durable jobs are outside this release.
+
+#### mode
+
+```ts
+mode: "foreground";
+```
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`backgroundTaskPolicy`](AgentOptions#backgroundtaskpolicy)
+
+***
+
+### baseUrl?
+
+```ts
+optional baseUrl?: string;
+```
+
+Attach to an existing server; mutually exclusive with `spawn` and `client`.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`baseUrl`](AgentOptions#baseurl)
+
+***
+
+### canUseTool?
+
+```ts
+optional canUseTool?: false | CanUseToolCallback;
+```
+
+Answer unresolved tool approval requests. Explicit allow rules can approve a tool before this callback runs. Set false to disable a prior callback on resume.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`canUseTool`](AgentOptions#canusetool)
+
+***
+
+### checkpointing?
+
+```ts
+optional checkpointing?: CheckpointingConfig;
+```
+
+Fine-grained file checkpoint policy.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`checkpointing`](AgentOptions#checkpointing)
+
+***
+
+### client?
+
+```ts
+optional client?: AgentClient;
+```
+
+Borrowed low-level client. Agent and `shutdown()` never close it.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`client`](AgentOptions#client)
+
+***
+
+### commands?
+
+```ts
+optional commands?: CommandDefinition[];
+```
+
+Programmatic commands invoked by Session.command(name, arguments).
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`commands`](AgentOptions#commands)
+
+***
+
+### compaction?
+
+```ts
+optional compaction?: object;
+```
+
+Per-session automatic compaction and summary formatting.
+
+#### auto?
+
+```ts
+optional auto?: boolean;
+```
+
+#### includeFiles?
+
+```ts
+optional includeFiles?: boolean;
+```
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`compaction`](AgentOptions#compaction)
+
+***
+
+### control?
+
+```ts
+optional control?: ControlOptions;
+```
+
+Control-channel tuning for a dedicated client.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`control`](AgentOptions#control)
+
+***
+
+### cwd?
+
+```ts
+optional cwd?: string;
+```
+
+Session working directory.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`cwd`](AgentOptions#cwd)
+
+***
+
+### deleteSessionsOnClose?
+
+```ts
+optional deleteSessionsOnClose?: boolean;
+```
+
+Delete sessions created or forked by this Agent on close. Resumed sessions are retained. Defaults to false.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`deleteSessionsOnClose`](AgentOptions#deletesessionsonclose)
+
+***
+
+### directory?
+
+```ts
+optional directory?: string;
+```
+
+Alias for `cwd`; the two must match when both are supplied.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`directory`](AgentOptions#directory)
+
+***
+
+### disallowedTools?
+
+```ts
+optional disallowedTools?: string[];
+```
+
+Tool denylist. ["*"] disables tool execution, including the runtime's StructuredOutput tool. Use deterministic deny rules for operations that must never be approved.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`disallowedTools`](AgentOptions#disallowedtools)
+
+***
+
+### effort?
+
+```ts
+optional effort?: "high" | "medium" | "low" | "max";
+```
+
+Provider-specific reasoning effort; unsupported combinations are rejected.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`effort`](AgentOptions#effort)
+
+***
+
+### enableFileCheckpointing?
+
+```ts
+optional enableFileCheckpointing?: boolean;
+```
+
+Enable automatic file checkpointing. Requires a Git-backed workspace with runtime snapshots enabled.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`enableFileCheckpointing`](AgentOptions#enablefilecheckpointing)
+
+***
+
+### enableToolSearch?
+
+```ts
+optional enableToolSearch?: boolean | "always" | "auto" | "never";
+```
+
+Control deferred tool discovery. Directly loaded tools remain governed by normal tool policy.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`enableToolSearch`](AgentOptions#enabletoolsearch)
+
+***
+
+### forkMessageId?
+
+```ts
+optional forkMessageId?: string;
+```
+
+Optional fork boundary. Requires `forkSession: true`.
+
+***
+
+### forkSession?
+
+```ts
+optional forkSession?: boolean;
+```
+
+Fork `resume` instead of attaching to it. Requires `resume`.
+
+***
+
+### headers?
+
+```ts
+optional headers?: Record<string, string>;
+```
+
+Remote runtime request headers, including Authorization. Requires baseUrl; incompatible with client or spawn.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`headers`](AgentOptions#headers)
+
+***
+
+### hooks?
+
+```ts
+optional hooks?: HookRegistration;
+```
+
+Callbacks keyed by lifecycle event. Callbacks remain local and must be rebound after restarting the application. An empty object clears prior hooks on resume.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`hooks`](AgentOptions#hooks)
+
+***
+
+### includeEnvironment?
+
+```ts
+optional includeEnvironment?: boolean;
+```
+
+Include working directory and platform context in the model's system prompt.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`includeEnvironment`](AgentOptions#includeenvironment)
+
+***
+
+### includePartialMessages?
+
+```ts
+optional includePartialMessages?: boolean;
+```
+
+Yield partial delta envelopes.
+
+***
+
+### instructions?
+
+```ts
+optional instructions?: string;
+```
+
+Full custom system prompt (sugar for a custom systemPrompt). Cannot be combined with systemPrompt.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`instructions`](AgentOptions#instructions)
+
+***
+
+### maxBudgetUsd?
+
+```ts
+optional maxBudgetUsd?: number;
+```
+
+Positive estimated USD budget; a reached limit ends with error_max_budget. Provider accounting is authoritative.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`maxBudgetUsd`](AgentOptions#maxbudgetusd)
+
+***
+
+### maxTurns?
+
+```ts
+optional maxTurns?: number;
+```
+
+Positive maximum number of assistant turns before error_max_turns.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`maxTurns`](AgentOptions#maxturns)
+
+***
+
+### model?
+
+```ts
+optional model?: ModelId;
+```
+
+Provider/model identifier used for the main agent turn.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`model`](AgentOptions#model)
+
+***
+
+### outputFormat?
+
+```ts
+optional outputFormat?: OutputFormatSpec<unknown>;
+```
+
+Expected structured JSON output schema and bounded schema retry policy.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`outputFormat`](AgentOptions#outputformat)
+
+***
+
+### permission?
+
+```ts
+optional permission?: PermissionRuleset;
+```
+
+Server permission rules, distinct from runtime `permissionMode`.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`permission`](AgentOptions#permission)
+
+***
+
+### permissionMode?
+
+```ts
+optional permissionMode?: PermissionMode;
+```
+
+Approval policy for unresolved tool requests. This does not create an OS sandbox.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`permissionMode`](AgentOptions#permissionmode)
+
+***
+
+### plugins?
+
+```ts
+optional plugins?: PluginSpec[];
+```
+
+Inline plugin bundles or local Claude-format plugin directories.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`plugins`](AgentOptions#plugins)
+
+***
+
+### resume?
+
+```ts
+optional resume?: string;
+```
+
+Existing session id to attach to or fork.
+
+***
+
+### sdkMcpServers?
+
+```ts
+optional sdkMcpServers?: RuntimeMcpServer[];
+```
+
+SDK-hosted or external MCP descriptors. An explicit empty array clears prior MCP registrations on resume.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`sdkMcpServers`](AgentOptions#sdkmcpservers)
+
+***
+
+### settingSources?
+
+```ts
+optional settingSources?: ("user" | "local" | "project")[];
+```
+
+Instruction/config resource sources to load. SDK sessions default to an empty array.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`settingSources`](AgentOptions#settingsources)
+
+***
+
+### signal?
+
+```ts
+optional signal?: AbortSignal;
+```
+
+Abort the active turn without changing iterator ownership.
+
+***
+
+### skills?
+
+```ts
+optional skills?: SkillDefinition[];
+```
+
+Programmatic reusable skill descriptions and content.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`skills`](AgentOptions#skills)
+
+***
+
+### spawn?
+
+```ts
+optional spawn?: SpawnOptions;
+```
+
+Dedicated local-server options.
+
+Defined scalar values replace facade defaults. `config` is merged by
+top-level key and, under `agent`, by agent name; a named agent's own
+object replaces wholesale, so `agent: { title: {…} }` drops the facade's
+`title.disable` and restores the per-session title model call. Explicit
+`false`, `""`, and `[]` values are preserved.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`spawn`](AgentOptions#spawn)
+
+***
+
+### systemPrompt?
+
+```ts
+optional systemPrompt?: SystemPromptSpec;
+```
+
+Replace the base prompt with a string/custom prompt, or explicitly select the coding preset.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`systemPrompt`](AgentOptions#systemprompt)
+
+***
+
+### thinkingConfig?
+
+```ts
+optional thinkingConfig?: ThinkingConfig;
+```
+
+Provider reasoning configuration; unsupported model/provider combinations fail explicitly.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`thinkingConfig`](AgentOptions#thinkingconfig)
+
+***
+
+### title?
+
+```ts
+optional title?: string;
+```
+
+Explicit server-session title.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`title`](AgentOptions#title)
+
+***
+
+### tools?
+
+```ts
+optional tools?: ToolDefinition[];
+```
+
+Direct SDK tools, exposed as `sdk_<sanitized-name>`.
+
+They execute in the caller process rather than the isolated server.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`tools`](AgentOptions#tools)
+
+***
+
+### workspaceId?
+
+```ts
+optional workspaceId?: string;
+```
+
+Workspace id for a dedicated client.
+
+#### Inherited from
+
+[`AgentOptions`](AgentOptions).[`workspaceId`](AgentOptions#workspaceid)

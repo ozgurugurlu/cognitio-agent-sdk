@@ -1,0 +1,33 @@
+Cognitio Agent SDK
+Built on OpenCode (https://github.com/anomalyco/opencode).
+
+This distribution includes code derived from OpenCode, Copyright (c) 2025 opencode,
+under the MIT License included in LICENSE. Cognitio Agent SDK is an independent
+project and is not an official OpenCode or Anthropic product.
+
+Third-party dependencies retain their own licenses and attribution notices.
+The Claude Code reference checkout used during local research is not part of
+this distribution.
+
+Bundled model catalog metadata is derived from models.dev
+(https://github.com/anomalyco/models.dev), Copyright (c) 2025 models.dev.
+
+MIT License — models.dev metadata
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

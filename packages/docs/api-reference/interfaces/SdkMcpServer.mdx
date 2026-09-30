@@ -1,0 +1,75 @@
+---
+title: "Interface: SdkMcpServer"
+description: "Generated from the public TypeScript API."
+---
+
+
+Descriptor for an SDK-owned MCP server. Direct transport supports tools; HTTP hosting additionally supports resources and prompts.
+
+## Properties
+
+### enabled?
+
+```ts
+optional enabled?: boolean;
+```
+
+***
+
+### name
+
+```ts
+name: string;
+```
+
+***
+
+### prompts?
+
+```ts
+optional prompts?: McpPromptDefinition[];
+```
+
+Prompt templates served by an HTTP SDK MCP server.
+
+***
+
+### resources?
+
+```ts
+optional resources?: McpResourceDefinition[];
+```
+
+Resources served by an HTTP SDK MCP server.
+
+***
+
+### timeout?
+
+```ts
+optional timeout?: number;
+```
+
+***
+
+### tools
+
+```ts
+tools: ToolDefinition<unknown, unknown>[];
+```
+
+***
+
+### transport?
+
+```ts
+optional transport?: "http" | "direct";
+```
+
+***
+
+### type?
+
+```ts
+optional type?: "sdk";
+```

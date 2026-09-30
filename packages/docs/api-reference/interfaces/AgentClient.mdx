@@ -1,0 +1,51 @@
+---
+title: "Interface: AgentClient"
+description: "Generated from the public TypeScript API."
+---
+
+
+An owned connection to a Cognitio runtime and its session handles. Closing it tears down local resources and an SDK-spawned server.
+
+## Properties
+
+### baseUrl
+
+```ts
+readonly baseUrl: string;
+```
+
+***
+
+### sessions
+
+```ts
+readonly sessions: SessionNamespace;
+```
+
+***
+
+### transportKind
+
+```ts
+readonly transportKind: TransportKind;
+```
+
+## Methods
+
+### close()
+
+```ts
+close(): Promise<void>;
+```
+
+Close all client-owned handles and transport resources. A remote server itself remains running.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Completion after owned cleanup has settled.
+
+#### Throws
+
+A cleanup failure or aggregate of failures.

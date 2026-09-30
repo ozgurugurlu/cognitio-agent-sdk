@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "cognitio-agent-sdk",
+  "version": "2.0.0",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsgo --noEmit && tsgo -p tsconfig.test.json",
+    "build": "bun ./script/build.ts",
+    "prepare": "tsc",
+    "generate:client": "bun ./script/generate-client.ts",
+    "check:client": "bun ./script/generate-client.ts --check",
+    "check:openapi": "bun ./script/check-openapi.ts",
+    "generate:models": "bun ./script/generate-model-ids.ts",
+    "check:models": "bun ./script/generate-model-ids.ts --check",
+    "test": "bun run build && bun test --timeout 30000",
+    "test:ci": "bun run build && mkdir -p .artifacts/unit && bun test --timeout 30000 --reporter=junit --reporter-outfile=.artifacts/unit/junit.xml",
+    "verify:package": "bun ./script/verify-package.ts",
+    "prepublishOnly": "node -e \"throw new Error('Use bun run release:publish after reading PUBLISHING.md')\"",
+    "build:binaries": "bun ./script/build-server-binaries.ts --skip-embed-web-ui",
+    "pack:release": "bun ./script/pack.ts",
+    "release:check": "bun ./script/publish.ts --dry-run",
+    "release:publish": "bun ./script/publish.ts --publish --yes",
+    "verify:release": "bun ./script/verify-package.ts --require-platform",
+    "export:source": "bun ./script/export-source.ts",
+    "test:examples": "bun ./script/test-examples.ts"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.90.10",
+    "@tsconfig/node22": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/cross-spawn": "catalog:",
+    "@types/node": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "prettier": "3.6.2",
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.27.1",
+    "cross-spawn": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@types/node": ">=22"
+  },
+  "peerDependenciesMeta": {
+    "@types/node": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "runtimeVersion": "1.14.19+cognitio.runtime.4",
+  "description": "A programmable, self-contained agent SDK built on OpenCode.",
+  "keywords": [
+    "agents",
+    "ai",
+    "sdk",
+    "cognitio",
+    "typescript",
+    "mcp"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ozgurugurlu/cognitio-agent-sdk.git",
+    "directory": "packages/agent-sdk"
+  }
+}

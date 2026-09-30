@@ -1,0 +1,62 @@
+---
+title: "Model Context Protocol"
+description: "Connect tools, resources and prompts through MCP."
+---
+## External servers
+
+```ts
+const agent = new Agent({
+  model: "anthropic/claude-sonnet-4-5",
+  sdkMcpServers: [{
+    name: "catalog",
+    type: "remote",
+    url: "https://your-service.example/mcp",
+    transport: "http",
+    headers: { Authorization: `Bearer ${process.env.MCP_TOKEN}` },
+    oauth: false,
+  }],
+})
+```
+
+Remote servers support Streamable HTTP and legacy SSE. Select `transport: "sse"` explicitly for an SSE endpoint; omission tries HTTP with SSE fallback. Session descriptors support explicit headers and `oauth: false`; they do not initiate an interactive OAuth flow.
+
+A local descriptor runs a subprocess **on the runtime host**:
+
+```ts
+const server = {
+  name: "local",
+  type: "local" as const,
+  command: ["node", "/absolute/path/to/mcp-server.mjs"],
+  environment: { DATA_ROOT: "/srv/data" },
+  cwd: "/srv/data",
+}
+```
+
+The runtime owns the process and closes it with the session's MCP scope. Relative executables and paths resolve on that host. An isolated runtime receives an isolated environment; use explicit `environment` values for the child.
+
+## SDK-hosted tools
+
+`createSdkMcpServer({ name, tools, transport })` builds a descriptor. `direct` routes tool calls over the existing control channel; `http` starts an SDK-owned loopback MCP server and requires a locally spawned runtime. For remote runtimes, use direct callback tools or an external MCP server.
+
+## Resources and prompts
+
+Hosted HTTP MCP servers also accept `resources` and `prompts`. A resource has a name, stable URI and `read(context)` callback returning an MCP `contents` array. A prompt has a name, argument declarations and `get(arguments, context)` returning MCP messages.
+
+```ts
+const content = createSdkMcpServer({
+  name: "handbook",
+  transport: "http",
+  tools: [],
+  resources: [{
+    name: "policy",
+    uri: "handbook://policy",
+    read: () => ({ contents: [{ uri: "handbook://policy", text: "Ask before deleting." }] }),
+  }],
+  prompts: [{
+    name: "review",
+    get: () => ({ messages: [{ role: "user", content: { type: "text", text: "Review this carefully." } }] }),
+  }],
+})
+```
+
+Resources/prompts require HTTP hosting; the direct control protocol supports tools. Required prompt arguments and duplicate names/URIs are checked. A separate MCP client can list/read these resources and get prompts from the hosted HTTP endpoint. Session-scoped MCP registration currently feeds tools into the agent loop; it does not expose `Session.readResource()` / `getPrompt()` methods or automatically turn these prompts into slash commands.

@@ -1,0 +1,41 @@
+---
+title: "Function: defineCommand()"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+function defineCommand<T>(def): T;
+```
+
+Validate a programmatic slash-command definition.
+
+## Type Parameters
+
+### T
+
+`T` *extends* [`CommandDefinition`](../interfaces/CommandDefinition)
+
+## Parameters
+
+### def
+
+`T`
+
+Named template and optional model/agent/tool policy.
+
+## Returns
+
+`T`
+
+The validated definition.
+
+## Throws
+
+Invalid command fields.
+
+## Example
+
+```ts
+const definition = defineCommand({ name: "review", template: "Review $ARGUMENTS" })
+```

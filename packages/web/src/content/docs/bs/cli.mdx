@@ -1,0 +1,600 @@
+---
+title: CLI
+description: Cognitio CLI opcije i naredbe.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components"
+
+Cognitio CLI po defaultu pokreće [TUI](/docs/tui) kada se pokrene bez ikakvih argumenata.
+
+```bash
+cognitio
+```
+
+Ali takođe prihvata naredbe kao što je dokumentovano na ovoj stranici. Ovo vam omogućava programsku interakciju sa Cognitio.
+
+```bash
+cognitio run "Explain how closures work in JavaScript"
+```
+
+---
+
+### tui
+
+Pokrenite Cognitio terminalski korisnički interfejs.
+
+```bash
+cognitio [project]
+```
+
+#### Opcije
+
+| Opcija       | Kratko | Opis                                                                     |
+| ------------ | ------ | ------------------------------------------------------------------------ |
+| `--continue` | `-c`   | Nastavite posljednju sesiju                                              |
+| `--session`  | `-s`   | ID sesije za nastavak                                                    |
+| `--fork`     |        | Forkujte sesiju pri nastavku (koristiti sa `--continue` ili `--session`) |
+| `--prompt`   |        | Prompt za upotrebu                                                       |
+| `--model`    | `-m`   | Model za korištenje u obliku provider/model                              |
+| `--agent`    |        | Agent za korištenje                                                      |
+| `--port`     |        | Port na kojem treba slušati                                              |
+| `--hostname` |        | Hostname na kojem treba slušati                                          |
+
+---
+
+## Naredbe
+
+Cognitio CLI takođe ima sljedeće naredbe.
+
+---
+
+### agent
+
+Upravljajte Cognitio agentima.
+
+```bash
+cognitio agent [command]
+```
+
+---
+
+### attach
+
+Priključite terminal na već pokrenut Cognitio backend server pokrenut putem `serve` ili `web` naredbi.
+
+```bash
+cognitio attach [url]
+```
+
+Ovo omogućava korištenje TUI-ja sa udaljenim Cognitio backend-om. Na primjer:
+
+```bash
+# Start the backend server for web/mobile access
+cognitio web --port 4096 --hostname 0.0.0.0
+
+# In another terminal, attach the TUI to the running backend
+cognitio attach http://10.20.30.40:4096
+```
+
+#### Opcije
+
+| Opcija      | Kratko | Opis                                 |
+| ----------- | ------ | ------------------------------------ |
+| `--dir`     |        | Radni direktorij za pokretanje TUI-a |
+| `--session` | `-s`   | ID sesije za nastavak                |
+
+---
+
+#### create
+
+Kreirajte novog agenta s prilagođenom konfiguracijom.
+
+```bash
+cognitio agent create
+```
+
+Ova naredba će vas voditi kroz kreiranje novog agenta sa prilagođenim sistemskim promptom i konfiguracijom alata.
+
+---
+
+#### list
+
+Navedite sve dostupne agente.
+
+```bash
+cognitio agent list
+```
+
+---
+
+### auth
+
+Naredba za upravljanje vjerodajnicama i prijavom za provajdere.
+
+```bash
+cognitio auth [command]
+```
+
+---
+
+#### login
+
+Cognitio pokreće lista provajdera na [Models.dev](https://models.dev), tako da možete koristiti `cognitio auth login` da konfigurirate API ključeve za bilo kojeg provajdera kojeg želite koristiti. Ovo je pohranjeno u `~/.local/share/cognitio/auth.json`.
+
+```bash
+cognitio auth login
+```
+
+Kada se Cognitio pokrene, učitava dobavljače iz datoteke vjerodajnica. I ako postoje neki ključevi definirani u vašim okruženjima ili `.env` fajl u vašem projektu.
+
+---
+
+#### list
+
+Navodi sve autentifikovane dobavljače pohranjene u datoteci vjerodajnica.
+
+```bash
+cognitio auth list
+```
+
+Ili kratka verzija.
+
+```bash
+cognitio auth ls
+```
+
+---
+
+#### logout
+
+Odjavljuje vas s provajdera tako što ga briše iz datoteke vjerodajnica.
+
+```bash
+cognitio auth logout
+```
+
+---
+
+### github
+
+Upravljajte GitHub agentom za automatizaciju repozitorija.
+
+```bash
+cognitio github [command]
+```
+
+---
+
+#### install
+
+Instalirajte GitHub agenta u svoj repozitorij.
+
+```bash
+cognitio github install
+```
+
+Ovo postavlja neophodni tok rada GitHub Actions i vodi vas kroz proces konfiguracije. [Saznajte više](/docs/github).
+
+---
+
+#### run
+
+Pokrenite GitHub agent. Ovo se obično koristi u GitHub Actions.
+
+```bash
+cognitio github run
+```
+
+##### Opcije
+
+| Opcija    | Opis                                   |
+| --------- | -------------------------------------- |
+| `--event` | GitHub mock event za pokretanje agenta |
+| `--token` | GitHub Personal Access Token           |
+
+---
+
+### mcp
+
+Upravljajte Model Context Protocol (MCP) serverima.
+
+```bash
+cognitio mcp [command]
+```
+
+---
+
+#### add
+
+Dodajte MCP server svojoj konfiguraciji.
+
+```bash
+cognitio mcp add
+```
+
+Ova naredba će vas voditi kroz dodavanje lokalnog ili udaljenog MCP servera.
+
+---
+
+#### list
+
+Navedite sve konfigurirane MCP servere i njihov status veze.
+
+```bash
+cognitio mcp list
+```
+
+Ili koristite kratku verziju.
+
+```bash
+cognitio mcp ls
+```
+
+---
+
+#### auth
+
+Autentifikujte se sa MCP serverom koji je omogućen za OAuth.
+
+```bash
+cognitio mcp auth [name]
+```
+
+Ako ne navedete ime servera, od vas će biti zatraženo da izaberete neki od dostupnih servera koji podržavaju OAuth.
+Također možete navesti servere koji podržavaju OAuth i njihov status autentifikacije.
+
+```bash
+cognitio mcp auth list
+```
+
+Ili koristite kratku verziju.
+
+```bash
+cognitio mcp auth ls
+```
+
+---
+
+#### logout
+
+Uklonite OAuth vjerodajnice za MCP server.
+
+```bash
+cognitio mcp logout [name]
+```
+
+---
+
+#### debug
+
+Otklanjanje grešaka (debug) OAuth veze sa MCP serverom.
+
+```bash
+cognitio mcp debug <name>
+```
+
+---
+
+### models
+
+Navedite sve dostupne modele konfiguriranih provajdera.
+
+```bash
+cognitio models [provider]
+```
+
+Ova naredba prikazuje sve modele dostupne kod vaših konfiguriranih provajdera u formatu `provider/model`.
+Ovo je korisno za pronalaženje tačnog naziva modela za korištenje u [vašoj konfiguraciji](/docs/config/).
+Opciono možete proslijediti ID provajdera za filtriranje modela po tom dobavljaču.
+
+```bash
+cognitio models anthropic
+```
+
+#### Opcije
+
+| Opcija      | Opis                                                                     |
+| ----------- | ------------------------------------------------------------------------ |
+| `--refresh` | Osvježite keš modela sa models.dev                                       |
+| `--verbose` | Koristite detaljniji izlaz modela (uključuje metapodatke poput troškova) |
+
+Koristite `--refresh` zastavicu da ažurirate keširanu listu modela. Ovo je korisno kada su novi modeli dodani provajderu i želite da ih vidite u Cognitio.
+
+```bash
+cognitio models --refresh
+```
+
+---
+
+### run
+
+Pokrenite Cognitio u neinteraktivnom modu tako što ćete direktno proslijediti prompt.
+
+```bash
+cognitio run [message..]
+```
+
+Ovo je korisno za skriptiranje, automatizaciju ili kada želite brz odgovor bez pokretanja punog TUI-ja. Na primjer:
+
+```bash "cognitio run"
+cognitio run Explain the use of context in Go
+```
+
+Također možete priključiti pokrenutu `cognitio serve` instancu kako biste izbjegli vrijeme hladnog pokretanja MCP servera pri svakom pokretanju:
+
+```bash
+# Start a headless server in one terminal
+cognitio serve
+
+# In another terminal, run commands that attach to it
+cognitio run --attach http://localhost:4096 "Explain async/await in JavaScript"
+```
+
+#### Opcije
+
+| Opcija       | Kratko | Opis                                                                     |
+| ------------ | ------ | ------------------------------------------------------------------------ |
+| `--command`  |        | Naredba za pokretanje, koristite poruku za argumente                     |
+| `--continue` | `-c`   | Nastavite posljednju sesiju                                              |
+| `--session`  | `-s`   | ID sesije za nastavak                                                    |
+| `--fork`     |        | Forkujte sesiju pri nastavku (koristiti sa `--continue` ili `--session`) |
+| `--share`    |        | Podijelite sesiju                                                        |
+| `--model`    | `-m`   | Model za korištenje u obliku provider/model                              |
+| `--agent`    |        | Agent za korištenje                                                      |
+| `--file`     | `-f`   | Fajlovi koje treba priložiti poruci                                      |
+| `--format`   |        | Format: default (formatiran) ili json (sirovi JSON događaji)             |
+| `--title`    |        | Naslov sesije (koristi skraćeni prompt ako nije navedena vrijednost)     |
+| `--attach`   |        | Priključite na pokrenuti Cognitio server (npr. http://localhost:4096)    |
+| `--port`     |        | Port za lokalni server (zadano na nasumični port)                        |
+
+---
+
+### serve
+
+Pokrenite Cognitio headless server za API pristup. Pogledajte [server docs](/docs/server) za kompletan HTTP interfejs.
+
+```bash
+cognitio serve
+```
+
+Ovo pokreće HTTP server koji pruža API pristup funkcionalnosti Cognitio-a bez TUI interfejsa. Postavite `COGNITIO_SERVER_PASSWORD` da omogućite HTTP osnovnu auth (korisničko ime je zadano na `cognitio`).
+
+#### Opcije
+
+| Opcija       | Opis                                                  |
+| ------------ | ----------------------------------------------------- |
+| `--port`     | Port na kojem treba slušati                           |
+| `--hostname` | Hostname na kojem treba slušati                       |
+| `--mdns`     | Omogući mDNS otkrivanje                               |
+| `--cors`     | Dodatni origin(i) pretraživača koji dozvoljavaju CORS |
+
+---
+
+### session
+
+Upravljajte Cognitio sesijama.
+
+```bash
+cognitio session [command]
+```
+
+---
+
+#### list
+
+Navedite sve Cognitio sesije.
+
+```bash
+cognitio session list
+```
+
+##### Opcije
+
+| Opcija        | Kratko | Opis                                   |
+| ------------- | ------ | -------------------------------------- |
+| `--max-count` | `-n`   | Ograničenje na N najnovijih sesija     |
+| `--format`    |        | Izlazni format: table ili json (table) |
+
+---
+
+### stats
+
+Prikaži statistiku upotrebe tokena i troškova za vaše Cognitio sesije.
+
+```bash
+cognitio stats
+```
+
+#### Opcije
+
+| Opcija      | Opis                                                                                                       |
+| ----------- | ---------------------------------------------------------------------------------------------------------- |
+| `--days`    | Prikaži statistiku za zadnjih N dana (sva vremena)                                                         |
+| `--tools`   | Broj alata za prikaz (svi)                                                                                 |
+| `--models`  | Prikaži raščlambu korištenja modela (skriveno prema zadanim postavkama). Proslijedite broj za prikaz top N |
+| `--project` | Filtriraj po projektu (svi projekti, prazan niz: trenutni projekt)                                         |
+
+---
+
+### export
+
+Izvezite podatke sesije kao JSON.
+
+```bash
+cognitio export [sessionID]
+```
+
+Ako ne unesete ID sesije, od vas će biti zatraženo da odaberete neku od dostupnih sesija.
+
+---
+
+### import
+
+Uvezite podatke sesije iz JSON datoteke ili Cognitio dijeljenog URL-a.
+
+```bash
+cognitio import <file>
+```
+
+Možete uvesti iz lokalne datoteke ili Cognitio dijeljenog URL-a.
+
+```bash
+cognitio import session.json
+cognitio import https://opncd.ai/s/abc123
+```
+
+---
+
+### web
+
+Pokrenite Cognitio headless server sa web interfejsom.
+
+```bash
+cognitio web
+```
+
+Ovo pokreće HTTP server i otvara web pretraživač za pristup Cognitio-u preko web interfejsa. Postavite `COGNITIO_SERVER_PASSWORD` da omogućite HTTP osnovnu auth (korisničko ime je zadano na `cognitio`).
+
+#### Opcije
+
+| Opcija       | Opis                                                  |
+| ------------ | ----------------------------------------------------- |
+| `--port`     | Port na kojem treba slušati                           |
+| `--hostname` | Hostname na kojem treba slušati                       |
+| `--mdns`     | Omogući mDNS otkrivanje                               |
+| `--cors`     | Dodatni origin(i) pretraživača koji dozvoljavaju CORS |
+
+---
+
+### acp
+
+Pokrenite ACP (Agent Client Protocol) server.
+
+```bash
+cognitio acp
+```
+
+Ova naredba pokreće ACP server koji komunicira preko stdin/stdout koristeći nd-JSON.
+
+#### Opcije
+
+| Opcija       | Opis                        |
+| ------------ | --------------------------- |
+| `--cwd`      | Radni direktorij            |
+| `--port`     | Port na kojem treba slušati |
+| `--hostname` | Hostname na kojem slušati   |
+
+---
+
+### uninstall
+
+Deinstalirajte Cognitio i uklonite sve povezane datoteke.
+
+```bash
+cognitio uninstall
+```
+
+#### Opcije
+
+| Opcija          | Kratko | Opis                                          |
+| --------------- | ------ | --------------------------------------------- |
+| `--keep-config` | `-c`   | Sačuvajte konfiguracijske datoteke            |
+| `--keep-data`   | `-d`   | Sačuvajte podatke i snimke sesije             |
+| `--dry-run`     |        | Pokažite šta bi bilo uklonjeno bez uklanjanja |
+| `--force`       | `-f`   | Preskoči upite za potvrdu                     |
+
+---
+
+### upgrade
+
+Ažurira Cognitio na najnoviju verziju ili određenu verziju.
+
+```bash
+cognitio upgrade [target]
+```
+
+Za nadogradnju na najnoviju verziju.
+
+```bash
+cognitio upgrade
+```
+
+Za nadogradnju na određenu verziju.
+
+```bash
+cognitio upgrade v0.1.48
+```
+
+#### Opcije
+
+| Opcija     | Kratko | Opis                                                    |
+| ---------- | ------ | ------------------------------------------------------- |
+| `--method` | `-m`   | Korišteni način instalacije; curl, npm, pnpm, bun, brew |
+
+---
+
+## Globalne opcije
+
+Cognitio CLI prihvata sljedeće globalne zastavice.
+
+| Opcija         | Kratko | Opis                                      |
+| -------------- | ------ | ----------------------------------------- |
+| `--help`       | `-h`   | Prikaži pomoć                             |
+| `--version`    | `-v`   | Ispiši broj verzije                       |
+| `--print-logs` |        | Ispis logova u stderr                     |
+| `--log-level`  |        | Nivo logovanja (DEBUG, INFO, WARN, ERROR) |
+
+---
+
+## Varijable okruženja
+
+Cognitio se može konfigurirati pomoću varijabli okruženja.
+
+| Varijabla                             | Tip     | Opis                                                               |
+| ------------------------------------- | ------- | ------------------------------------------------------------------ |
+| `COGNITIO_AUTO_SHARE`                 | boolean | Automatski dijeli sesije                                           |
+| `COGNITIO_GIT_BASH_PATH`              | string  | Putanja do Git Bash izvršne datoteke na Windows-u                  |
+| `COGNITIO_CONFIG`                     | string  | Putanja do konfiguracijskog fajla                                  |
+| `COGNITIO_TUI_CONFIG`                 | string  | Putanja do TUI konfiguracijskog fajla                              |
+| `COGNITIO_CONFIG_DIR`                 | string  | Putanja do konfiguracijskog direktorija                            |
+| `COGNITIO_CONFIG_CONTENT`             | string  | Inline json konfiguracijski sadržaj                                |
+| `COGNITIO_DISABLE_AUTOUPDATE`         | boolean | Onemogući automatske provjere ažuriranja                           |
+| `COGNITIO_DISABLE_PRUNE`              | boolean | Onemogući brisanje (pruning) starih podataka                       |
+| `COGNITIO_DISABLE_TERMINAL_TITLE`     | boolean | Onemogući automatsko ažuriranje naslova terminala                  |
+| `COGNITIO_PERMISSION`                 | string  | Inline json konfiguracija dozvola                                  |
+| `COGNITIO_DISABLE_DEFAULT_PLUGINS`    | boolean | Onemogući podrazumijevane dodatke (plugins)                        |
+| `COGNITIO_DISABLE_LSP_DOWNLOAD`       | boolean | Onemogući automatsko preuzimanje LSP servera                       |
+| `COGNITIO_ENABLE_EXPERIMENTAL_MODELS` | boolean | Omogući eksperimentalne modele                                     |
+| `COGNITIO_DISABLE_AUTOCOMPACT`        | boolean | Onemogući automatsko sažimanje konteksta                           |
+| `COGNITIO_DISABLE_CLAUDE_CODE`        | boolean | Onemogući čitanje iz `.claude` (prompt + vještine)                 |
+| `COGNITIO_DISABLE_CLAUDE_CODE_PROMPT` | boolean | Onemogući čitanje `~/.claude/CLAUDE.md`                            |
+| `COGNITIO_DISABLE_CLAUDE_CODE_SKILLS` | boolean | Onemogući učitavanje `.claude/skills`                              |
+| `COGNITIO_DISABLE_MODELS_FETCH`       | boolean | Onemogući dohvaćanje modela iz udaljenih izvora                    |
+| `COGNITIO_FAKE_VCS`                   | string  | Lažni VCS provajder za potrebe testiranja                          |
+| `COGNITIO_CLIENT`                     | string  | Identifikator klijenta (zadano na `cli`)                           |
+| `COGNITIO_ENABLE_EXA`                 | boolean | Omogući Exa alate za web pretraživanje                             |
+| `COGNITIO_SERVER_PASSWORD`            | string  | Omogući osnovnu autentifikaciju za `serve`/`web`                   |
+| `COGNITIO_SERVER_USERNAME`            | string  | Poništi osnovno korisničko ime autentifikacije (zadano `cognitio`) |
+| `COGNITIO_MODELS_URL`                 | string  | Prilagođeni URL za dohvaćanje konfiguracije modela                 |
+
+---
+
+### Eksperimentalno
+
+Ove varijable okruženja omogućavaju eksperimentalne karakteristike koje se mogu promijeniti ili ukloniti.
+
+| Varijabla                                       | Tip     | Opis                                              |
+| ----------------------------------------------- | ------- | ------------------------------------------------- |
+| `COGNITIO_EXPERIMENTAL`                         | boolean | Omogući sve eksperimentalne funkcije              |
+| `COGNITIO_EXPERIMENTAL_ICON_DISCOVERY`          | boolean | Omogući otkrivanje ikona                          |
+| `COGNITIO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT`  | boolean | Onemogući kopiranje pri odabiru u TUI             |
+| `COGNITIO_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS` | number  | Zadano vremensko ograničenje za bash naredbe u ms |
+| `COGNITIO_EXPERIMENTAL_OUTPUT_TOKEN_MAX`        | number  | Maksimalni izlazni tokeni za LLM odgovore         |
+| `COGNITIO_EXPERIMENTAL_FILEWATCHER`             | boolean | Omogući praćenje datoteka za cijeli direktorij    |
+| `COGNITIO_EXPERIMENTAL_OXFMT`                   | boolean | Omogući oxfmt formatter                           |
+| `COGNITIO_EXPERIMENTAL_LSP_TOOL`                | boolean | Omogući eksperimentalni LSP alat                  |
+| `COGNITIO_EXPERIMENTAL_DISABLE_FILEWATCHER`     | boolean | Onemogući praćenje datoteka                       |
+| `COGNITIO_EXPERIMENTAL_EXA`                     | boolean | Omogući eksperimentalne Exa funkcije              |
+| `COGNITIO_EXPERIMENTAL_LSP_TY`                  | boolean | Omogući TY LSP za python datoteke                 |
+| `COGNITIO_EXPERIMENTAL_MARKDOWN`                | boolean | Omogući eksperimentalne Markdown funkcije         |
+| `COGNITIO_EXPERIMENTAL_PLAN_MODE`               | boolean | Omogući Plan mod                                  |

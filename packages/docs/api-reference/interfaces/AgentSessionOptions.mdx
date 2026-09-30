@@ -1,0 +1,109 @@
+---
+title: "Interface: AgentSessionOptions"
+description: "Generated from the public TypeScript API."
+---
+
+
+Options for a long-lived, caller-managed Session.
+
+Turn cancellation is intentionally absent; pass a signal to each Session
+operation instead.
+
+## Example
+
+```ts
+const session = await agent.createSession({
+  title: "Release review",
+  parentId: "ses_parent",
+})
+```
+
+## Properties
+
+### cwd?
+
+```ts
+optional cwd?: string;
+```
+
+Working directory fixed for the new session.
+
+***
+
+### maxBudgetUsd?
+
+```ts
+optional maxBudgetUsd?: number;
+```
+
+Maximum model cost per operation in USD.
+
+***
+
+### maxTurns?
+
+```ts
+optional maxTurns?: number;
+```
+
+Maximum model turns per operation.
+
+***
+
+### model?
+
+```ts
+optional model?: ModelId;
+```
+
+`provider/model` id for this session.
+
+***
+
+### outputFormat?
+
+```ts
+optional outputFormat?: OutputFormatSpec<unknown>;
+```
+
+Structured-output contract for the session.
+
+***
+
+### parentId?
+
+```ts
+optional parentId?: string;
+```
+
+Optional parent session id for server-side hierarchy.
+
+***
+
+### permission?
+
+```ts
+optional permission?: PermissionRuleset;
+```
+
+Server permission rules, distinct from `permissionMode`.
+
+***
+
+### permissionMode?
+
+```ts
+optional permissionMode?: PermissionMode;
+```
+
+Runtime permission behavior for the session.
+
+***
+
+### title?
+
+```ts
+optional title?: string;
+```
+
+Explicit session title; defaults to `"Agent session"`.

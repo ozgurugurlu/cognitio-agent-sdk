@@ -1,0 +1,81 @@
+---
+title: "Interface: TaskStartedEvent"
+description: "Generated from the public TypeScript API."
+---
+
+
+Tool-call lifecycle events (`taskId` = tool call ID, correlating with
+`tool.use` / `tool.result` and the underlying tool part). Payloads carry
+short summaries only — never raw commands, prompts, or tool output.
+
+## Properties
+
+### activeSessionId
+
+```ts
+activeSessionId: string;
+```
+
+***
+
+### agent
+
+```ts
+agent: string;
+```
+
+***
+
+### messageId
+
+```ts
+messageId: string;
+```
+
+***
+
+### partId
+
+```ts
+partId: string;
+```
+
+***
+
+### raw?
+
+```ts
+optional raw?: unknown;
+```
+
+***
+
+### sessionId
+
+```ts
+sessionId: string;
+```
+
+***
+
+### taskId
+
+```ts
+taskId: string;
+```
+
+***
+
+### tool
+
+```ts
+tool: string;
+```
+
+***
+
+### type
+
+```ts
+type: "task.started";
+```

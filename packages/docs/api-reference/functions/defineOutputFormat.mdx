@@ -1,0 +1,121 @@
+---
+title: "Function: defineOutputFormat()"
+description: "Generated from the public TypeScript API."
+---
+
+
+Create a structured-output contract from Zod or JSON Schema.
+
+## Param
+
+**schema**
+
+Shape that valid model output must satisfy.
+
+## Param
+
+**options**
+
+Optional bounded retry count.
+
+## Throws
+
+Invalid schema or retry count.
+
+## Example
+
+```ts
+const format = defineOutputFormat(z.object({ summary: z.string() }), { maxRetries: 2 })
+```
+
+## Call Signature
+
+```ts
+function defineOutputFormat<Schema>(schema, options?): OutputFormatSpec<output<Schema>>;
+```
+
+Create a structured-output contract from Zod or JSON Schema.
+
+### Type Parameters
+
+#### Schema
+
+`Schema` *extends* `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>
+
+### Parameters
+
+#### schema
+
+`Schema`
+
+Shape that valid model output must satisfy.
+
+#### options?
+
+Optional bounded retry count.
+
+##### maxRetries?
+
+`number`
+
+### Returns
+
+[`OutputFormatSpec`](../interfaces/OutputFormatSpec)\<`output`\<`Schema`\>\>
+
+A serializable JSON Schema format with an inferred output type.
+
+### Throws
+
+Invalid schema or retry count.
+
+### Example
+
+```ts
+const format = defineOutputFormat(z.object({ summary: z.string() }), { maxRetries: 2 })
+```
+
+## Call Signature
+
+```ts
+function defineOutputFormat<Output>(schema, options?): OutputFormatSpec<Output>;
+```
+
+Create a structured-output contract from Zod or JSON Schema.
+
+### Type Parameters
+
+#### Output
+
+`Output` = `unknown`
+
+### Parameters
+
+#### schema
+
+`Record`\<`string`, `unknown`\>
+
+Shape that valid model output must satisfy.
+
+#### options?
+
+Optional bounded retry count.
+
+##### maxRetries?
+
+`number`
+
+### Returns
+
+[`OutputFormatSpec`](../interfaces/OutputFormatSpec)\<`Output`\>
+
+A serializable JSON Schema format with an inferred output type.
+
+### Throws
+
+Invalid schema or retry count.
+
+### Example
+
+```ts
+const format = defineOutputFormat(z.object({ summary: z.string() }), { maxRetries: 2 })
+```

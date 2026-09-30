@@ -1,0 +1,4 @@
+sst-env.d.ts
+packages/desktop/src/bindings.ts
+packages/agent-sdk/src/models.generated.ts
+packages/agent-sdk/script/models-snapshot.json

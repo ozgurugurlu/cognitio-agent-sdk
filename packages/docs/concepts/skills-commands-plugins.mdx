@@ -1,0 +1,37 @@
+---
+title: "Skills, commands and plugins"
+description: "Package instructions and behavior without local configuration files."
+---
+All three can be supplied programmatically in `RuntimeConfig`. They remain session-scoped and work when filesystem setting discovery is disabled.
+
+```ts
+import { defineSkill, defineCommand, definePlugin } from "cognitio-agent-sdk"
+
+const style = defineSkill({
+  name: "plain-writing",
+  description: "Write clear technical explanations.",
+  content: "Use concrete nouns, short paragraphs and explicit assumptions.",
+})
+const review = defineCommand({
+  name: "review",
+  description: "Review text for clarity.",
+  template: "Review this text: $ARGUMENTS",
+})
+const plugin = definePlugin({ name: "editorial", skills: [style], commands: [review] })
+```
+
+## Skills
+
+A skill includes a name, description and content, with optional base directory, tool policy and model. `disableModelInvocation` prevents autonomous model invocation. The skill tool and instruction-source policy determine discoverability. Enable `skill` deliberately if using the facade's default hidden-tool profile.
+
+## Commands
+
+Call `session.command("review", "Text to review")`. Templates support argument substitution. A command can select an agent/model, restrict tools or delegate as a subtask. Command execution returns a terminal result through the same session lifecycle.
+
+## Plugins
+
+Inline plugins bundle skills, commands, agents, hooks and MCP servers. Plugin contents are namespaced and their diagnostics appear in `getAppliedSettings()`.
+
+`claudeCompat("/absolute/plugin/path")` loads supported local Claude plugin components. It is a compatibility loader, not the Claude SDK API. Unsupported components produce diagnostics; inspect them instead of assuming a plugin's entire original behavior is present. Remote marketplace installation is outside v2.
+
+Filesystem conventions (`.cognitio`, instruction files and local skill directories) are opt-in through non-isolated configuration and `settingSources`. Programmatic options do not require writing those files.

@@ -1,0 +1,16 @@
+{
+  "name": "cognitio-example-01-chat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --env-file=.env index.mjs",
+    "check": "node --check index.mjs"
+  },
+  "dependencies": {
+    "cognitio-agent-sdk": "2.0.0"
+  }
+}

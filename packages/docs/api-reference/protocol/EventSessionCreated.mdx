@@ -1,0 +1,18 @@
+---
+title: "EventSessionCreated"
+description: "Exact type definition referenced by the public SDK."
+---
+
+This definition is generated from the same source as the SDK. Protocol types describe the runtime HTTP API; prefer the high-level SDK for session ownership and callbacks.
+
+```ts
+export type EventSessionCreated = {
+  type: "session.created"
+  properties: {
+    sessionID: string
+    info: Session
+  }
+}
+```
+
+Related types: [Session](/api-reference/protocol/Session).

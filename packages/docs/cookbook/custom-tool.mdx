@@ -1,0 +1,53 @@
+---
+title: "Give an agent a calculator"
+description: "Expose one validated application function and verify that the model called it."
+---
+
+The project in `examples/03-custom-tool/` gives an agent one arithmetic tool. The function runs in your Node.js application; the model chooses when to call it through the runtime's control channel.
+
+## Run the project
+
+From the repository root, use the commands below. If you copied the project elsewhere, enter its directory and omit the first `cd` line.
+
+```sh
+cd examples/03-custom-tool
+npm ci
+cp .env.example .env
+# Set OPENAI_API_KEY in .env, then:
+npm start
+```
+
+Use Node.js 22 or newer. On PowerShell, use `Copy-Item .env.example .env`. The project pins the SDK in its own npm lockfile and uses JSON Schema without an extra validation dependency. No runtime checkout or separate CLI is needed.
+
+## Define and allow the function
+
+This TypeScript excerpt shows the SDK pattern used by the project. The complete `index.mjs` uses plain JavaScript without parameter type annotations:
+
+```ts
+import { defineTool } from "cognitio-agent-sdk"
+
+const multiply = defineTool({
+  name: "multiply",
+  description: "Multiply two finite numbers.",
+  inputSchema: {
+    type: "object",
+    properties: { a: { type: "number" }, b: { type: "number" } },
+    required: ["a", "b"],
+    additionalProperties: false,
+  },
+  execute({ a, b }: { a: number; b: number }) {
+    if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(a * b)) {
+      throw new Error("Inputs and product must be finite numbers.")
+    }
+    return { product: a * b }
+  },
+})
+```
+
+Pass `tools: [multiply]` and `allowedTools: ["sdk_multiply"]` when creating the Agent. The `sdk_` prefix is part of the public runtime tool name; the descriptor's name remains `multiply`.
+
+The schema describes the arguments to the model; v2 does not automatically parse invocation arguments before calling `execute`. The callback above checks its numeric inputs before calculating. For richer inputs, use a validator such as `schema.parse(input)` inside your callback, before any side effect. TypeScript annotations alone do not validate model-produced values.
+
+The complete project records actual function invocations and prints the computed result. For the fixed prompt, it verifies that the callback multiplied 6 and 7 to produce 42. It fails if the model finishes without calling the expected tool. A correct-looking answer alone would not prove that your application function ran. Model behavior can vary; a model that supports tool calling is required.
+
+Only the explicitly allowed application tool is available in this example. Allowing it can resolve permission before `canUseTool`; use deterministic restrictions in the tool implementation for real side effects. SDK callbacks run with your application's permissions. Read [tool policies](/concepts/tools) before replacing arithmetic with a database or external API operation.

@@ -1,0 +1,113 @@
+---
+title: "Function: defineHook()"
+description: "Generated from the public TypeScript API."
+---
+
+
+## Call Signature
+
+```ts
+function defineHook<Event>(event, callback): Partial<HookRegistration>;
+```
+
+Build a single hook registration entry. Plumbed into a session's
+`runtimeConfig.hooks` at create time and dispatched through the control channel.
+
+### Type Parameters
+
+#### Event
+
+`Event` *extends* [`HookEventName`](../type-aliases/HookEventName)
+
+### Parameters
+
+#### event
+
+`Event`
+
+#### callback
+
+[`HookCallback`](../type-aliases/HookCallback)\<`Event`\>
+
+### Returns
+
+`Partial`\<[`HookRegistration`](../type-aliases/HookRegistration)\>
+
+## Call Signature
+
+```ts
+function defineHook<Event>(
+   event,
+   callback,
+   options
+): Partial<HookRegistration>;
+```
+
+Build a single hook registration entry. Plumbed into a session's
+`runtimeConfig.hooks` at create time and dispatched through the control channel.
+
+### Type Parameters
+
+#### Event
+
+`Event` *extends* [`HookEventName`](../type-aliases/HookEventName)
+
+### Parameters
+
+#### event
+
+`Event`
+
+#### callback
+
+[`HookCallback`](../type-aliases/HookCallback)\<`Event`\>
+
+#### options
+
+`Omit`\<[`HookEntry`](../interfaces/HookEntry)\<`Event`\>, `"callback"` \| `"matcher"`\>
+
+### Returns
+
+`Partial`\<[`HookRegistration`](../type-aliases/HookRegistration)\>
+
+## Call Signature
+
+```ts
+function defineHook<Event>(
+   event,
+   matcher,
+   callback,
+   options?
+): Partial<HookRegistration>;
+```
+
+Build a single hook registration entry. Plumbed into a session's
+`runtimeConfig.hooks` at create time and dispatched through the control channel.
+
+### Type Parameters
+
+#### Event
+
+`Event` *extends* [`HookEventName`](../type-aliases/HookEventName)
+
+### Parameters
+
+#### event
+
+`Event`
+
+#### matcher
+
+`string` \| `RegExp`
+
+#### callback
+
+[`HookCallback`](../type-aliases/HookCallback)\<`Event`\>
+
+#### options?
+
+`Omit`\<[`HookEntry`](../interfaces/HookEntry)\<`Event`\>, `"callback"` \| `"matcher"`\>
+
+### Returns
+
+`Partial`\<[`HookRegistration`](../type-aliases/HookRegistration)\>

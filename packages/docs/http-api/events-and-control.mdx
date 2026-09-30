@@ -1,0 +1,23 @@
+---
+title: "Events and control requests"
+description: "Understand SSE subscriptions and callback responses."
+---
+## Event stream
+
+The runtime publishes events through SSE. Subscribers receive typed payloads with session and message identifiers. Session events cover message/part updates, status, terminal results, permissions, tool lifecycle, compaction and child tasks.
+
+Subscribe before submitting a prompt: subscribing afterwards can miss an early callback or terminal result. Filter by session identity and preserve ordering within your session state machine. Network reconnection does not imply replay of every past event; reconcile through persisted messages where needed.
+
+## Callback channel
+
+A registered SDK hook, permission callback or direct tool produces a `control.request`. The SDK dispatches it locally and submits its result to `POST /session/{sessionID}/control-response`. Request IDs correlate responses and deadlines; stale/duplicate responses must not affect a later request.
+
+Callbacks receive cancellation signals. The runtime can cancel a request on interruption, timeout, session teardown or a competing decision. Treat cancellation as authoritative and avoid committing a late side effect based on a discarded request.
+
+## Ownership
+
+A process that registers callback descriptors must keep its dispatcher alive. Callback functions are not persisted with the transcript. After a restart, reattach with real callbacks or remove the registrations; missing callbacks cannot safely imply approval.
+
+Direct SDK tool calls use this control path. HTTP MCP tools use MCP transport instead. Both feed the same session loop and tool policy, but their network/lifecycle requirements differ.
+
+For ordinary integrations, consume `AgentMessage` from `Agent.stream()` or `Session.stream()` rather than rebuilding this machinery.

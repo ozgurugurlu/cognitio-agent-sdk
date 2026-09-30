@@ -1,0 +1,45 @@
+---
+title: "Defaults and isolation"
+description: "Understand what the SDK starts, forwards and loads."
+---
+## Local defaults
+
+`Agent`, `query()` and `createAgentClient()` use an isolated runtime by default. The child receives a temporary home and XDG directories, an explicit environment, and `COGNITIO_ISOLATED=1`. Host authentication files, global configuration, project instructions, plugins and skill files are not implicitly loaded. Supported provider environment variables are forwarded as described below. Sessions default to `settingSources: []`.
+
+The default system prompt is neutral. The high-level facade disables title generation, language servers and formatters, and hides `question`, `todowrite` and `skill` tools unless you choose a different policy. Other built-in tools remain available subject to permissions. Set `allowedTools` explicitly for a narrow agent.
+
+**Isolation concerns configuration and state.** Shell commands and tools still run with the runtime process's OS permissions. Use containers or your own sandbox when you need filesystem, process or network confinement. SDK tool callbacks execute in your application process.
+
+## Credentials
+
+Common provider keys such as `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are forwarded. `AWS_*`, `AZURE_*`, `GOOGLE_*`, `OTEL_*` and standard proxy variables have explicit forwarding rules. Arbitrary `*_API_KEY` variables and `GITHUB_TOKEN` are not implicitly forwarded.
+
+```ts
+const agent = new Agent({
+  model: "anthropic/claude-sonnet-4-5",
+  spawn: {
+    auth: { anthropic: { type: "api", key: process.env.MY_ANTHROPIC_KEY! } },
+    passEnv: ["MY_PROVIDER_REGION"],
+  },
+})
+```
+
+`spawn.auth` is a serializable credential map. Keep secrets outside source control. `spawn.env` supplies explicit child variables; reserved isolation/auth/config keys must be supplied through their dedicated options instead.
+
+## Deliberately use local configuration
+
+```ts
+const agent = new Agent({
+  spawn: { isolated: false },
+  settingSources: ["user", "project", "local"],
+  systemPrompt: { type: "preset", preset: "default" },
+})
+```
+
+Non-isolated mode restores host configuration discovery. The coding preset restores the built-in coding prompt. These choices are independent. Explicit runtime options and `spawn.config` remain programmatic configuration channels.
+
+## Cleanup
+
+Closing a locally spawned `AgentClient` waits for its owned work and process termination before removing scratch state. `Agent.close()` also closes a dedicated client, but leaves the default process-wide client alive; call `shutdown()` at application teardown to close facade-owned runtimes. Injected clients remain their creator's responsibility. See [lifecycle](/cookbook/lifecycle).
+
+`spawn.keepScratch: true` preserves scratch for debugging; use `spawn.scratchDir` to select its parent directory. A process that cannot be confirmed dead keeps its scratch directory and reports an error.

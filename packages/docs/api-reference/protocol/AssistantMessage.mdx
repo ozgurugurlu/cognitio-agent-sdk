@@ -1,0 +1,53 @@
+---
+title: "AssistantMessage"
+description: "Exact type definition referenced by the public SDK."
+---
+
+This definition is generated from the same source as the SDK. Protocol types describe the runtime HTTP API; prefer the high-level SDK for session ownership and callbacks.
+
+```ts
+export type AssistantMessage = {
+  id: string
+  sessionID: string
+  role: "assistant"
+  time: {
+    created: number
+    completed?: number
+  }
+  error?:
+    | ProviderAuthError
+    | UnknownError
+    | MessageOutputLengthError
+    | MessageAbortedError
+    | StructuredOutputError
+    | ContextOverflowError
+    | ApiError
+  parentID: string
+  parentMessageID?: string
+  modelID: string
+  providerID: string
+  mode: string
+  agent: string
+  path: {
+    cwd: string
+    root: string
+  }
+  summary?: boolean
+  cost: number
+  tokens: {
+    total?: number
+    input: number
+    output: number
+    reasoning: number
+    cache: {
+      read: number
+      write: number
+    }
+  }
+  structured?: unknown
+  variant?: string
+  finish?: string
+}
+```
+
+Related types: [ApiError](/api-reference/protocol/ApiError), [ContextOverflowError](/api-reference/protocol/ContextOverflowError), [MessageAbortedError](/api-reference/protocol/MessageAbortedError), [MessageOutputLengthError](/api-reference/protocol/MessageOutputLengthError), [ProviderAuthError](/api-reference/protocol/ProviderAuthError), [StructuredOutputError](/api-reference/protocol/StructuredOutputError), [UnknownError](/api-reference/protocol/UnknownError).

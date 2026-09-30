@@ -1,0 +1,739 @@
+---
+title: "Class: Session"
+description: "Generated from the public TypeScript API."
+---
+
+
+A conversation handle with one active query at a time. Owns its local control dispatcher and SDK-hosted MCP resources, while persisted server state survives normal close.
+
+## Example
+
+```ts
+const session = await agent.createSession()
+await session.send("Remember that the service uses PostgreSQL.")
+await session.send("Suggest a backup strategy.")
+```
+
+## Constructors
+
+### Constructor
+
+```ts
+new Session(ctx): Session;
+```
+
+#### Parameters
+
+##### ctx
+
+[`SessionContext`](../interfaces/SessionContext)
+
+#### Returns
+
+`Session`
+
+## Properties
+
+### directory
+
+```ts
+readonly directory: string;
+```
+
+***
+
+### id
+
+```ts
+readonly id: string;
+```
+
+***
+
+### workspaceId?
+
+```ts
+readonly optional workspaceId?: string;
+```
+
+## Accessors
+
+### usage
+
+#### Get Signature
+
+```ts
+get usage(): SessionUsage;
+```
+
+Live cost/usage accumulated on this session handle. Grows while
+`stream()` / `send()` / `command()` consume events and reconciles with
+each turn's authoritative result (which includes subagent child-session
+cost). Attached/resumed handles start at zero. Returns a defensive
+snapshot.
+
+##### Returns
+
+[`SessionUsage`](../interfaces/SessionUsage)
+
+## Methods
+
+### abort()
+
+```ts
+abort(): Promise<void>;
+```
+
+Alias of interrupt for cancelling the active turn.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Completion of the abort request.
+
+#### Throws
+
+Transport errors.
+
+#### Example
+
+```ts
+await session.abort()
+```
+
+***
+
+### checkpoint()
+
+```ts
+checkpoint(label?): Promise<CheckpointHandle>;
+```
+
+Capture workspace file state at the current transcript boundary.
+
+#### Parameters
+
+##### label?
+
+`string`
+
+Optional human-readable label.
+
+#### Returns
+
+`Promise`\<[`CheckpointHandle`](../interfaces/CheckpointHandle)\>
+
+A session-owned checkpoint handle.
+
+#### Throws
+
+Snapshot or transport errors.
+
+#### Example
+
+```ts
+const checkpoint = await session.checkpoint("before-change")
+```
+
+***
+
+### close()
+
+```ts
+close(): Promise<void>;
+```
+
+Release everything this handle owns, in a deterministic order.
+
+In-flight per-call work (stream/command/compact/todos) is torn down first,
+then the control dispatcher, then SDK-hosted MCP servers. The server-side
+session is not deleted — reattach later with `sessions.resume(id)`.
+
+Bounded by construction, because `close()` is what you call when you want
+to stop waiting: a consumer-owned generator's `finally` gets a short grace
+period, and an abandoned turn's abort request is awaited for at most about
+a second so an unreachable server cannot wedge teardown. Against a
+responsive server it settles in well under 100 ms.
+
+Idempotent: concurrent and repeated calls share one teardown.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+A promise that settles once every owned resource is handled.
+
+#### Throws
+
+When one or more teardown stages fail; several are combined in an `AggregateError`.
+
+#### Example
+
+```ts
+await session.close()
+```
+
+***
+
+### command()
+
+```ts
+command(
+   name,
+   args?,
+   options?
+): Promise<ResultMessage>;
+```
+
+Execute a registered slash command in this conversation.
+
+#### Parameters
+
+##### name
+
+`string`
+
+##### args?
+
+`string` = `""`
+
+##### options?
+
+Command name, arguments and optional execution overrides.
+
+###### agent?
+
+`string`
+
+###### model?
+
+[`ModelId`](../type-aliases/ModelId)
+
+###### variant?
+
+`string`
+
+#### Returns
+
+`Promise`\<[`ResultMessage`](../interfaces/ResultMessage)\>
+
+The terminal command result.
+
+#### Throws
+
+If the command is unavailable or another query is active.
+
+#### Example
+
+```ts
+await session.command("review", "src/client.ts")
+```
+
+***
+
+### compact()
+
+```ts
+compact(options?): Promise<CompactResult>;
+```
+
+Summarize conversation history and return the committed compaction boundary.
+
+#### Parameters
+
+##### options?
+
+Optional model and additional instructions for the summary.
+
+###### customInstructions?
+
+`string`
+
+###### model?
+
+[`ModelId`](../type-aliases/ModelId)
+
+#### Returns
+
+`Promise`\<[`CompactResult`](../interfaces/CompactResult)\>
+
+Compaction identity, preserved messages, token count, and summary text.
+
+***
+
+### getAppliedSettings()
+
+```ts
+getAppliedSettings(): Promise<AppliedSettings>;
+```
+
+Read the effective runtime policy and registered capabilities.
+
+#### Returns
+
+`Promise`\<[`AppliedSettings`](../interfaces/AppliedSettings)\>
+
+A normalized settings snapshot without callback implementations.
+
+#### Throws
+
+Transport errors.
+
+#### Example
+
+```ts
+console.log((await session.getAppliedSettings()).settingSources)
+```
+
+***
+
+### getTodos()
+
+```ts
+getTodos(): Promise<Todo[]>;
+```
+
+Read the current persisted todo list.
+
+#### Returns
+
+`Promise`\<[`Todo`](/api-reference/protocol/Todo)[]\>
+
+Todo entries in runtime order.
+
+#### Throws
+
+Transport errors.
+
+#### Example
+
+```ts
+console.log(await session.getTodos())
+```
+
+***
+
+### interrupt()
+
+```ts
+interrupt(): Promise<void>;
+```
+
+Interrupt the active turn and its pending callback work.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Completion of the abort request.
+
+#### Throws
+
+Transport errors.
+
+#### Example
+
+```ts
+await session.interrupt()
+```
+
+***
+
+### listCheckpoints()
+
+```ts
+listCheckpoints(): Promise<CheckpointHandle[]>;
+```
+
+List checkpoint handles owned by this session.
+
+#### Returns
+
+`Promise`\<[`CheckpointHandle`](../interfaces/CheckpointHandle)[]\>
+
+Persisted checkpoint metadata.
+
+#### Throws
+
+Transport errors.
+
+#### Example
+
+```ts
+const checkpoints = await session.listCheckpoints()
+```
+
+***
+
+### messages()
+
+```ts
+messages(): Promise<AgentMessage[]>;
+```
+
+Read persisted conversation messages normalized to the SDK message union.
+
+#### Returns
+
+`Promise`\<[`AgentMessage`](../type-aliases/AgentMessage)[]\>
+
+Stored transcript messages, including supported tool and attachment parts.
+
+#### Throws
+
+Transport errors.
+
+#### Example
+
+```ts
+const history = await session.messages()
+```
+
+***
+
+### rename()
+
+```ts
+rename(title): Promise<void>;
+```
+
+Update the persisted conversation title.
+
+#### Parameters
+
+##### title
+
+`string`
+
+New title.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Completion after metadata is updated.
+
+#### Throws
+
+Transport errors.
+
+#### Example
+
+```ts
+await session.rename("Release review")
+```
+
+***
+
+### rewind()
+
+```ts
+rewind(checkpointId): Promise<RewindResult>;
+```
+
+Restore eligible workspace files to a session checkpoint. The transcript is not rolled back; external side effects are not undone.
+
+#### Parameters
+
+##### checkpointId
+
+`string`
+
+Checkpoint owned by this session.
+
+#### Returns
+
+`Promise`\<[`RewindResult`](../type-aliases/RewindResult)\>
+
+The affected files and checkpoint identity.
+
+#### Throws
+
+Invalid checkpoint, restore or transport errors.
+
+#### Example
+
+```ts
+await session.rewind(checkpoint.id)
+```
+
+***
+
+### send()
+
+```ts
+send(prompt): Promise<ResultMessage>;
+```
+
+Submit input and wait for its terminal result.
+
+#### Parameters
+
+##### prompt
+
+[`PromptInput`](../type-aliases/PromptInput)
+
+Text, typed turn, or asynchronous turns.
+
+#### Returns
+
+`Promise`\<[`ResultMessage`](../interfaces/ResultMessage)\>
+
+The completed result; inspect subtype before using output.
+
+#### Throws
+
+If closed, another query is active, or transport fails.
+
+#### Example
+
+```ts
+const result = await session.send("Summarize the report.")
+```
+
+***
+
+### setAgents()
+
+```ts
+setAgents(agents): Promise<void>;
+```
+
+Replace the complete session-scoped agent definition map.
+
+#### Parameters
+
+##### agents
+
+`Record`\<`string`, [`AgentDefinition`](../interfaces/AgentDefinition)\>
+
+Every agent definition that should remain available.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Completion after the replacement is accepted.
+
+#### Throws
+
+Invalid definitions or transport errors.
+
+#### Example
+
+```ts
+await session.setAgents({ reviewer: { prompt: "Review correctness." } })
+```
+
+***
+
+### setModel()
+
+```ts
+setModel(model): Promise<void>;
+```
+
+Select the model for subsequent turns.
+
+#### Parameters
+
+##### model
+
+[`ModelId`](../type-aliases/ModelId)
+
+Provider/model identifier.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Completion after runtime configuration is updated.
+
+#### Throws
+
+Invalid model identifiers or transport errors.
+
+#### Example
+
+```ts
+await session.setModel("anthropic/claude-sonnet-4-5")
+```
+
+***
+
+### setPermissionMode()
+
+```ts
+setPermissionMode(_mode): Promise<void>;
+```
+
+Change authorization mode for subsequent session work.
+
+#### Parameters
+
+##### \_mode
+
+[`PermissionMode`](../type-aliases/PermissionMode)
+
+New runtime permission mode.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Completion after the runtime accepts the policy.
+
+#### Throws
+
+Invalid mode or transport errors.
+
+#### Example
+
+```ts
+await session.setPermissionMode("dontAsk")
+```
+
+***
+
+### stream()
+
+```ts
+stream(prompt, options?): AsyncGenerator<AgentMessage, ResultMessage>;
+```
+
+Submit input and yield normalized messages until the terminal result.
+
+#### Parameters
+
+##### prompt
+
+[`PromptInput`](../type-aliases/PromptInput)
+
+Text, typed turn, or asynchronous turns.
+
+##### options?
+
+[`StreamOptions`](../interfaces/StreamOptions)
+
+Partial-message and cancellation settings.
+
+#### Returns
+
+`AsyncGenerator`\<[`AgentMessage`](../type-aliases/AgentMessage), [`ResultMessage`](../interfaces/ResultMessage)\>
+
+An async generator of messages with a terminal return value.
+
+#### Throws
+
+Closed/conflicting session or transport failures.
+
+#### Example
+
+```ts
+for await (const message of session.stream("Hello")) console.log(message.type)
+```
+
+***
+
+### tag()
+
+```ts
+tag(tag): Promise<void>;
+```
+
+Add a tag without duplicating existing tags.
+
+#### Parameters
+
+##### tag
+
+`string`
+
+Tag text, trimmed by the SDK.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Completion after tags are updated.
+
+#### Throws
+
+Transport errors.
+
+#### Example
+
+```ts
+await session.tag("review")
+```
+
+***
+
+### todos()
+
+```ts
+todos(options?): AsyncGenerator<Todo[]>;
+```
+
+Watch current todo snapshots until cancellation or stream closure.
+
+#### Parameters
+
+##### options?
+
+Optional abort signal.
+
+###### signal?
+
+`AbortSignal`
+
+#### Returns
+
+`AsyncGenerator`\<[`Todo`](/api-reference/protocol/Todo)[]\>
+
+An async generator of todo lists.
+
+#### Throws
+
+Transport errors.
+
+#### Example
+
+```ts
+for await (const todos of session.todos({ signal })) console.log(todos)
+```
+
+***
+
+### untag()
+
+```ts
+untag(tag): Promise<void>;
+```
+
+Remove a tag while retaining the others.
+
+#### Parameters
+
+##### tag
+
+`string`
+
+Tag to remove.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Completion after tags are updated.
+
+#### Throws
+
+Transport errors.
+
+#### Example
+
+```ts
+await session.untag("review")
+```

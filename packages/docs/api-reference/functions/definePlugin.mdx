@@ -1,0 +1,43 @@
+---
+title: "Function: definePlugin()"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+function definePlugin<T>(spec): InlinePluginSpec;
+```
+
+Validate and normalize an inline session plugin.
+
+## Type Parameters
+
+### T
+
+`T` *extends*
+  \| [`InlinePluginSpec`](../interfaces/InlinePluginSpec)
+  \| `Omit`\<[`InlinePluginSpec`](../interfaces/InlinePluginSpec), `"type"`\>
+
+## Parameters
+
+### spec
+
+`T`
+
+Named bundle of capabilities.
+
+## Returns
+
+[`InlinePluginSpec`](../interfaces/InlinePluginSpec)
+
+An inline plugin descriptor.
+
+## Throws
+
+Invalid or conflicting component definitions.
+
+## Example
+
+```ts
+const definition = definePlugin({ name: "editorial", skills: [skill] })
+```

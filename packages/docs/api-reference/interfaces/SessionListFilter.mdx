@@ -1,0 +1,67 @@
+---
+title: "Interface: SessionListFilter"
+description: "Generated from the public TypeScript API."
+---
+
+
+Filters for persisted sessions. Directory/tag/root filters narrow results; start and limit control the returned window.
+
+## Properties
+
+### cwd?
+
+```ts
+optional cwd?: string;
+```
+
+Limit results to this working directory.
+
+***
+
+### limit?
+
+```ts
+optional limit?: number;
+```
+
+Maximum number of sessions to return.
+
+***
+
+### roots?
+
+```ts
+optional roots?: boolean;
+```
+
+When true, only sessions without a parent.
+
+***
+
+### search?
+
+```ts
+optional search?: string;
+```
+
+Case-insensitive title search.
+
+***
+
+### start?
+
+```ts
+optional start?: number;
+```
+
+Return sessions updated at or after this Unix timestamp in milliseconds.
+
+***
+
+### tag?
+
+```ts
+optional tag?: string;
+```
+
+Only sessions containing this tag.

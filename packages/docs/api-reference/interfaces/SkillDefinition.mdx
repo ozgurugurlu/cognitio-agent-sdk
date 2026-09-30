@@ -1,0 +1,68 @@
+---
+title: "Interface: SkillDefinition"
+description: "Generated from the public TypeScript API."
+---
+
+
+Programmatic skill instructions and discovery metadata. A skill can restrict tools, choose a model and disable autonomous invocation.
+
+## Properties
+
+### allowedTools?
+
+```ts
+optional allowedTools?: string[];
+```
+
+***
+
+### baseDir?
+
+```ts
+optional baseDir?: string;
+```
+
+***
+
+### content
+
+```ts
+content: string;
+```
+
+***
+
+### description
+
+```ts
+description: string;
+```
+
+***
+
+### disableModelInvocation?
+
+```ts
+optional disableModelInvocation?: boolean;
+```
+
+***
+
+### model?
+
+```ts
+optional model?:
+  | ModelId
+  | {
+  modelID: string;
+  providerID: string;
+};
+```
+
+***
+
+### name
+
+```ts
+name: string;
+```

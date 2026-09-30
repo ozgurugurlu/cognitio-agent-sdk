@@ -1,0 +1,42 @@
+---
+title: "Streaming and cancellation"
+description: "Consume typed messages and control the lifetime of a run."
+---
+```ts
+const stream = agent.stream("Inspect the project.", { includePartialMessages: true })
+for await (const message of stream) {
+  if (message.type === "assistant") console.log(message.text)
+  if (message.type === "tool.use") console.log(message)
+  if (message.type === "result") console.log(message.result.subtype)
+}
+```
+
+`AgentMessage` is a discriminated union. It covers assistant output, tool calls/results, permission requests, hooks, subagents, compaction boundaries, rate limits, background-task lifecycle and the terminal result. Check `type` before accessing event-specific fields. The API reference is the authoritative event inventory.
+
+Partial streaming is opt-in. Do not concatenate full assistant messages and partial deltas into the same output buffer: they represent different views of the response.
+
+## Cancellation
+
+Pass an `AbortSignal` to a run or stream. Breaking a `for await` loop closes the iterator and aborts its owned turn. Always close an Agent in `finally`; abandoning an iterator without returning or aborting can leave active work. The default shared runtime remains alive after handle cleanup; call `shutdown()` at application teardown as described in [lifecycle](/cookbook/lifecycle).
+
+```ts
+const abort = new AbortController()
+const task = agent.run("Summarize these files.", { signal: abort.signal })
+// In an application, wire this to the caller's cancellation signal.
+abort.abort()
+await task.catch((error) => console.error(error.message))
+```
+
+## Streaming input
+
+`PromptInput` accepts text, a `PromptTurn` with text/parts, or an async iterable of turns. The SDK submits turns in order. Use this for an application that receives input incrementally; it is not concurrent queries within one session.
+
+```ts
+async function* turns() {
+  yield "The service uses PostgreSQL."
+  yield "Now suggest a backup plan."
+}
+const result = await agent.run(turns())
+```
+
+Files, images and agent/subtask references are represented by `PromptPart`; supported modalities depend on the model. Do not assume every provider accepts every part type.

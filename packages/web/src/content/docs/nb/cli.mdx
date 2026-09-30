@@ -1,0 +1,603 @@
+---
+title: CLI
+description: Cognitio CLI-alternativer og kommandoer.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components"
+
+Cognitio CLI starter som standard [TUI](/docs/tui) når den kjøres uten noen argumenter.
+
+```bash
+cognitio
+```
+
+Men den godtar også kommandoer som dokumentert på denne siden. Dette lar deg samhandle med Cognitio programmatisk.
+
+```bash
+cognitio run "Explain how closures work in JavaScript"
+```
+
+---
+
+### tui
+
+Start Cognitio-terminalbrukergrensesnittet.
+
+```bash
+cognitio [project]
+```
+
+#### Flagg
+
+| Flagg        | Kort | Beskrivelse                                                              |
+| ------------ | ---- | ------------------------------------------------------------------------ |
+| `--continue` | `-c` | Fortsett siste økt                                                       |
+| `--session`  | `-s` | Økt ID for å fortsette                                                   |
+| `--fork`     |      | Forgren økten ved fortsettelse (bruk med `--continue` eller `--session`) |
+| `--prompt`   |      | Ledetekst som skal brukes                                                |
+| `--model`    | `-m` | Modell å bruke i form av leverandør/modell                               |
+| `--agent`    |      | Agent som skal brukes                                                    |
+| `--port`     |      | Port å lytte på                                                          |
+| `--hostname` |      | Vertsnavn å lytte på                                                     |
+
+---
+
+## Kommandoer
+
+Cognitio CLI har også følgende kommandoer.
+
+---
+
+### agent
+
+Administrer agenter for Cognitio.
+
+```bash
+cognitio agent [command]
+```
+
+---
+
+### attach
+
+Koble en terminal til en allerede kjørende Cognitio-backend-server startet via `serve` eller `web` kommandoer.
+
+```bash
+cognitio attach [url]
+```
+
+Dette gjør det mulig å bruke TUI med en ekstern Cognitio-backend. For eksempel:
+
+```bash
+# Start the backend server for web/mobile access
+cognitio web --port 4096 --hostname 0.0.0.0
+
+# In another terminal, attach the TUI to the running backend
+cognitio attach http://10.20.30.40:4096
+```
+
+#### Flagg
+
+| Flagg       | Kort | Beskrivelse                       |
+| ----------- | ---- | --------------------------------- |
+| `--dir`     |      | Arbeidskatalog for å starte TUI i |
+| `--session` | `-s` | Økt ID for å fortsette            |
+
+---
+
+#### create
+
+Opprett en ny agent med tilpasset konfigurasjon.
+
+```bash
+cognitio agent create
+```
+
+Denne kommandoen vil veilede deg gjennom å lage en ny agent med en tilpasset systemmelding og verktøykonfigurasjon.
+
+---
+
+#### list
+
+List opp alle tilgjengelige agenter.
+
+```bash
+cognitio agent list
+```
+
+---
+
+### auth
+
+Kommando for administrasjon av påloggingsinformasjon og innlogging for leverandører.
+
+```bash
+cognitio auth [command]
+```
+
+---
+
+#### login
+
+Cognitio drives av leverandørlisten på [Models.dev](https://models.dev), så du kan bruke `cognitio auth login` til å konfigurere API-nøkler for enhver leverandør du vil bruke. Dette er lagret i `~/.local/share/cognitio/auth.json`.
+
+```bash
+cognitio auth login
+```
+
+Når Cognitio starter opp, laster den leverandørene fra filen med påloggingsinformasjon. Og hvis det er noen nøkler definert i miljøene dine eller en `.env`-fil i prosjektet ditt.
+
+---
+
+#### list
+
+Viser alle de autentiserte leverandørene som er lagret i filen med påloggingsinformasjon.
+
+```bash
+cognitio auth list
+```
+
+Eller bruk kortversjonen.
+
+```bash
+cognitio auth ls
+```
+
+---
+
+#### logout
+
+Logger deg ut av en leverandør ved å fjerne den fra filen med påloggingsinformasjon.
+
+```bash
+cognitio auth logout
+```
+
+---
+
+### github
+
+Administrer GitHub-agenten for depotautomatisering.
+
+```bash
+cognitio github [command]
+```
+
+---
+
+#### install
+
+Installer GitHub-agenten i depotet ditt.
+
+```bash
+cognitio github install
+```
+
+Dette setter opp den nødvendige GitHub Actions-arbeidsflyten og veileder deg gjennom konfigurasjonsprosessen. [Finn ut mer](/docs/github).
+
+---
+
+#### run
+
+Kjør GitHub-agenten. Dette brukes vanligvis i GitHub Actions.
+
+```bash
+cognitio github run
+```
+
+##### Flagg
+
+| Flagg     | Beskrivelse                                  |
+| --------- | -------------------------------------------- |
+| `--event` | GitHub mock-hendelse agenten skal kjøres for |
+| `--token` | GitHub personlig tilgangsnøkkel              |
+
+---
+
+### mcp
+
+Administrer Model Context Protocol-servere.
+
+```bash
+cognitio mcp [command]
+```
+
+---
+
+#### add
+
+Legg til en MCP-server til konfigurasjonen.
+
+```bash
+cognitio mcp add
+```
+
+Denne kommandoen vil veilede deg gjennom å legge til enten en lokal eller ekstern MCP-server.
+
+---
+
+#### list
+
+Liste alle konfigurerte MCP-servere og deres tilkoblingsstatus.
+
+```bash
+cognitio mcp list
+```
+
+Eller bruk den korte versjonen.
+
+```bash
+cognitio mcp ls
+```
+
+---
+
+#### auth
+
+Autentiser med en OAuth-aktivert MCP-server.
+
+```bash
+cognitio mcp auth [name]
+```
+
+Hvis du ikke oppgir et servernavn, blir du bedt om å velge blant tilgjengelige OAuth-kompatible servere.
+
+Du kan også liste opp OAuth-kompatible servere og deres autentiseringsstatus.
+
+```bash
+cognitio mcp auth list
+```
+
+Eller bruk den korte versjonen.
+
+```bash
+cognitio mcp auth ls
+```
+
+---
+
+#### logout
+
+Fjern OAuth-påloggingsinformasjon for en MCP-server.
+
+```bash
+cognitio mcp logout [name]
+```
+
+---
+
+#### debug
+
+Feilsøk OAuth-tilkoblingsproblemer for en MCP-server.
+
+```bash
+cognitio mcp debug <name>
+```
+
+---
+
+### models
+
+List opp alle tilgjengelige modeller fra konfigurerte leverandører.
+
+```bash
+cognitio models [provider]
+```
+
+Denne kommandoen viser alle modeller som er tilgjengelige på tvers av dine konfigurerte leverandører i formatet `provider/model`.
+
+Dette er nyttig for å finne ut det eksakte modellnavnet som skal brukes i [din konfigurasjon](/docs/config/).
+
+Du kan eventuelt sende en leverandør ID for å filtrere modeller etter den leverandøren.
+
+```bash
+cognitio models anthropic
+```
+
+#### Flagg
+
+| Flagg       | Beskrivelse                                                         |
+| ----------- | ------------------------------------------------------------------- |
+| `--refresh` | Oppdater modellbufferen fra models.dev                              |
+| `--verbose` | Bruk mer detaljert modellutdata (inkluderer metadata som kostnader) |
+
+Bruk `--refresh`-flagget for å oppdatere den bufrede modelllisten. Dette er nyttig når nye modeller er lagt til en leverandør og du vil se dem i Cognitio.
+
+```bash
+cognitio models --refresh
+```
+
+---
+
+### run
+
+Kjør Cognitio i ikke-interaktiv modus ved å sende en melding direkte.
+
+```bash
+cognitio run [message..]
+```
+
+Dette er nyttig for skripting, automatisering eller når du vil ha et raskt svar uten å starte hele TUI. For eksempel.
+
+```bash "cognitio run"
+cognitio run Explain the use of context in Go
+```
+
+Du kan også koble til en kjørende `cognitio serve`-forekomst for å unngå MCP-serveres kaldstarttid ved hver kjøring:
+
+```bash
+# Start a headless server in one terminal
+cognitio serve
+
+# In another terminal, run commands that attach to it
+cognitio run --attach http://localhost:4096 "Explain async/await in JavaScript"
+```
+
+#### Flagg
+
+| Flagg        | Kort | Beskrivelse                                                              |
+| ------------ | ---- | ------------------------------------------------------------------------ |
+| `--command`  |      | Kommandoen for å kjøre, bruk melding for args                            |
+| `--continue` | `-c` | Fortsett siste økt                                                       |
+| `--session`  | `-s` | Økt ID for å fortsette                                                   |
+| `--fork`     |      | Forgren økten ved fortsettelse (bruk med `--continue` eller `--session`) |
+| `--share`    |      | Del økten                                                                |
+| `--model`    | `-m` | Modell å bruke i form av leverandør/modell                               |
+| `--agent`    |      | Agent å bruke                                                            |
+| `--file`     | `-f` | Fil(er) som skal legges ved meldingen                                    |
+| `--format`   |      | Format: standard (formatert) eller json (rå JSON hendelser)              |
+| `--title`    |      | Tittel for økten (bruker avkortet ledetekst hvis ingen verdi er oppgitt) |
+| `--attach`   |      | Koble til en kjørende Cognitio-server (f.eks. http://localhost:4096)     |
+| `--port`     |      | Port for den lokale serveren (standard til tilfeldig port)               |
+
+---
+
+### serve
+
+Start en headless Cognitio-server for API-tilgang. Sjekk ut [server-dokumentene](/docs/server) for hele HTTP-grensesnittet.
+
+```bash
+cognitio serve
+```
+
+Dette starter en HTTP-server som gir API tilgang til Cognitio-funksjonalitet uten TUI-grensesnittet. Sett `COGNITIO_SERVER_PASSWORD` for å aktivere HTTP grunnleggende autentisering (brukernavn er standard til `cognitio`).
+
+#### Flagg
+
+| Flagg        | Beskrivelse                                        |
+| ------------ | -------------------------------------------------- |
+| `--port`     | Port å lytte på                                    |
+| `--hostname` | Vertsnavn å lytte på                               |
+| `--mdns`     | Aktiver mDNS-oppdagelse                            |
+| `--cors`     | Ytterligere nettleseropprinnelse som tillater CORS |
+
+---
+
+### session
+
+Administrer Cognitio-økter.
+
+```bash
+cognitio session [command]
+```
+
+---
+
+#### list
+
+List opp alle Cognitio-økter.
+
+```bash
+cognitio session list
+```
+
+##### Flagg
+
+| Flagg         | Kort | Beskrivelse                              |
+| ------------- | ---- | ---------------------------------------- |
+| `--max-count` | `-n` | Begrens til N siste økter                |
+| `--format`    |      | Utdataformat: tabell eller json (tabell) |
+
+---
+
+### stats
+
+Vis tokenbruk og kostnadsstatistikk for Cognitio-øktene dine.
+
+```bash
+cognitio stats
+```
+
+#### Flagg
+
+| Flagg       | Beskrivelse                                                                      |
+| ----------- | -------------------------------------------------------------------------------- |
+| `--days`    | Vis statistikk for de siste N dagene (hele tiden)                                |
+| `--tools`   | Antall verktøy som skal vises (alle)                                             |
+| `--models`  | Vis oversikt over modellbruk (skjult som standard). Gi et tall for å vise topp N |
+| `--project` | Filtrer etter prosjekt (alle prosjekter, tom streng: gjeldende prosjekt)         |
+
+---
+
+### export
+
+Eksporter øktdata som JSON.
+
+```bash
+cognitio export [sessionID]
+```
+
+Hvis du ikke gir en økt ID, blir du bedt om å velge fra tilgjengelige økter.
+
+---
+
+### import
+
+Importer øktdata fra en JSON-fil eller en Cognitio share-URL.
+
+```bash
+cognitio import <file>
+```
+
+Du kan importere fra en lokal fil eller en Cognitio share-URL.
+
+```bash
+cognitio import session.json
+cognitio import https://opncd.ai/s/abc123
+```
+
+---
+
+### web
+
+Start en headless Cognitio-server med et webgrensesnitt.
+
+```bash
+cognitio web
+```
+
+Dette starter en HTTP-server og åpner en nettleser for å få tilgang til Cognitio via et nettgrensesnitt. Sett `COGNITIO_SERVER_PASSWORD` for å aktivere HTTP grunnleggende autentisering (brukernavn er standard til `cognitio`).
+
+#### Flagg
+
+| Flagg        | Beskrivelse                                        |
+| ------------ | -------------------------------------------------- |
+| `--port`     | Port å lytte på                                    |
+| `--hostname` | Vertsnavn å lytte på                               |
+| `--mdns`     | Aktiver mDNS-oppdagelse                            |
+| `--cors`     | Ytterligere nettleseropprinnelse som tillater CORS |
+
+---
+
+### acp
+
+Start en ACP (Agent Client Protocol) server.
+
+```bash
+cognitio acp
+```
+
+Denne kommandoen starter en ACP-server som kommuniserer via stdin/stdout ved å bruke nd-JSON.
+
+#### Flagg
+
+| Flagg        | Beskrivelse          |
+| ------------ | -------------------- |
+| `--cwd`      | Arbeidskatalog       |
+| `--port`     | Port å lytte på      |
+| `--hostname` | Vertsnavn å lytte på |
+
+---
+
+### uninstall
+
+Avinstaller Cognitio og fjern alle relaterte filer.
+
+```bash
+cognitio uninstall
+```
+
+#### Flagg
+
+| Flagg           | Kort | Beskrivelse                                   |
+| --------------- | ---- | --------------------------------------------- |
+| `--keep-config` | `-c` | Behold konfigurasjonsfiler                    |
+| `--keep-data`   | `-d` | Behold øktdata og øyeblikksbilder             |
+| `--dry-run`     |      | Vis hva som ville blitt fjernet uten å fjerne |
+| `--force`       | `-f` | Hopp over bekreftelsesforespørsler            |
+
+---
+
+### upgrade
+
+Oppdaterer Cognitio til siste versjon eller en spesifikk versjon.
+
+```bash
+cognitio upgrade [target]
+```
+
+For å oppgradere til siste versjon.
+
+```bash
+cognitio upgrade
+```
+
+For å oppgradere til en bestemt versjon.
+
+```bash
+cognitio upgrade v0.1.48
+```
+
+#### Flagg
+
+| Flagg      | Kort | Beskrivelse                                                    |
+| ---------- | ---- | -------------------------------------------------------------- |
+| `--method` | `-m` | Installasjonsmetoden som ble brukt: curl, npm, pnpm, bun, brew |
+
+---
+
+## Globale flagg
+
+Cognitio CLI bruker følgende globale flagg.
+
+| Flagg          | Kort | Beskrivelse                         |
+| -------------- | ---- | ----------------------------------- |
+| `--help`       | `-h` | Vis hjelp                           |
+| `--version`    | `-v` | Skriv ut versjonsnummer             |
+| `--print-logs` |      | Skriv ut logger til stderr          |
+| `--log-level`  |      | Loggnivå (DEBUG, INFO, WARN, ERROR) |
+
+---
+
+## Miljøvariabler
+
+Cognitio kan konfigureres ved hjelp av miljøvariabler.
+
+| Variabel                              | Type   | Beskrivelse                                                           |
+| ------------------------------------- | ------ | --------------------------------------------------------------------- |
+| `COGNITIO_AUTO_SHARE`                 | boolsk | Del økter automatisk                                                  |
+| `COGNITIO_GIT_BASH_PATH`              | streng | Bane til Git Bash-kjørbar på Windows                                  |
+| `COGNITIO_CONFIG`                     | streng | Bane til konfigurasjonsfil                                            |
+| `COGNITIO_TUI_CONFIG`                 | streng | Bane til TUI-konfigurasjonsfil                                        |
+| `COGNITIO_CONFIG_DIR`                 | streng | Bane til konfigurasjonskatalog                                        |
+| `COGNITIO_CONFIG_CONTENT`             | streng | Innebygd json-konfigurasjonsinnhold                                   |
+| `COGNITIO_DISABLE_AUTOUPDATE`         | boolsk | Deaktiver automatiske oppdateringskontroller                          |
+| `COGNITIO_DISABLE_PRUNE`              | boolsk | Deaktiver beskjæring av gamle data                                    |
+| `COGNITIO_DISABLE_TERMINAL_TITLE`     | boolsk | Deaktiver automatiske terminaltitteloppdateringer                     |
+| `COGNITIO_PERMISSION`                 | streng | Innebygd json-tillatelseskonfigurasjon                                |
+| `COGNITIO_DISABLE_DEFAULT_PLUGINS`    | boolsk | Deaktiver standard plugins                                            |
+| `COGNITIO_DISABLE_LSP_DOWNLOAD`       | boolsk | Deaktiver automatiske LSP servernedlastinger                          |
+| `COGNITIO_ENABLE_EXPERIMENTAL_MODELS` | boolsk | Aktiver eksperimentelle modeller                                      |
+| `COGNITIO_DISABLE_AUTOCOMPACT`        | boolsk | Deaktiver automatisk kontekstkomprimering                             |
+| `COGNITIO_DISABLE_CLAUDE_CODE`        | boolsk | Deaktiver lesing fra `.claude` (spørsmål + ferdigheter)               |
+| `COGNITIO_DISABLE_CLAUDE_CODE_PROMPT` | boolsk | Deaktiver lesing `~/.claude/CLAUDE.md`                                |
+| `COGNITIO_DISABLE_CLAUDE_CODE_SKILLS` | boolsk | Deaktiver innlasting av `.claude/skills`                              |
+| `COGNITIO_DISABLE_MODELS_FETCH`       | boolsk | Deaktiver henting av modeller fra eksterne kilder                     |
+| `COGNITIO_FAKE_VCS`                   | streng | Falsk VCS-leverandør for testformål                                   |
+| `COGNITIO_CLIENT`                     | streng | Klientidentifikator (standard til `cli`)                              |
+| `COGNITIO_ENABLE_EXA`                 | boolsk | Aktiver Exa-nettsøkeverktøy                                           |
+| `COGNITIO_SERVER_PASSWORD`            | streng | Aktiver grunnleggende autentisering for `serve`/`web`                 |
+| `COGNITIO_SERVER_USERNAME`            | streng | Overstyr grunnleggende autentiseringsbrukernavn (standard `cognitio`) |
+| `COGNITIO_MODELS_URL`                 | streng | Egendefinert URL for henting av modellkonfigurasjon                   |
+
+---
+
+### Eksperimentelt
+
+Disse miljøvariablene muliggjør eksperimentelle funksjoner som kan endres eller fjernes.
+
+| Variabel                                        | Type   | Beskrivelse                                   |
+| ----------------------------------------------- | ------ | --------------------------------------------- |
+| `COGNITIO_EXPERIMENTAL`                         | boolsk | Aktiver alle eksperimentelle funksjoner       |
+| `COGNITIO_EXPERIMENTAL_ICON_DISCOVERY`          | boolsk | Aktiver ikonoppdagelse                        |
+| `COGNITIO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT`  | boolsk | Deaktiver kopi ved valg i TUI                 |
+| `COGNITIO_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS` | tall   | Standard tidsavbrudd for bash-kommandoer i ms |
+| `COGNITIO_EXPERIMENTAL_OUTPUT_TOKEN_MAX`        | tall   | Maks Output Tokens for LLM-svar               |
+| `COGNITIO_EXPERIMENTAL_FILEWATCHER`             | boolsk | Aktiver filovervåker for hele dir             |
+| `COGNITIO_EXPERIMENTAL_OXFMT`                   | boolsk | Aktiver oxfmt formatter                       |
+| `COGNITIO_EXPERIMENTAL_LSP_TOOL`                | boolsk | Aktiver eksperimentelt LSP-verktøy            |
+| `COGNITIO_EXPERIMENTAL_DISABLE_FILEWATCHER`     | boolsk | Deaktiver filovervåking                       |
+| `COGNITIO_EXPERIMENTAL_EXA`                     | boolsk | Aktiver eksperimentelle Exa-funksjoner        |
+| `COGNITIO_EXPERIMENTAL_LSP_TY`                  | boolsk | Aktiver TY LSP for python-filer               |
+| `COGNITIO_EXPERIMENTAL_MARKDOWN`                | boolsk | Aktiver eksperimentelle Markdown-funksjoner   |
+| `COGNITIO_EXPERIMENTAL_PLAN_MODE`               | boolsk | Aktiver planmodus                             |

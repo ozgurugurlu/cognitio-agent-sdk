@@ -1,0 +1,51 @@
+---
+title: "Function: defineTool()"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+function defineTool<Input, Output>(def): ToolDefinition<Input, Output>;
+```
+
+Define a custom tool executed in the SDK process.
+The schema describes model-facing input. Validate untrusted invocation input
+inside `execute` before side effects; schema parsing is not automatic.
+
+## Type Parameters
+
+### Input
+
+`Input` = `unknown`
+
+### Output
+
+`Output` = `unknown`
+
+## Parameters
+
+### def
+
+[`ToolDefinition`](../type-aliases/ToolDefinition)\<`Input`, `Output`\>
+
+Named tool, input schema, and execution callback.
+
+## Returns
+
+[`ToolDefinition`](../type-aliases/ToolDefinition)\<`Input`, `Output`\>
+
+The definition after registration checks, preserving its input/output types.
+
+## Throws
+
+A configuration error for missing name, callback, or input schema.
+
+## Example
+
+```ts
+const input = z.object({ text: z.string() })
+const echo = defineTool<unknown, string>({
+  name: "echo", inputSchema: input,
+  execute: (value) => input.parse(value).text,
+})
+```

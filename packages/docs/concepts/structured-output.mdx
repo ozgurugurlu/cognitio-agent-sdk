@@ -1,0 +1,35 @@
+---
+title: "Structured output"
+description: "Return validated data with bounded schema retries."
+---
+This example uses Zod 4. Add it to your application's dependencies with `npm install zod@4`, or pass JSON Schema directly to `defineOutputFormat`.
+
+```ts
+import { Agent, defineOutputFormat, shutdown } from "cognitio-agent-sdk"
+import { z } from "zod"
+
+const format = defineOutputFormat(z.object({
+  summary: z.string(),
+  labels: z.array(z.string()),
+}), { maxRetries: 2 })
+const agent = new Agent({
+  model: "anthropic/claude-sonnet-4-5",
+  outputFormat: format,
+  allowedTools: ["StructuredOutput"],
+})
+try {
+  const result = await agent.run("Summarize: A database migration adds an index.")
+  if (result.isError) throw new Error(`Agent ended: ${result.subtype}`)
+  console.log(result.structuredOutput)
+} finally {
+  await agent.close().finally(() => shutdown())
+}
+```
+
+`defineOutputFormat` accepts Zod or JSON Schema. `OutputOf<typeof format>` extracts its compile-time output type. Runtime results expose `structuredOutput`; validate or narrow it as required by your application's type boundary.
+
+The runtime validates model output and retries a bounded number of invalid results. The example permits only the runtime's `StructuredOutput` tool; its name is case-sensitive. `disallowedTools: ["*"]` also blocks this tool and prevents schema submission. Add any other intended tool names to the allowlist when combining structured output with tool work.
+
+The schema retry budget is distinct from `maxTurns`, but retries still consume model calls, turns and cost. Schema retry exhaustion produces an unsuccessful terminal result; it does not return unchecked data as a success. `maxBudgetUsd` is an estimated threshold checked after usage is reported, so it cannot prevent an in-flight call from exceeding the amount.
+
+Use schemas with explicit properties and required fields. Provider support for tools and schema-shaped output matters. A custom schema does not authorize tool side effects; permission rules still apply.

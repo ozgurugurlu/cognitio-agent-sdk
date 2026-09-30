@@ -1,0 +1,21 @@
+---
+title: "Type Alias: SystemPromptSpec"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+type SystemPromptSpec =
+  | string
+  | {
+  append?: string;
+  preset: "default" | "none";
+  type: "preset";
+}
+  | {
+  prompt: string;
+  type: "custom";
+};
+```
+
+A custom prompt string/object or a built-in prompt preset. The default preset is the coding profile; none omits the preset.

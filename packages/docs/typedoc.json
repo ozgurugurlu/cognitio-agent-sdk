@@ -1,0 +1,22 @@
+{
+  "entryPoints": ["../agent-sdk/src/index.ts"],
+  "tsconfig": "../agent-sdk/tsconfig.json",
+  "plugin": ["typedoc-plugin-markdown"],
+  "name": "Cognitio Agent SDK",
+  "readme": "none",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "disableSources": true,
+  "fileExtension": ".mdx",
+  "entryFileName": "index",
+  "hidePageHeader": true,
+  "hideBreadcrumbs": true,
+  "sanitizeComments": true,
+  "useCodeBlocks": true,
+  "validation": { "notDocumented": true, "notExported": true, "invalidLink": true },
+  "requiredToBeDocumented": ["Class", "Interface", "TypeAlias", "Function", "Method", "Variable"],
+  "treatValidationWarningsAsErrors": true,
+  "out": "api-reference"
+}

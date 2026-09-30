@@ -1,0 +1,15 @@
+---
+title: "Type Alias: PromptPart"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+type PromptPart =
+  | TextPartInput
+  | FilePartInput
+  | AgentPartInput
+  | SubtaskPartInput;
+```
+
+One input part supported by the runtime: text, file, agent reference or subtask. Modality support depends on the selected model.

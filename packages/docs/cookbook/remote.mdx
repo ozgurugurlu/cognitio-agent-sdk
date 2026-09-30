@@ -1,0 +1,24 @@
+---
+title: "Remote runtimes"
+description: "Connect to a server you own and keep session state persistent."
+---
+Start the Cognitio runtime with `cognitio serve --hostname 127.0.0.1 --port 4096` when you operate its executable separately. The SDK's platform package contains this version-matched executable. Choose persistent storage explicitly for a long-lived server.
+
+```ts
+import { Agent, createAgentClient } from "cognitio-agent-sdk"
+const client = await createAgentClient({ baseUrl: "http://127.0.0.1:4096" })
+const agent = new Agent({ client, model: "anthropic/claude-sonnet-4-5" })
+try {
+  console.log((await agent.run("Hello")).text)
+} finally {
+  await agent.close().finally(() => client.close())
+}
+```
+
+An Agent borrowing a client does not own it. Closing a remote client stops local subscriptions; it does not stop your server. Remote mode also does not apply local spawn isolation: configure credentials, filesystem policy and storage on the server.
+
+Bind to loopback unless you deliberately expose the runtime. For external deployment use authenticated transport and your network boundary. `COGNITIO_SERVER_PASSWORD` and `COGNITIO_SERVER_USERNAME` configure runtime Basic authentication; supply matching client authorization headers through `ClientOptions.headers`.
+
+Direct SDK tools and hooks use the existing event/control channel. SDK-owned HTTP MCP hosting requires a locally spawned runtime. For a remote runtime, use direct callback tools or an external MCP endpoint that the runtime can reach.
+
+Use `deleteSessionsOnClose` to clean ephemeral sessions that an Agent created on a long-lived server. Do not enable it for conversations your product promises to retain.

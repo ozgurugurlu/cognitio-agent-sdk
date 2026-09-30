@@ -1,0 +1,58 @@
+---
+title: "EventSessionResult"
+description: "Exact type definition referenced by the public SDK."
+---
+
+This definition is generated from the same source as the SDK. Protocol types describe the runtime HTTP API; prefer the high-level SDK for session ownership and callbacks.
+
+```ts
+export type EventSessionResult = {
+  type: "session.result"
+  properties: {
+    sessionID: string
+    messageID?: string
+    parentMessageID?: string
+    subtype:
+      | "success"
+      | "error_aborted"
+      | "error_during_execution"
+      | "error_max_turns"
+      | "error_max_budget"
+      | "error_max_structured_output_retries"
+    stopReason?: string
+    finalText?: string
+    numTurns?: number
+    totalCostUsd?: number
+    usage?: {
+      total?: number
+      input: number
+      output: number
+      reasoning: number
+      cache: {
+        read: number
+        write: number
+      }
+    }
+    modelUsage?: {
+      [key: string]: {
+        tokens: {
+          total?: number
+          input: number
+          output: number
+          reasoning: number
+          cache: {
+            read: number
+            write: number
+          }
+        }
+        cost: number
+      }
+    }
+    error?: {
+      name: string
+      message: string
+    }
+    structuredOutput?: unknown
+  }
+}
+```

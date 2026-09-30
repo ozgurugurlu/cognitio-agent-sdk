@@ -1,0 +1,73 @@
+---
+title: "Interface: RemoteMcpServer"
+description: "Generated from the public TypeScript API."
+---
+
+
+A session-owned external MCP connection over Streamable HTTP or legacy SSE. Supply explicit headers for authentication.
+
+## Properties
+
+### enabled?
+
+```ts
+optional enabled?: boolean;
+```
+
+***
+
+### headers?
+
+```ts
+optional headers?: Record<string, string>;
+```
+
+***
+
+### name
+
+```ts
+name: string;
+```
+
+***
+
+### oauth?
+
+```ts
+optional oauth?: false;
+```
+
+***
+
+### timeout?
+
+```ts
+optional timeout?: number;
+```
+
+***
+
+### transport?
+
+```ts
+optional transport?: "http" | "sse";
+```
+
+Explicit protocol, or automatic Streamable HTTP with legacy SSE fallback when omitted.
+
+***
+
+### type
+
+```ts
+type: "remote";
+```
+
+***
+
+### url
+
+```ts
+url: string;
+```

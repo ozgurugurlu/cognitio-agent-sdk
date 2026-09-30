@@ -1,0 +1,21 @@
+{
+  "name": "@cognitio/docs",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "bun script/generate-reference.ts",
+    "check": "bun run check:reference && bun run check:snippets && bun script/check.ts",
+    "validate": "mint validate",
+    "dev": "mint dev --port 3333",
+    "check:reference": "bun script/generate-reference.ts --check",
+    "check:snippets": "bun script/check-snippets.ts"
+  },
+  "devDependencies": {
+    "typedoc": "0.28.20",
+    "typedoc-plugin-markdown": "4.13.1",
+    "mint": "4.2.949",
+    "@mdx-js/mdx": "3.1.1",
+    "typescript": "catalog:"
+  }
+}

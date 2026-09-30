@@ -1,0 +1,77 @@
+name: Cognitio catalog and provider maintenance
+
+on:
+  schedule:
+    - cron: "23 7 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: cognitio-maintenance
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        update: [models, providers]
+    env:
+      COGNITIO_DISABLE_MODELS_FETCH: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - name: Refresh validated model snapshots and completions
+        if: matrix.update == 'models'
+        run: |
+          bun run --cwd packages/runtime script/refresh-models.ts
+          bun run --cwd packages/agent-sdk generate:models --refresh --source=../runtime/script/models-catalog.json
+          bun run --cwd packages/agent-sdk generate:models
+          bun run --cwd packages/agent-sdk check:models
+      - name: Refresh compatible bundled provider versions
+        if: matrix.update == 'providers'
+        run: bun run --cwd packages/runtime script/update-providers.ts
+      - name: Verify the proposed update
+        run: |
+          bun run --cwd packages/runtime typecheck
+          bun run --cwd packages/runtime test:ci
+          bun run --cwd packages/agent-sdk typecheck
+          bun run --cwd packages/agent-sdk test:ci
+          bun run --cwd packages/agent-sdk build
+          bun run --cwd packages/docs generate
+          bun run --cwd packages/docs check
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: maintenance/${{ matrix.update }}
+          commit-message: "chore: refresh ${{ matrix.update }}"
+          title: "chore: refresh ${{ matrix.update }}"
+          body: |
+            Scheduled Cognitio maintenance. Updates are validated before this PR is opened.
+            Review the catalog/pricing or provider changes and merge after release checks pass.
+          add-paths: |
+            bun.lock
+            packages/runtime/package.json
+            packages/runtime/script/models-catalog.json
+            packages/runtime/script/models-catalog.meta.json
+            packages/agent-sdk/script/models-snapshot.json
+            packages/agent-sdk/src/models.generated.ts
+            packages/docs/api-reference
+            packages/docs/docs.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maintenance-${{ matrix.update }}
+          path: |
+            packages/runtime/.artifacts/unit/
+            packages/agent-sdk/.artifacts/unit/
+          include-hidden-files: true

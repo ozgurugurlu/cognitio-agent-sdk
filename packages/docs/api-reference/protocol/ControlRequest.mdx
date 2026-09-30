@@ -1,0 +1,19 @@
+---
+title: "ControlRequest"
+description: "Exact type definition referenced by the public SDK."
+---
+
+This definition is generated from the same source as the SDK. Protocol types describe the runtime HTTP API; prefer the high-level SDK for session ownership and callbacks.
+
+```ts
+export type ControlRequest = {
+  id: ControlRequestId
+  sessionID: string
+  subtype: ControlSubtype
+  payload: ControlPayload
+  createdAt: number
+  timeoutMs: number
+}
+```
+
+Related types: [ControlPayload](/api-reference/protocol/ControlPayload), [ControlRequestId](/api-reference/protocol/ControlRequestId), [ControlSubtype](/api-reference/protocol/ControlSubtype).

@@ -1,0 +1,38 @@
+---
+title: "Cost, usage and telemetry"
+description: "Inspect outcomes and export runtime signals."
+---
+Terminal results can include usage and cost fields; these fields are optional, so handle unavailable accounting data. `session.usage` also maintains a live view across turns; final accounting reconciles streamed estimates with terminal messages. Check the generated `UsageSummary`, `ModelUsageSummary` and `SessionUsage` types for exact token and per-model fields.
+
+```ts
+const result = await session.send("Summarize this report.")
+console.log(result.totalCostUsd, result.usage)
+console.log(session.usage)
+```
+
+`maxTurns` limits assistant turns. `maxBudgetUsd` checks estimated accumulated cost around completed model, child and compaction work; an in-flight model call can exceed the threshold before a check stops further work. Cost uses reported usage and catalog prices, and automatic permission-classifier calls are not included in terminal result accounting. Missing or nonstandard usage/pricing can also limit accuracy. Use provider account-level spend controls when you need a billing limit.
+
+## Operational events
+
+Streams include `rate_limit` and task lifecycle messages where supported. Preserve event/session/tool IDs when correlating application logs. Avoid logging prompt text, tool arguments or credentials by default.
+
+## OpenTelemetry
+
+The runtime exports telemetry; the JavaScript SDK forwards `OTEL_*` variables to its spawned process. Configure an OTLP collector before launching the application:
+
+```sh
+export OTEL_EXPORTER_OTLP_ENDPOINT="http://127.0.0.1:4318"
+export OTEL_SERVICE_NAME="my-cognitio-agent"
+```
+
+With an OTLP endpoint configured, AI request telemetry is enabled by default; `experimental.openTelemetry: false` disables that AI instrumentation. AI span input and output recording remain off unless `experimental.openTelemetryRecordInputs` or `experimental.openTelemetryRecordOutputs` is explicitly enabled. Session IDs on metrics remain opt-in. Close owned clients, or call `shutdown()` for the default facade runtime, so runtime shutdown can flush buffered telemetry.
+
+## Runtime log redaction
+
+Every exported runtime log record passes through a filter at the OTLP serialization boundary. Its body becomes `[redacted]`. Free-form messages, prompt/output content, arguments, environment/configuration objects, error details, nested values and unrecognized annotations are omitted from the record.
+
+The filter keeps severity, timestamps, trace/span IDs, recognized built-in logger service labels, and approved numeric, boolean and status fields. Runtime-shaped session, message and workspace identifiers are retained in their corresponding fields. Opaque identifier fields, provider/model identifiers and custom logger service labels use stable SHA-256 hashes for correlation. These hashes are not encryption.
+
+This policy applies to OTLP log records. Local log files and stderr keep their diagnostic content. Explicit resource configuration, including `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES`, remains unchanged. The AI span recording settings above do not disable runtime log redaction; HTTP events and application-managed logging are separate interfaces.
+
+V2 does not promise a frozen GenAI semantic-convention event taxonomy or end-to-end W3C trace propagation from a hosted control plane. The HTTP event stream remains the stable application-level event interface.

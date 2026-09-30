@@ -1,0 +1,47 @@
+---
+title: "From Claude Agent SDK"
+description: "Map capabilities to Cognitio without assuming identical APIs."
+---
+Cognitio is built on OpenCode. It provides programmable agent sessions, tools and permissions across multiple model providers. It is not a drop-in replacement for the Claude Agent SDK and does not claim that every newly added Claude feature is implemented.
+
+| Capability | Cognitio v2 |
+| --- | --- |
+| Single task / streaming | `Agent.run`, `Agent.stream`, `query` |
+| Conversations, resume, fork | `Session`, `agent.resume`, `agent.fork` |
+| Local custom tools | `defineTool`, `AgentOptions.tools` |
+| MCP | Session-scoped stdio, Streamable HTTP and SSE; hosted HTTP resources/prompts |
+| Permissions | Rules, modes and `canUseTool` |
+| Hooks | The 15 documented Cognitio lifecycle events |
+| Subagents | `defineAgent`, session-scoped definitions, fresh/inherited context |
+| Skills, commands, plugins | Programmatic definitions and local compatibility loading |
+| Structured output | JSON Schema/Zod and bounded retries |
+| File rewind | Checkpoints and `session.rewind` |
+| Cost and limits | Usage, per-model accounting, turn/budget limits |
+| Thinking | Validated provider/model-specific effort and thinking options |
+| Remote hosting | HTTP/SSE runtime with local callback control channel |
+
+## Change the entry point
+
+Claude uses its own `query()` options and message schema. Cognitio's facade can express the same one-task intent:
+
+```ts
+import { Agent, shutdown } from "cognitio-agent-sdk"
+const agent = new Agent({
+  model: "anthropic/claude-sonnet-4-5",
+  instructions: "Review for correctness.",
+  allowedTools: ["read", "grep", "glob"],
+})
+try {
+  console.log((await agent.run("Review the source.")).text)
+} finally {
+  await agent.close().finally(() => shutdown())
+}
+```
+
+Map provider model names to `provider/model`; map tool names to Cognitio's runtime names; rewrite message handling against `AgentMessage`. Recheck permission behavior instead of translating mode names mechanically. Supply credentials explicitly and account for isolated-state lifetime.
+
+## Differences to account for
+
+Python bindings, Claude's complete current hook inventory, managed sandbox adapters, durable detached tasks, remote plugin marketplace installation and an API-compatible Claude facade are outside v2. Cognitio's direct SDK MCP protocol supports tools; hosted HTTP supports resources/prompts. Provider-specific reasoning and multimodal support vary.
+
+Consult the [official Claude Agent SDK reference](https://code.claude.com/docs/en/agent-sdk/overview) for the original SDK's current behavior and Cognitio's API reference for this release. The checked-in examples are the executable contract for Cognitio usage.

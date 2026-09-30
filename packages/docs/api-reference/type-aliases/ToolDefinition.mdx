@@ -1,0 +1,29 @@
+---
+title: "Type Alias: ToolDefinition<Input, Output>"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+type ToolDefinition<Input, Output> = ToolDefinitionBase<Input, Output> &
+  | {
+  inputJsonSchema?: unknown;
+  inputSchema: unknown;
+}
+  | {
+  inputJsonSchema: unknown;
+  inputSchema?: undefined;
+};
+```
+
+A custom tool with an execution callback and either a Zod/JSON input schema or an explicit JSON Schema. Tool execution stays in the SDK process. The callback must validate invocation input before side effects; schema parsing is not automatic.
+
+## Type Parameters
+
+### Input
+
+`Input` = `unknown`
+
+### Output
+
+`Output` = `unknown`

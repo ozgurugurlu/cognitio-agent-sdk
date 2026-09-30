@@ -1,0 +1,45 @@
+---
+title: "Interface: ControlOptions"
+description: "Generated from the public TypeScript API."
+---
+
+
+Timing and reconnect options for the session control dispatcher. Callback requests must be answered before their server-side deadlines.
+
+## Properties
+
+### readyTimeoutMs?
+
+```ts
+optional readyTimeoutMs?: number;
+```
+
+Milliseconds to wait for the local control dispatcher to become ready.
+
+***
+
+### reconnect?
+
+```ts
+optional reconnect?: object;
+```
+
+Bounded reconnection attempts and exponential-delay limits in milliseconds.
+
+#### initialDelayMs?
+
+```ts
+optional initialDelayMs?: number;
+```
+
+#### maxAttempts?
+
+```ts
+optional maxAttempts?: number;
+```
+
+#### maxDelayMs?
+
+```ts
+optional maxDelayMs?: number;
+```

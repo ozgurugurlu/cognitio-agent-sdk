@@ -1,0 +1,46 @@
+---
+title: "Interface: SessionUsage"
+description: "Generated from the public TypeScript API."
+---
+
+
+Live cost/usage snapshot exposed by `session.usage`. Shapes match
+`ResultMessage` so the two read the same way.
+
+Semantics: values accumulate from assistant messages observed on THIS
+session handle (attached/resumed handles start at zero) and are reconciled
+against each turn's authoritative `session.result` — so subagent
+child-session cost appears once the turn completes, without double
+counting. Monotonic: rewinds do not subtract.
+
+## Properties
+
+### modelUsage
+
+```ts
+modelUsage: Record<string, ModelUsageSummary>;
+```
+
+***
+
+### totalCostUsd
+
+```ts
+totalCostUsd: number;
+```
+
+***
+
+### turns
+
+```ts
+turns: number;
+```
+
+***
+
+### usage
+
+```ts
+usage: UsageSummary;
+```

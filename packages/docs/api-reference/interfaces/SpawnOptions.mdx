@@ -1,0 +1,199 @@
+---
+title: "Interface: SpawnOptions"
+description: "Generated from the public TypeScript API."
+---
+
+
+Configuration for an SDK-owned runtime process. Local spawning is isolated by default. Explicit binary paths and custom process factories are caller-owned compatibility escape hatches.
+
+## Properties
+
+### auth?
+
+```ts
+optional auth?: AuthContent;
+```
+
+Credentials injected via COGNITIO_AUTH_CONTENT. In isolated mode this is always set (empty record by default) so the server never reads a host auth.json.
+
+***
+
+### autoCleanup?
+
+```ts
+optional autoCleanup?: boolean;
+```
+
+Track the spawned server for best-effort direct-child cleanup on process
+exit and unref it after readiness. The facade enables this by default;
+the low-level transport leaves it disabled unless requested.
+
+Sole-listener SIGINT/SIGTERM handlers await child termination. A host
+signal handler retains responsibility for shutdown. The synchronous exit sweep cannot await SIGKILL escalation, kill a
+descendant tree, or remove owned scratch safely. Prefer `close()` or
+facade `shutdown()` for deterministic cleanup.
+
+#### Default Value
+
+`false`
+
+***
+
+### binaryPath?
+
+```ts
+optional binaryPath?: string;
+```
+
+Explicit server binary. Overrides `COGNITIO_BIN_PATH`, the bundled platform
+package, and `PATH`.
+
+Relative paths resolve against `process.cwd()`. A bare command name is
+rejected — leaving `binaryPath` unset is how you ask for a `PATH` lookup.
+A path that does not exist or is not executable throws rather than falling
+through: an explicit choice that does not work is a caller error.
+
+Skips the post-readiness compatibility check, since you chose the binary.
+
+***
+
+### config?
+
+```ts
+optional config?: Config;
+```
+
+Config injected via COGNITIO_CONFIG_CONTENT (never a host file).
+
+***
+
+### env?
+
+```ts
+optional env?: Record<string, string>;
+```
+
+Literal env vars for the child. In isolated mode reserved keys (HOME, XDG_*, TMPDIR, COGNITIO_ISOLATED, ...) are rejected.
+
+***
+
+### hostname?
+
+```ts
+optional hostname?: string;
+```
+
+Bind address for an owned runtime (loopback by default).
+
+***
+
+### isolated?
+
+```ts
+optional isolated?: boolean;
+```
+
+Hermetic spawn: the server runs with COGNITIO_ISOLATED=1, a scratch
+HOME/XDG world, and an allowlisted environment. Config/persona/state
+isolation only — this is NOT an OS or tool sandbox.
+
+#### Default Value
+
+```ts
+true
+```
+
+***
+
+### keepScratch?
+
+```ts
+optional keepScratch?: boolean;
+```
+
+Keep the owned scratch dir on close (isolated only); shutdown still runs.
+
+***
+
+### passEnv?
+
+```ts
+optional passEnv?: string[];
+```
+
+Names of parent env vars to forward in isolated mode. COGNITIO_* names are rejected — use env/auth/config.
+
+***
+
+### port?
+
+```ts
+optional port?: number;
+```
+
+Port for an owned runtime; zero requests an available port.
+
+***
+
+### scratchDir?
+
+```ts
+optional scratchDir?: string;
+```
+
+Parent directory for the SDK-owned scratch dir (isolated only). The SDK creates and removes its own child inside it.
+
+***
+
+### shutdownTimeout?
+
+```ts
+optional shutdownTimeout?: number;
+```
+
+Grace period in ms between SIGTERM and SIGKILL on close (default 5000).
+
+***
+
+### signal?
+
+```ts
+optional signal?: AbortSignal;
+```
+
+Abort startup and the associated child process.
+
+***
+
+### spawnProcess?
+
+```ts
+optional spawnProcess?: (request) => ChildProcess;
+```
+
+Replace the default child spawn — containers, VMs, remote hosts.
+
+Receives the already-resolved command/args/env/signal and is called exactly
+once. The returned object must implement `on`, `once`, `off`, `kill`, `unref`,
+piped `stdout`/`stderr`, `pid`, and nullable/optional `exitCode`/`signalCode`. Skips the
+post-readiness compatibility check, since you own the process.
+
+#### Parameters
+
+##### request
+
+[`SpawnServerRequest`](../type-aliases/SpawnServerRequest)
+
+#### Returns
+
+`ChildProcess`
+
+***
+
+### timeout?
+
+```ts
+optional timeout?: number;
+```
+
+Milliseconds to wait for the readiness line before rejecting startup.

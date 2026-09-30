@@ -1,0 +1,17 @@
+---
+title: "Type Alias: HookData<Event>"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+type HookData<Event> = Event extends "PreCompact" ? PreCompactHookData : Event extends "PostCompact" ? PostCompactHookData : Record<string, unknown>;
+```
+
+Event-specific callback data: typed compaction payloads or the generic runtime event record.
+
+## Type Parameters
+
+### Event
+
+`Event` *extends* [`HookEventName`](HookEventName)

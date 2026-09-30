@@ -1,0 +1,89 @@
+---
+title: "Interface: AgentDefinition"
+description: "Generated from the public TypeScript API."
+---
+
+
+Session-scoped subagent profile. Its prompt, model, tools and MCP servers apply to child tasks; spawnMode chooses fresh or inherited context.
+
+## Properties
+
+### description?
+
+```ts
+optional description?: string;
+```
+
+***
+
+### disallowedTools?
+
+```ts
+optional disallowedTools?: string[];
+```
+
+***
+
+### mcpServers?
+
+```ts
+optional mcpServers?: ExternalMcpServer[];
+```
+
+***
+
+### model?
+
+```ts
+optional model?: ModelId;
+```
+
+***
+
+### permissionMode?
+
+```ts
+optional permissionMode?: PermissionMode;
+```
+
+***
+
+### prompt
+
+```ts
+prompt: string;
+```
+
+***
+
+### spawnMode?
+
+```ts
+optional spawnMode?: "fresh" | "inherit";
+```
+
+fresh = new context; inherit = fork parent context.
+
+***
+
+### steps?
+
+```ts
+optional steps?: number;
+```
+
+***
+
+### temperature?
+
+```ts
+optional temperature?: number;
+```
+
+***
+
+### tools?
+
+```ts
+optional tools?: string[];
+```

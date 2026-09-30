@@ -1,0 +1,36 @@
+id = "cognitio"
+name = "Cognitio"
+description = "The open source coding agent."
+version = "1.14.19"
+schema_version = 1
+authors = ["Anomaly"]
+repository = "https://github.com/anomalyco/cognitio"
+
+[agent_servers.cognitio]
+name = "Cognitio"
+icon = "./icons/cognitio.svg"
+
+[agent_servers.cognitio.targets.darwin-aarch64]
+archive = "https://github.com/anomalyco/cognitio/releases/download/v1.14.19/cognitio-darwin-arm64.zip"
+cmd = "./cognitio"
+args = ["acp"]
+
+[agent_servers.cognitio.targets.darwin-x86_64]
+archive = "https://github.com/anomalyco/cognitio/releases/download/v1.14.19/cognitio-darwin-x64.zip"
+cmd = "./cognitio"
+args = ["acp"]
+
+[agent_servers.cognitio.targets.linux-aarch64]
+archive = "https://github.com/anomalyco/cognitio/releases/download/v1.14.19/cognitio-linux-arm64.tar.gz"
+cmd = "./cognitio"
+args = ["acp"]
+
+[agent_servers.cognitio.targets.linux-x86_64]
+archive = "https://github.com/anomalyco/cognitio/releases/download/v1.14.19/cognitio-linux-x64.tar.gz"
+cmd = "./cognitio"
+args = ["acp"]
+
+[agent_servers.cognitio.targets.windows-x86_64]
+archive = "https://github.com/anomalyco/cognitio/releases/download/v1.14.19/cognitio-windows-x64.zip"
+cmd = "./cognitio.exe"
+args = ["acp"]

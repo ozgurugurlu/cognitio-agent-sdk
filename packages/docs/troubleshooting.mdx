@@ -1,0 +1,22 @@
+---
+title: "Troubleshooting"
+description: "Diagnose installation, credentials, lifecycle and runtime failures."
+---
+| Symptom | Check |
+| --- | --- |
+| Runtime package not found | Reinstall with optional dependencies enabled; confirm supported OS/CPU/libc. |
+| Runtime version mismatch | Remove an unintended `COGNITIO_BIN_PATH` or PATH executable; reinstall matching SDK/platform packages. |
+| Missing API credentials | Isolated mode does not read host auth files. Use a supported provider variable or `spawn.auth`. |
+| No local instructions/skills | `settingSources` is empty by default; programmatic definitions work without filesystem discovery. |
+| Session cannot be resumed | Confirm the same persistent server/database still exists. Isolated scratch is deleted on shutdown. |
+| Remote tools time out | Keep event subscriptions alive for direct callbacks and check external MCP connectivity. SDK-owned HTTP MCP hosting requires local spawn. |
+| Unsupported effort/thinking | Select a model/provider that implements the requested setting or omit it. |
+| Permission waits | Return a concrete allow/deny decision from `canUseTool`, use `dontAsk` for unresolved requests, and set an application cancellation deadline. `ask()` or a timed-out callback can leave a user prompt pending. |
+| Stream appears duplicated | Do not concatenate full messages and partial deltas as if they were the same event type. |
+| Process stays alive | Finish/return/abort streams, close owned Agents/clients, and call `shutdown()` at application teardown for the default shared runtime. |
+
+For debugging, inspect `session.getAppliedSettings()`, preserve the terminal `subtype`, and include SDK/runtime versions and platform information in reports. Redact credentials and sensitive prompt/tool content.
+
+Use `spawn.keepScratch: true` only for intentional investigation. The returned errors identify preserved state when the SDK cannot confirm child termination. Remove debugging state after investigation with care for any still-running process.
+
+From source, run `bun install --frozen-lockfile` before package checks. Never run the repository's test guard from the root; use `bun run --cwd packages/agent-sdk test` and the runtime's sharded test command.

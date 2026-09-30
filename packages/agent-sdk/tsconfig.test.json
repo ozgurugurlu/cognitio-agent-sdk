@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "rootDir": ".",
+    "paths": {
+      "cognitio-agent-sdk": [
+        "./src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "script",
+    "test",
+    "examples"
+  ]
+}

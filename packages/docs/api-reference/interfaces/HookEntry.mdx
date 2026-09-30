@@ -1,0 +1,68 @@
+---
+title: "Interface: HookEntry<Event>"
+description: "Generated from the public TypeScript API."
+---
+
+
+A hook callback with an optional tool matcher, deadline and asynchronous-notification flag.
+
+## Type Parameters
+
+### Event
+
+`Event` *extends* [`HookEventName`](../type-aliases/HookEventName) = [`HookEventName`](../type-aliases/HookEventName)
+
+## Properties
+
+### async?
+
+```ts
+optional async?: boolean;
+```
+
+***
+
+### callback
+
+```ts
+callback: (payload) =>
+  | void
+  | HookResult
+| Promise<void | HookResult>;
+```
+
+The SDK-local event handler. Decision fields are honored only for supported event types.
+
+Handle an event in the SDK process.
+
+#### Parameters
+
+##### payload
+
+[`HookEventPayload`](HookEventPayload)\<`Event`\>
+
+Event data and cancellation signal.
+
+#### Returns
+
+  \| `void`
+  \| [`HookResult`](HookResult)
+  \| `Promise`\<`void` \| [`HookResult`](HookResult)\>
+
+Optional event-specific modifications or decisions.
+
+***
+
+### matcher?
+
+```ts
+optional matcher?: string | RegExp;
+```
+
+***
+
+### timeoutMs?
+
+```ts
+optional timeoutMs?: number;
+```

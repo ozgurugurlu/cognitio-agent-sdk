@@ -1,0 +1,61 @@
+---
+title: "Function: createSdkMcpServer()"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+function createSdkMcpServer(opts): SdkMcpServer;
+```
+
+Bundle tools and optional HTTP MCP resources/prompts into a session-owned descriptor.
+
+## Parameters
+
+### opts
+
+Unique server name, content definitions and transport policy.
+
+#### enabled?
+
+`boolean`
+
+#### name
+
+`string`
+
+#### prompts?
+
+[`McpPromptDefinition`](../interfaces/McpPromptDefinition)[]
+
+#### resources?
+
+[`McpResourceDefinition`](../interfaces/McpResourceDefinition)[]
+
+#### timeout?
+
+`number`
+
+#### tools
+
+[`ToolDefinition`](../type-aliases/ToolDefinition)[]
+
+#### transport?
+
+`"http"` \| `"direct"`
+
+## Returns
+
+[`SdkMcpServer`](../interfaces/SdkMcpServer)
+
+A descriptor; hosting starts when a session registers it.
+
+## Throws
+
+A configuration error for duplicate names/URIs, invalid content, or resources/prompts with direct transport.
+
+## Example
+
+```ts
+const server = createSdkMcpServer({ name: "local", transport: "direct", tools: [] })
+```

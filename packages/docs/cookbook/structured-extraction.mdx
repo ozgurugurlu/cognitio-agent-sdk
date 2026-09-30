@@ -1,0 +1,45 @@
+---
+title: "Extract structured data"
+description: "Turn a contact description into validated JSON with Zod."
+---
+
+The complete project in `examples/02-structured-output/` extracts a small object from a fixed input. It depends only on the published SDK and Zod. Copy the directory to use it independently of the repository.
+
+## Run the project
+
+From the repository root, use the commands below. If you copied the project elsewhere, enter its directory and omit the first `cd` line.
+
+```sh
+cd examples/02-structured-output
+npm ci
+cp .env.example .env
+# Set OPENAI_API_KEY in .env, then:
+npm start
+```
+
+Node.js 22 or newer is required. On PowerShell, use `Copy-Item .env.example .env`. The model defaults to `openai/gpt-4.1-mini`; the project's README explains its schema and expected fields.
+
+## Validate at the application boundary
+
+Use `defineOutputFormat()` to pass the schema to the runtime. The following excerpt shows the pattern; the complete project adds the input, budget and cleanup:
+
+```js
+import { defineOutputFormat } from "cognitio-agent-sdk"
+import { z } from "zod"
+
+const contactSchema = z.object({
+  name: z.string().min(1),
+  email: z.email(),
+  company: z.string().min(1),
+})
+const modelSchema = contactSchema.extend({
+  email: z.string().describe("Email address exactly as written in the input"),
+})
+const format = defineOutputFormat(modelSchema, { maxRetries: 1 })
+```
+
+Set the Agent's `outputFormat` to `format`. After `agent.run()`, first reject an unsuccessful result, then use `contactSchema.parse(result.structuredOutput)` to obtain validated data. Do not parse the conversational `result.text` as a substitute for the structured payload. The model-facing schema uses a plain string for email; the stricter local schema still rejects invalid email addresses before the application prints success. This avoids depending on a provider reproducing every constraint emitted by a schema library.
+
+Set `allowedTools: ["StructuredOutput"]` on this Agent. The name is case-sensitive: it permits the runtime's internal schema-output tool and hides ordinary tools. Do not use `disallowedTools: ["*"]` here; that also blocks `StructuredOutput` and can exhaust the schema-retry budget. Invalid model output can consume schema retries; those retries still use model calls, the turn limit and the cost budget. Exhaustion is an unsuccessful result, not unchecked successful data. See [structured output](/concepts/structured-output) for the contract.
+
+A schema validates the shape and constraints you express; it cannot establish that arbitrary extracted facts are true. Keep the input small and inspect the returned values for your application.

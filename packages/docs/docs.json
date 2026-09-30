@@ -1,0 +1,408 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Cognitio Agent SDK",
+  "description": "Build programmable agents with tools, sessions, permissions and streaming. Built on OpenCode.",
+  "colors": {
+    "primary": "#26785F",
+    "light": "#75B798",
+    "dark": "#26785F"
+  },
+  "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "index",
+              "quickstart",
+              "installation",
+              "defaults-and-isolation"
+            ]
+          },
+          {
+            "group": "Build agents",
+            "pages": [
+              "concepts/agents",
+              "concepts/sessions",
+              "concepts/streaming",
+              "concepts/models-and-prompts",
+              "concepts/tools",
+              "concepts/permissions",
+              "concepts/hooks"
+            ]
+          },
+          {
+            "group": "Extend the runtime",
+            "pages": [
+              "concepts/mcp",
+              "concepts/subagents",
+              "concepts/skills-commands-plugins",
+              "concepts/structured-output",
+              "concepts/checkpoints",
+              "concepts/compaction",
+              "concepts/observability"
+            ]
+          },
+          {
+            "group": "Cookbook projects",
+            "pages": [
+              "cookbook/chat-cli",
+              "cookbook/structured-extraction",
+              "cookbook/custom-tool",
+              "cookbook/session-memory"
+            ]
+          },
+          {
+            "group": "Ship an application",
+            "pages": [
+              "cookbook/examples",
+              "cookbook/remote",
+              "cookbook/lifecycle",
+              "migration/claude-agent-sdk",
+              "migration/v2",
+              "troubleshooting",
+              "publishing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API reference",
+        "groups": [
+          {
+            "group": "Public API",
+            "pages": [
+              "api-reference/index"
+            ]
+          },
+          {
+            "group": "Classes",
+            "pages": [
+              "api-reference/classes/Agent",
+              "api-reference/classes/Session"
+            ]
+          },
+          {
+            "group": "Functions",
+            "pages": [
+              "api-reference/functions/claudeCompat",
+              "api-reference/functions/createAgentClient",
+              "api-reference/functions/createSdkMcpServer",
+              "api-reference/functions/defineAgent",
+              "api-reference/functions/defineCommand",
+              "api-reference/functions/defineHook",
+              "api-reference/functions/defineOutputFormat",
+              "api-reference/functions/definePlugin",
+              "api-reference/functions/defineSkill",
+              "api-reference/functions/defineTool",
+              "api-reference/functions/isSdkError",
+              "api-reference/functions/query",
+              "api-reference/functions/shutdown"
+            ]
+          },
+          {
+            "group": "Interfaces",
+            "pages": [
+              "api-reference/interfaces/AgentClient",
+              "api-reference/interfaces/AgentDefinition",
+              "api-reference/interfaces/AgentOptions",
+              "api-reference/interfaces/AgentSessionOptions",
+              "api-reference/interfaces/AgentStream",
+              "api-reference/interfaces/AgentStreamOptions",
+              "api-reference/interfaces/AppliedSettings",
+              "api-reference/interfaces/CheckpointHandle",
+              "api-reference/interfaces/CheckpointingConfig",
+              "api-reference/interfaces/ClaudePluginSpec",
+              "api-reference/interfaces/ClientOptions",
+              "api-reference/interfaces/CommandDefinition",
+              "api-reference/interfaces/CompactResult",
+              "api-reference/interfaces/ControlOptions",
+              "api-reference/interfaces/HookEntry",
+              "api-reference/interfaces/HookEventPayload",
+              "api-reference/interfaces/HookResult",
+              "api-reference/interfaces/InlinePluginSpec",
+              "api-reference/interfaces/LocalMcpServer",
+              "api-reference/interfaces/McpPromptDefinition",
+              "api-reference/interfaces/McpResourceDefinition",
+              "api-reference/interfaces/ModelUsageSummary",
+              "api-reference/interfaces/OutputFormatSpec",
+              "api-reference/interfaces/PostCompactHookData",
+              "api-reference/interfaces/PreCompactHookData",
+              "api-reference/interfaces/PromptTurn",
+              "api-reference/interfaces/QueryOptions",
+              "api-reference/interfaces/RateLimitEvent",
+              "api-reference/interfaces/RemoteMcpServer",
+              "api-reference/interfaces/ResultMessage",
+              "api-reference/interfaces/RunOptions",
+              "api-reference/interfaces/RunResult",
+              "api-reference/interfaces/RuntimeConfig",
+              "api-reference/interfaces/SdkError",
+              "api-reference/interfaces/SdkMcpServer",
+              "api-reference/interfaces/SessionContext",
+              "api-reference/interfaces/SessionCreateOptions",
+              "api-reference/interfaces/SessionListFilter",
+              "api-reference/interfaces/SessionNamespace",
+              "api-reference/interfaces/SessionResumeOptions",
+              "api-reference/interfaces/SessionUsage",
+              "api-reference/interfaces/SkillDefinition",
+              "api-reference/interfaces/SpawnOptions",
+              "api-reference/interfaces/StreamOptions",
+              "api-reference/interfaces/TaskNotificationEvent",
+              "api-reference/interfaces/TaskProgressEvent",
+              "api-reference/interfaces/TaskStartedEvent",
+              "api-reference/interfaces/TaskStoppedEvent",
+              "api-reference/interfaces/ToolContext",
+              "api-reference/interfaces/UsageSummary"
+            ]
+          },
+          {
+            "group": "Types",
+            "pages": [
+              "api-reference/type-aliases/AgentMessage",
+              "api-reference/type-aliases/AnthropicModelId",
+              "api-reference/type-aliases/ApiAuth",
+              "api-reference/type-aliases/Auth",
+              "api-reference/type-aliases/AuthContent",
+              "api-reference/type-aliases/CanUseToolCallback",
+              "api-reference/type-aliases/CognitioConfig",
+              "api-reference/type-aliases/CognitioEvent",
+              "api-reference/type-aliases/CognitioMessage",
+              "api-reference/type-aliases/CognitioPart",
+              "api-reference/type-aliases/CognitioSession",
+              "api-reference/type-aliases/DeepseekModelId",
+              "api-reference/type-aliases/ExternalMcpServer",
+              "api-reference/type-aliases/GoogleModelId",
+              "api-reference/type-aliases/GroqModelId",
+              "api-reference/type-aliases/HookCallback",
+              "api-reference/type-aliases/HookData",
+              "api-reference/type-aliases/HookEventName",
+              "api-reference/type-aliases/HookRegistration",
+              "api-reference/type-aliases/KnownModelId",
+              "api-reference/type-aliases/MistralModelId",
+              "api-reference/type-aliases/ModelId",
+              "api-reference/type-aliases/OAuth",
+              "api-reference/type-aliases/OpenaiModelId",
+              "api-reference/type-aliases/OutputOf",
+              "api-reference/type-aliases/PermissionDecision",
+              "api-reference/type-aliases/PermissionMode",
+              "api-reference/type-aliases/PermissionRuleset",
+              "api-reference/type-aliases/PluginSpec",
+              "api-reference/type-aliases/PromptInput",
+              "api-reference/type-aliases/PromptPart",
+              "api-reference/type-aliases/Query",
+              "api-reference/type-aliases/RewindResult",
+              "api-reference/type-aliases/RuntimeMcpServer",
+              "api-reference/type-aliases/SdkErrorKind",
+              "api-reference/type-aliases/SpawnServerRequest",
+              "api-reference/type-aliases/SystemPromptSpec",
+              "api-reference/type-aliases/ThinkingConfig",
+              "api-reference/type-aliases/TodoItem",
+              "api-reference/type-aliases/ToolDefinition",
+              "api-reference/type-aliases/TransportKind",
+              "api-reference/type-aliases/WellKnownAuth",
+              "api-reference/type-aliases/XaiModelId"
+            ]
+          },
+          {
+            "group": "Variables",
+            "pages": [
+              "api-reference/variables/NEUTRAL_BASE_PROMPT",
+              "api-reference/variables/PermissionDecision",
+              "api-reference/variables/models"
+            ]
+          },
+          {
+            "group": "Protocol",
+            "pages": [
+              "api-reference/protocol/AgentConfig",
+              "api-reference/protocol/AgentPart",
+              "api-reference/protocol/AgentPartInput",
+              "api-reference/protocol/ApiAuth",
+              "api-reference/protocol/ApiError",
+              "api-reference/protocol/AssistantMessage",
+              "api-reference/protocol/Auth",
+              "api-reference/protocol/CompactionPart",
+              "api-reference/protocol/Config",
+              "api-reference/protocol/ContextOverflowError",
+              "api-reference/protocol/ControlCancelReason",
+              "api-reference/protocol/ControlPayload",
+              "api-reference/protocol/ControlRequest",
+              "api-reference/protocol/ControlRequestId",
+              "api-reference/protocol/ControlSubtype",
+              "api-reference/protocol/Event",
+              "api-reference/protocol/EventCommandExecuted",
+              "api-reference/protocol/EventControlCancelled",
+              "api-reference/protocol/EventControlRequest",
+              "api-reference/protocol/EventFileEdited",
+              "api-reference/protocol/EventFileWatcherUpdated",
+              "api-reference/protocol/EventGlobalDisposed",
+              "api-reference/protocol/EventInstallationUpdateAvailable",
+              "api-reference/protocol/EventInstallationUpdated",
+              "api-reference/protocol/EventLspClientDiagnostics",
+              "api-reference/protocol/EventLspUpdated",
+              "api-reference/protocol/EventMcpBrowserOpenFailed",
+              "api-reference/protocol/EventMcpToolsChanged",
+              "api-reference/protocol/EventMessagePartDelta",
+              "api-reference/protocol/EventMessagePartRemoved",
+              "api-reference/protocol/EventMessagePartUpdated",
+              "api-reference/protocol/EventMessageRemoved",
+              "api-reference/protocol/EventMessageUpdated",
+              "api-reference/protocol/EventPermissionAsked",
+              "api-reference/protocol/EventPermissionReplied",
+              "api-reference/protocol/EventProjectUpdated",
+              "api-reference/protocol/EventPtyCreated",
+              "api-reference/protocol/EventPtyDeleted",
+              "api-reference/protocol/EventPtyExited",
+              "api-reference/protocol/EventPtyUpdated",
+              "api-reference/protocol/EventQuestionAsked",
+              "api-reference/protocol/EventQuestionRejected",
+              "api-reference/protocol/EventQuestionReplied",
+              "api-reference/protocol/EventServerConnected",
+              "api-reference/protocol/EventServerInstanceDisposed",
+              "api-reference/protocol/EventSessionCheckpointCreated",
+              "api-reference/protocol/EventSessionCompacted",
+              "api-reference/protocol/EventSessionCreated",
+              "api-reference/protocol/EventSessionDeleted",
+              "api-reference/protocol/EventSessionDiff",
+              "api-reference/protocol/EventSessionError",
+              "api-reference/protocol/EventSessionIdle",
+              "api-reference/protocol/EventSessionRateLimitHit",
+              "api-reference/protocol/EventSessionResult",
+              "api-reference/protocol/EventSessionRewound",
+              "api-reference/protocol/EventSessionStatus",
+              "api-reference/protocol/EventSessionUpdated",
+              "api-reference/protocol/EventSubagentProgress",
+              "api-reference/protocol/EventSubagentStarted",
+              "api-reference/protocol/EventSubagentStopped",
+              "api-reference/protocol/EventSystemCompactBoundary",
+              "api-reference/protocol/EventTaskNotification",
+              "api-reference/protocol/EventTaskProgress",
+              "api-reference/protocol/EventTaskStarted",
+              "api-reference/protocol/EventTaskStopped",
+              "api-reference/protocol/EventTodoUpdated",
+              "api-reference/protocol/EventTuiCommandExecute",
+              "api-reference/protocol/EventTuiPromptAppend",
+              "api-reference/protocol/EventTuiSessionSelect",
+              "api-reference/protocol/EventTuiToastShow",
+              "api-reference/protocol/EventVcsBranchUpdated",
+              "api-reference/protocol/EventWorkspaceFailed",
+              "api-reference/protocol/EventWorkspaceReady",
+              "api-reference/protocol/EventWorkspaceRestore",
+              "api-reference/protocol/EventWorkspaceStatus",
+              "api-reference/protocol/EventWorktreeFailed",
+              "api-reference/protocol/EventWorktreeReady",
+              "api-reference/protocol/FilePart",
+              "api-reference/protocol/FilePartInput",
+              "api-reference/protocol/FilePartSource",
+              "api-reference/protocol/FilePartSourceText",
+              "api-reference/protocol/FileSource",
+              "api-reference/protocol/JsonSchema",
+              "api-reference/protocol/LayoutConfig",
+              "api-reference/protocol/LogLevel",
+              "api-reference/protocol/McpLocalConfig",
+              "api-reference/protocol/McpOAuthConfig",
+              "api-reference/protocol/McpRemoteConfig",
+              "api-reference/protocol/Message",
+              "api-reference/protocol/MessageAbortedError",
+              "api-reference/protocol/MessageOutputLengthError",
+              "api-reference/protocol/OAuth",
+              "api-reference/protocol/OutputFormat",
+              "api-reference/protocol/OutputFormatJsonSchema",
+              "api-reference/protocol/OutputFormatText",
+              "api-reference/protocol/Part",
+              "api-reference/protocol/PatchPart",
+              "api-reference/protocol/PermissionAction",
+              "api-reference/protocol/PermissionActionConfig",
+              "api-reference/protocol/PermissionConfig",
+              "api-reference/protocol/PermissionObjectConfig",
+              "api-reference/protocol/PermissionRequest",
+              "api-reference/protocol/PermissionRule",
+              "api-reference/protocol/PermissionRuleConfig",
+              "api-reference/protocol/PermissionRuleset",
+              "api-reference/protocol/Project",
+              "api-reference/protocol/ProviderAuthError",
+              "api-reference/protocol/ProviderConfig",
+              "api-reference/protocol/Pty",
+              "api-reference/protocol/QuestionAnswer",
+              "api-reference/protocol/QuestionInfo",
+              "api-reference/protocol/QuestionOption",
+              "api-reference/protocol/QuestionRejected",
+              "api-reference/protocol/QuestionReplied",
+              "api-reference/protocol/QuestionRequest",
+              "api-reference/protocol/QuestionTool",
+              "api-reference/protocol/Range",
+              "api-reference/protocol/ReasoningPart",
+              "api-reference/protocol/ResourceSource",
+              "api-reference/protocol/RetryPart",
+              "api-reference/protocol/ServerConfig",
+              "api-reference/protocol/Session",
+              "api-reference/protocol/SessionCheckpoint",
+              "api-reference/protocol/SessionStatus",
+              "api-reference/protocol/SnapshotFileDiff",
+              "api-reference/protocol/SnapshotPart",
+              "api-reference/protocol/StepFinishPart",
+              "api-reference/protocol/StepStartPart",
+              "api-reference/protocol/StructuredOutputError",
+              "api-reference/protocol/SubtaskPart",
+              "api-reference/protocol/SubtaskPartInput",
+              "api-reference/protocol/SymbolSource",
+              "api-reference/protocol/TextPart",
+              "api-reference/protocol/TextPartInput",
+              "api-reference/protocol/Todo",
+              "api-reference/protocol/ToolPart",
+              "api-reference/protocol/ToolState",
+              "api-reference/protocol/ToolStateCompleted",
+              "api-reference/protocol/ToolStateError",
+              "api-reference/protocol/ToolStatePending",
+              "api-reference/protocol/ToolStateRunning",
+              "api-reference/protocol/UnknownError",
+              "api-reference/protocol/UserMessage",
+              "api-reference/protocol/WellKnownAuth"
+            ]
+          },
+          {
+            "group": "Supporting",
+            "pages": [
+              "api-reference/supporting/PermissionDecision",
+              "api-reference/supporting/SdkMcpHost",
+              "api-reference/supporting/ToolContext",
+              "api-reference/supporting/ToolDefinitionBase"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "HTTP API",
+        "groups": [
+          {
+            "group": "Protocol",
+            "pages": [
+              "http-api/overview",
+              "http-api/events-and-control"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "openapi": "/openapi.json"
+          }
+        ]
+      }
+    ]
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude"
+    ]
+  }
+}

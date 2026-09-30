@@ -1,0 +1,429 @@
+---
+title: "Type Alias: AgentMessage"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+type AgentMessage =
+  | {
+  compactionId?: string;
+  preCompactTokenCount?: number;
+  preservedMessageIds?: string[];
+  raw?: unknown;
+  subtype: "system.compact_boundary";
+  summaryText?: string;
+  trigger?: "auto" | "manual";
+  type: "system";
+}
+  | {
+  compactionId?: never;
+  preCompactTokenCount?: never;
+  preservedMessageIds?: never;
+  raw?: unknown;
+  subtype: string;
+  summaryText?: never;
+  trigger?: never;
+  type: "system";
+}
+  | {
+  message: CognitioMessage;
+  parts?: CognitioPart[];
+  raw?: unknown;
+  type: "user";
+}
+  | {
+  message: CognitioMessage;
+  parts?: CognitioPart[];
+  raw?: unknown;
+  reasoning?: string;
+  text?: string;
+  type: "assistant";
+}
+  | {
+  delta: string;
+  field: string;
+  messageId: string;
+  partId: string;
+  raw?: unknown;
+  type: "partial";
+}
+  | {
+  part: CognitioPart;
+  raw?: unknown;
+  type: "part";
+}
+  | {
+  raw?: unknown;
+  sessionId: string;
+  todos: TodoItem[];
+  type: "todo.updated";
+}
+  | {
+  checkpoint: CheckpointHandle;
+  raw?: unknown;
+  type: "checkpoint.created";
+}
+  | {
+  affectedFiles: string[];
+  checkpointId: string;
+  raw?: unknown;
+  type: "session.rewound";
+}
+  | {
+  input: unknown;
+  raw?: unknown;
+  requestId: string;
+  tool: string;
+  type: "permission.request";
+}
+  | {
+  input: unknown;
+  name: string;
+  raw?: unknown;
+  toolUseId: string;
+  type: "tool.use";
+}
+  | {
+  output: unknown;
+  raw?: unknown;
+  toolUseId: string;
+  type: "tool.result";
+}
+  | {
+  agent: string;
+  childSessionId: string;
+  messageId: string;
+  parentSessionId: string;
+  raw?: unknown;
+  rootSessionId: string;
+  spawnMode: "fresh" | "inherit";
+  taskId: string;
+  toolCallId?: string;
+  type: "subagent.start";
+}
+  | {
+  agent: string;
+  childSessionId: string;
+  messageId: string;
+  parentSessionId: string;
+  raw?: unknown;
+  rootSessionId: string;
+  spawnMode: "fresh" | "inherit";
+  status: string;
+  taskId: string;
+  title?: string;
+  toolCallId?: string;
+  type: "subagent.progress";
+}
+  | {
+  agent: string;
+  childSessionId: string;
+  error?: string;
+  messageId: string;
+  parentSessionId: string;
+  raw?: unknown;
+  result?: string;
+  rootSessionId: string;
+  spawnMode: "fresh" | "inherit";
+  status: "completed" | "error" | "cancelled";
+  taskId: string;
+  toolCallId?: string;
+  type: "subagent.stop";
+}
+  | RateLimitEvent
+  | TaskStartedEvent
+  | TaskProgressEvent
+  | TaskNotificationEvent
+  | TaskStoppedEvent
+  | {
+  raw?: unknown;
+  result: ResultMessage;
+  text?: string;
+  type: "result";
+}
+  | {
+  event: CognitioEvent;
+  type: "raw";
+};
+```
+
+Normalized stream messages surfaced by `session.stream()`. Original runtime
+event payloads are available in `raw` where applicable.
+
+## Union Members
+
+### Type Literal
+
+```ts
+{
+  compactionId?: string;
+  preCompactTokenCount?: number;
+  preservedMessageIds?: string[];
+  raw?: unknown;
+  subtype: "system.compact_boundary";
+  summaryText?: string;
+  trigger?: "auto" | "manual";
+  type: "system";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  compactionId?: never;
+  preCompactTokenCount?: never;
+  preservedMessageIds?: never;
+  raw?: unknown;
+  subtype: string;
+  summaryText?: never;
+  trigger?: never;
+  type: "system";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  message: CognitioMessage;
+  parts?: CognitioPart[];
+  raw?: unknown;
+  type: "user";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  message: CognitioMessage;
+  parts?: CognitioPart[];
+  raw?: unknown;
+  reasoning?: string;
+  text?: string;
+  type: "assistant";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  delta: string;
+  field: string;
+  messageId: string;
+  partId: string;
+  raw?: unknown;
+  type: "partial";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  part: CognitioPart;
+  raw?: unknown;
+  type: "part";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  raw?: unknown;
+  sessionId: string;
+  todos: TodoItem[];
+  type: "todo.updated";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  checkpoint: CheckpointHandle;
+  raw?: unknown;
+  type: "checkpoint.created";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  affectedFiles: string[];
+  checkpointId: string;
+  raw?: unknown;
+  type: "session.rewound";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  input: unknown;
+  raw?: unknown;
+  requestId: string;
+  tool: string;
+  type: "permission.request";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  input: unknown;
+  name: string;
+  raw?: unknown;
+  toolUseId: string;
+  type: "tool.use";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  output: unknown;
+  raw?: unknown;
+  toolUseId: string;
+  type: "tool.result";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  agent: string;
+  childSessionId: string;
+  messageId: string;
+  parentSessionId: string;
+  raw?: unknown;
+  rootSessionId: string;
+  spawnMode: "fresh" | "inherit";
+  taskId: string;
+  toolCallId?: string;
+  type: "subagent.start";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  agent: string;
+  childSessionId: string;
+  messageId: string;
+  parentSessionId: string;
+  raw?: unknown;
+  rootSessionId: string;
+  spawnMode: "fresh" | "inherit";
+  status: string;
+  taskId: string;
+  title?: string;
+  toolCallId?: string;
+  type: "subagent.progress";
+}
+```
+
+***
+
+### Type Literal
+
+```ts
+{
+  agent: string;
+  childSessionId: string;
+  error?: string;
+  messageId: string;
+  parentSessionId: string;
+  raw?: unknown;
+  result?: string;
+  rootSessionId: string;
+  spawnMode: "fresh" | "inherit";
+  status: "completed" | "error" | "cancelled";
+  taskId: string;
+  toolCallId?: string;
+  type: "subagent.stop";
+}
+```
+
+***
+
+[`RateLimitEvent`](../interfaces/RateLimitEvent)
+
+***
+
+[`TaskStartedEvent`](../interfaces/TaskStartedEvent)
+
+***
+
+[`TaskProgressEvent`](../interfaces/TaskProgressEvent)
+
+***
+
+[`TaskNotificationEvent`](../interfaces/TaskNotificationEvent)
+
+***
+
+[`TaskStoppedEvent`](../interfaces/TaskStoppedEvent)
+
+***
+
+### Type Literal
+
+```ts
+{
+  raw?: unknown;
+  result: ResultMessage;
+  text?: string;
+  type: "result";
+}
+```
+
+Terminal message of a turn. `text` mirrors `result.text` so a consumer
+that only switches on the envelope never has to reach into `result`.
+
+***
+
+### Type Literal
+
+```ts
+{
+  event: CognitioEvent;
+  type: "raw";
+}
+```

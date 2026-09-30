@@ -1,0 +1,322 @@
+---
+title: "Class: Agent"
+description: "Generated from the public TypeScript API."
+---
+
+
+High-level facade over the complete low-level Agent SDK.
+
+Each `run()` or `stream()` uses a fresh server session. Use
+`createSession()` for explicit multi-turn state.
+
+## Example
+
+```ts
+const agent = new Agent({ model: "anthropic/claude-sonnet-4-5" })
+const result = await agent.run("Summarize this repository.")
+await agent.close()
+```
+
+## Constructors
+
+### Constructor
+
+```ts
+new Agent(options?): Agent;
+```
+
+Validate and create an Agent facade without starting a server.
+
+#### Parameters
+
+##### options?
+
+[`AgentOptions`](../interfaces/AgentOptions)
+
+Facade, runtime, and connection options.
+
+#### Returns
+
+`Agent`
+
+#### Throws
+
+When options conflict, a model id is malformed, or runtime config is unsupported.
+
+#### Example
+
+```ts
+const agent = new Agent({
+  instructions: "You are a release reviewer.",
+  disallowedTools: [],
+})
+```
+
+## Methods
+
+### client()
+
+```ts
+client(): Promise<AgentClient>;
+```
+
+Access the full low-level client used by this Agent.
+
+Mixing low-level active Session handles with facade resume ownership is
+unsupported. Injected clients remain borrowed.
+
+#### Returns
+
+`Promise`\<[`AgentClient`](../interfaces/AgentClient)\>
+
+The current low-level client.
+
+#### Throws
+
+When the Agent is closed or client creation fails.
+
+#### Example
+
+```ts
+const sessions = await (await agent.client()).sessions.list()
+```
+
+***
+
+### close()
+
+```ts
+close(): Promise<void>;
+```
+
+Close every stream and Session owned by this Agent.
+
+Dedicated clients are closed. The process-global canonical client
+survives until `shutdown()`, and injected clients are never closed.
+Concurrent calls share one teardown promise.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+A promise that settles after all owned resources are handled.
+
+#### Throws
+
+When teardown fails; multiple failures are combined in an `AggregateError`.
+
+#### Example
+
+```ts
+await agent.close()
+```
+
+***
+
+### createSession()
+
+```ts
+createSession(options?): Promise<Session>;
+```
+
+Create a long-lived Session for explicit multi-turn work.
+
+#### Parameters
+
+##### options?
+
+[`AgentSessionOptions`](../interfaces/AgentSessionOptions)
+
+Flat session-create overrides. Turn cancellation is not accepted here.
+
+#### Returns
+
+`Promise`\<[`Session`](Session)\>
+
+A caller-managed Session also owned by this Agent.
+
+#### Throws
+
+When the Agent is closed or creation fails.
+
+#### Example
+
+```ts
+const session = await agent.createSession({ title: "Investigation" })
+await session.send("Start with the failing test.")
+```
+
+***
+
+### fork()
+
+```ts
+fork(sessionId, options?): Promise<Session>;
+```
+
+Fork a session transcript and apply the full facade profile before its
+dispatcher starts.
+
+Forks inherit the source working directory; a constructor `cwd` or
+`directory` is therefore rejected.
+
+#### Parameters
+
+##### sessionId
+
+`string`
+
+Source session id.
+
+##### options?
+
+Optional source message boundary.
+
+###### messageId?
+
+`string`
+
+#### Returns
+
+`Promise`\<[`Session`](Session)\>
+
+The configured fork Session.
+
+#### Throws
+
+On a cwd override, ownership conflict, or fork/configuration failure.
+
+#### Example
+
+```ts
+const fork = await agent.fork("ses_source", { messageId: "msg_boundary" })
+await fork.send("Try another approach.")
+```
+
+***
+
+### resume()
+
+```ts
+resume(sessionId): Promise<Session>;
+```
+
+Attach to an existing server session.
+
+Resume preserves stored runtime config and applies explicit constructor
+overrides before attaching callbacks and tools. Default facade values do
+not overwrite the stored configuration. Working directory cannot change.
+
+#### Parameters
+
+##### sessionId
+
+`string`
+
+Existing session id on this Agent's server.
+
+#### Returns
+
+`Promise`\<[`Session`](Session)\>
+
+A live Session owned by this Agent.
+
+#### Throws
+
+On unsupported resume fields, ownership conflict, or missing session.
+
+#### Example
+
+```ts
+const session = await agent.resume("ses_existing")
+await session.send("Continue.")
+```
+
+***
+
+### run()
+
+```ts
+run(prompt, options?): Promise<RunResult>;
+```
+
+Run a prompt in a fresh session.
+
+Error result subtypes resolve with `isError:true`; setup and transport
+failures reject.
+
+#### Parameters
+
+##### prompt
+
+[`PromptInput`](../type-aliases/PromptInput)
+
+One prompt or an asynchronous sequence of turns.
+
+##### options?
+
+[`RunOptions`](../interfaces/RunOptions)
+
+Flat per-run overrides.
+
+#### Returns
+
+`Promise`\<[`RunResult`](../interfaces/RunResult)\>
+
+The final turn result with required `text` and `isError`.
+
+#### Throws
+
+When the Agent is closed or setup/transport fails.
+
+#### Example
+
+```ts
+const result = await agent.run("Review the staged diff.")
+if (!result.isError) console.log(result.text)
+```
+
+***
+
+### stream()
+
+```ts
+stream(prompt, options?): AgentStream;
+```
+
+Stream normalized events from a fresh session.
+
+Startup is lazy: the session is created by the first `next()`,
+`sessionId()`, or control call. Early loop exit invokes `return()`; call
+`close()` explicitly when abandoning a handle outside a loop.
+
+#### Parameters
+
+##### prompt
+
+[`PromptInput`](../type-aliases/PromptInput)
+
+One prompt or an asynchronous sequence of turns.
+
+##### options?
+
+[`AgentStreamOptions`](../interfaces/AgentStreamOptions)
+
+Stream and per-run overrides.
+
+#### Returns
+
+[`AgentStream`](../interfaces/AgentStream)
+
+A synchronous async-iterator handle with session controls.
+
+#### Throws
+
+Synchronously when the Agent is closed or options are invalid.
+
+#### Example
+
+```ts
+const stream = agent.stream("Explain this repository.")
+for await (const message of stream) console.log(message.type)
+```

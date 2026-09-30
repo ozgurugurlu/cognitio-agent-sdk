@@ -1,0 +1,17 @@
+---
+title: "Type Alias: OutputOf<Format>"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+type OutputOf<Format> = Format extends OutputFormatSpec<infer Output> ? Output : never;
+```
+
+Extract the output type from a format created with defineOutputFormat.
+
+## Type Parameters
+
+### Format
+
+`Format`

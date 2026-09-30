@@ -1,0 +1,7 @@
+{
+  "source": "test/tool/fixtures/models-api.json",
+  "upstream": "https://models.dev/api.json",
+  "sourceSha256": "d32cf2435204c4750e13ea1880f4fcf1ada49e6922f364cbf288da9f6128b46c",
+  "catalogSha256": "b003eed3ab708d348ac405bd71581f70b443eca7c73758a18be7f36626e25e03",
+  "providers": 103
+}

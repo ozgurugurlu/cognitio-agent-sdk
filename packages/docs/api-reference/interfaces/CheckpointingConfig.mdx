@@ -1,0 +1,37 @@
+---
+title: "Interface: CheckpointingConfig"
+description: "Generated from the public TypeScript API."
+---
+
+
+Checkpoint creation policy; beforeTools defaults to true when checkpointing is enabled.
+
+## Properties
+
+### beforeCompaction?
+
+```ts
+optional beforeCompaction?: boolean;
+```
+
+Capture a file snapshot before context compaction when enabled.
+
+***
+
+### beforeTools?
+
+```ts
+optional beforeTools?: boolean;
+```
+
+Capture before eligible tool mutations when automatic checkpoints are enabled. Defaults to true.
+
+***
+
+### enabled?
+
+```ts
+optional enabled?: boolean;
+```
+
+Enable automatic checkpoint policy.

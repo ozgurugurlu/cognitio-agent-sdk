@@ -1,0 +1,45 @@
+---
+title: "Continue a conversation"
+description: "Close a session handle and resume the same transcript while its runtime stays alive."
+---
+
+The project in `examples/04-session-memory/` demonstrates two conversation turns separated by a closed local session handle. It owns one client for the entire demonstration, so its isolated runtime and database remain alive between turns.
+
+## Run the project
+
+From the repository root, use the commands below. If you copied the project elsewhere, enter its directory and omit the first `cd` line.
+
+```sh
+cd examples/04-session-memory
+npm ci
+cp .env.example .env
+# Set OPENAI_API_KEY in .env, then:
+npm start
+```
+
+Use Node.js 22 or newer. On PowerShell, use `Copy-Item .env.example .env`. The program makes two short model requests and reports the resumed session ID and the recalled answer. It closes the owned client even if a request fails.
+
+## Resume the same session
+
+The central sequence, after constructing the client and creating a session with the model and text-only policy, is:
+
+```ts
+const first = await session.send("Remember that the project uses PostgreSQL.")
+if (first.subtype !== "success") throw new Error(`First turn ended: ${first.subtype}`)
+const id = session.id
+await session.close()
+const resumed = await client.sessions.resume(id)
+const result = await resumed.send("Which database did I name?")
+if (result.subtype !== "success") throw new Error(`Recall ended: ${result.subtype}`)
+console.log(resumed.id, result.text)
+```
+
+`session.close()` releases the local handle and callbacks; it does not normally delete the server transcript. The client stays alive throughout both turns. The application that created it must eventually call `client.close()`. If you use an Agent with an injected `client`, the Agent borrows that client and does not close it for you.
+
+The example validates that it resumed the original session and recalled the supplied fact. Provider responses can vary, and this small demonstration is not a long-term memory store.
+
+## Persistence ends with the runtime
+
+The client's default isolated scratch storage is removed when its owner closes it. Running `npm start` again starts a new runtime and a new demonstration. Saving the session ID alone does not preserve the conversation across program restarts.
+
+For persistence across restarts, use a [persistent runtime](/cookbook/remote) or explicitly managed local state. Runtime overrides and callback functions have their own lifetime and must be restored after a server/process restart; see [session ownership](/concepts/sessions).

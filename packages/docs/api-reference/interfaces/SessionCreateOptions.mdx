@@ -1,0 +1,57 @@
+---
+title: "Interface: SessionCreateOptions"
+description: "Generated from the public TypeScript API."
+---
+
+
+Options for a new server session, including its working directory, metadata and ephemeral runtime configuration.
+
+## Properties
+
+### cwd?
+
+```ts
+optional cwd?: string;
+```
+
+Working directory on the runtime host.
+
+***
+
+### parentId?
+
+```ts
+optional parentId?: string;
+```
+
+Optional parent session identifier.
+
+***
+
+### permission?
+
+```ts
+optional permission?: PermissionRuleset;
+```
+
+Persisted ordered permission rules.
+
+***
+
+### runtimeConfig?
+
+```ts
+optional runtimeConfig?: RuntimeConfig;
+```
+
+Session-scoped policy and local callbacks.
+
+***
+
+### title?
+
+```ts
+optional title?: string;
+```
+
+Optional initial session title.

@@ -1,0 +1,42 @@
+---
+title: "Installation"
+description: "Runtime packages, platform support and binary resolution."
+---
+## Package managers
+
+```sh
+npm install cognitio-agent-sdk
+# or
+bun add cognitio-agent-sdk
+# or
+pnpm add cognitio-agent-sdk
+```
+
+The JavaScript SDK runs under Node.js 22+ and Bun. It is ESM. TypeScript types are included. No installation-time download script is required; npm installs the matching native runtime as an optional package.
+
+| OS | Architectures | Runtime variants |
+| --- | --- | --- |
+| macOS | arm64, x64 | native; x64 baseline |
+| Linux | arm64, x64 | glibc and musl; x64 baseline |
+| Windows | arm64, x64 | native; x64 baseline |
+
+A cross-built artifact is not the same as an executed platform test. Release CI and the [publishing guide](/publishing) describe the validation matrix.
+
+## Binary resolution
+
+The SDK resolves an explicit `spawn.binaryPath`, then `COGNITIO_BIN_PATH`, then the installed platform package, then a `cognitio` executable on `PATH`. Bundled and PATH-selected binaries must report the expected runtime version. The explicit `spawn.binaryPath` and `COGNITIO_BIN_PATH` overrides bypass that automatic version check; you own their compatibility.
+
+```ts
+const agent = new Agent({
+  model: "anthropic/claude-sonnet-4-5",
+  spawn: { binaryPath: "/absolute/path/to/cognitio" },
+})
+```
+
+Prefer an absolute executable path. Relative paths such as `"./bin/cognitio"` resolve against the SDK process's current directory; a bare command name such as `"cognitio"` is not a valid `binaryPath`. Keep optional dependencies enabled when relying on the bundled local runtime. For a minimal image with no native binary, use [remote mode](/cookbook/remote).
+
+## Reproducible installation
+
+Commit your application's lockfile. The main package pins its platform packages to the same exact SDK version. Upgrade the main package to upgrade the bundled runtime; the runtime never upgrades itself.
+
+Contributors use `bun install --frozen-lockfile` at the repository root, then run checks from the package directories. The public repository's `CONTRIBUTING.md` lists the commands.

@@ -1,0 +1,37 @@
+---
+title: "Permissions"
+description: "Make authorization part of your application."
+---
+| Mode | Intent |
+| --- | --- |
+| `default` | Apply rules and ask when a decision is needed. |
+| `acceptEdits` | Allow ordinary edits while retaining checks for other operations. |
+| `dontAsk` | Deny operations that would require an unanswered prompt. |
+| `plan` | Restrict operations to planning/read-oriented behavior. |
+| `bypassPermissions` | Bypass permission prompts; use only with an intentional external boundary. |
+| `auto` | Classify unresolved requests, then use the callback/user path when classification cannot decide. |
+
+## Answer permission requests
+
+```ts
+import { Agent, PermissionDecision } from "cognitio-agent-sdk"
+const agent = new Agent({
+  model: "anthropic/claude-sonnet-4-5",
+  permission: [{ permission: "*", pattern: "*", action: "ask" }],
+  canUseTool(name) {
+    return name === "read" || name === "grep"
+      ? PermissionDecision.allow()
+      : PermissionDecision.deny("This agent only reads files.")
+  },
+})
+```
+
+The explicit ask rule makes this example's unresolved operations reach the callback. `allow(updatedInput)` can replace tool input; validate replacement arguments in your application. `deny(message)` returns a reason. `ask()` leaves the user-decision path pending; it is not an approval or an automatic denial. Headless applications should return a concrete allow/deny decision or use a policy such as `dontAsk` that denies unresolved requests.
+
+`allowedTools` and explicit allow rules can approve matching operations before `canUseTool` runs. Permission modes also run before the callback: bypass, accepted edits and confident auto classification may settle a request. The callback handles unresolved requests; it is not a universal interceptor. Use `disallowedTools` or deny rules for restrictions that must always apply.
+
+The callback runs in your process over an SSE/POST control channel. The server stores a descriptor, not the function. Rebind callbacks when resuming after a process restart. Set `canUseTool: false` in an explicit resume override to remove a previous callback. A callback timeout or unavailable control channel can leave the user-decision path pending; use an application cancellation deadline and do not assume every failure becomes a denial.
+
+`autoPermissionClassifierModel` chooses the classifier model. Classification may incur extra provider usage and is not an OS sandbox. Uncertain or failed classification falls through to the callback/user path. Put unconditional restrictions in deterministic deny rules or the tool denylist.
+
+You can change mode on a live idle session with `session.setPermissionMode(mode)` and inspect the resulting configuration with `getAppliedSettings()`.

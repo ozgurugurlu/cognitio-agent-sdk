@@ -1,0 +1,156 @@
+---
+title: دعم ACP
+description: استخدم Cognitio في أي محرر متوافق مع ACP.
+---
+
+يدعم Cognitio بروتوكول [Agent Client Protocol](https://agentclientprotocol.com) أو (ACP)، مما يتيح لك استخدامه مباشرة في المحررات وبيئات التطوير المتكاملة (IDEs) المتوافقة.
+
+:::tip
+للاطلاع على قائمة بالمحررات والأدوات التي تدعم ACP، راجع [ACP progress report](https://zed.dev/blog/acp-progress-report#available-now).
+:::
+
+ACP بروتوكول مفتوح يوحّد آلية التواصل بين محررات الشيفرة ووكلاء البرمجة بالذكاء الاصطناعي.
+
+---
+
+## الإعداد
+
+لاستخدام Cognitio عبر ACP، اضبط محررك ليشغّل الأمر `cognitio acp`.
+
+يشغّل هذا الأمر Cognitio كعملية فرعية متوافقة مع ACP تتواصل مع محررك عبر JSON-RPC باستخدام stdio.
+
+فيما يلي أمثلة لمحررات شائعة تدعم ACP.
+
+---
+
+### Zed
+
+أضف إلى إعدادات [Zed](https://zed.dev) (`~/.config/zed/settings.json`):
+
+```json title="~/.config/zed/settings.json"
+{
+  "agent_servers": {
+    "Cognitio": {
+      "command": "cognitio",
+      "args": ["acp"]
+    }
+  }
+}
+```
+
+لفتحه، استخدم الإجراء `agent: new thread` في **Command Palette**.
+
+يمكنك أيضا ربط اختصار لوحة مفاتيح عبر تعديل `keymap.json`:
+
+```json title="keymap.json"
+[
+  {
+    "bindings": {
+      "cmd-alt-o": [
+        "agent::NewExternalAgentThread",
+        {
+          "agent": {
+            "custom": {
+              "name": "Cognitio",
+              "command": {
+                "command": "cognitio",
+                "args": ["acp"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+]
+```
+
+---
+
+### JetBrains IDEs
+
+أضف إلى ملف acp.json الخاص بـ [JetBrains IDE](https://www.jetbrains.com/) وفقا لـ [documentation](https://www.jetbrains.com/help/ai-assistant/acp.html):
+
+```json title="acp.json"
+{
+  "agent_servers": {
+    "Cognitio": {
+      "command": "/absolute/path/bin/cognitio",
+      "args": ["acp"]
+    }
+  }
+}
+```
+
+لفتحه، اختر الوكيل الجديد 'Cognitio' من محدد الوكلاء في AI Chat.
+
+---
+
+### Avante.nvim
+
+أضف إلى إعدادات [Avante.nvim](https://github.com/yetone/avante.nvim):
+
+```lua
+{
+  acp_providers = {
+    ["cognitio"] = {
+      command = "cognitio",
+      args = { "acp" }
+    }
+  }
+}
+```
+
+إذا احتجت إلى تمرير متغيرات البيئة:
+
+```lua {6-8}
+{
+  acp_providers = {
+    ["cognitio"] = {
+      command = "cognitio",
+      args = { "acp" },
+      env = {
+        COGNITIO_API_KEY = os.getenv("COGNITIO_API_KEY")
+      }
+    }
+  }
+}
+```
+
+---
+
+### CodeCompanion.nvim
+
+لاستخدام Cognitio كوكيل ACP في [CodeCompanion.nvim](https://github.com/olimorris/codecompanion.nvim)، أضف التالي إلى إعدادات Neovim:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = {
+        name = "cognitio",
+        model = "claude-sonnet-4",
+      },
+    },
+  },
+})
+```
+
+يضبط هذا الإعداد CodeCompanion لاستخدام Cognitio كوكيل ACP للدردشة.
+
+إذا احتجت إلى تمرير متغيرات البيئة (مثل `COGNITIO_API_KEY`)، فارجع إلى [Configuring Adapters: Environment Variables](https://codecompanion.olimorris.dev/getting-started#setting-an-api-key) ضمن توثيق CodeCompanion.nvim للاطلاع على التفاصيل كاملة.
+
+## الدعم
+
+يعمل Cognitio عبر ACP بالطريقة نفسها التي يعمل بها في terminal. جميع الميزات مدعومة:
+
+:::note
+بعض أوامر الشرطة المائلة المضمنة مثل `/undo` و`/redo` غير مدعومة حاليا.
+:::
+
+- الأدوات المضمنة (عمليات الملفات، أوامر terminal، إلخ.)
+- الأدوات المخصصة وأوامر الشرطة المائلة
+- خوادم MCP المضبوطة في إعدادات Cognitio
+- قواعد خاصة بالمشروع من `AGENTS.md`
+- المنسقات (formatters) والمدققات (linters) المخصصة
+- نظام الوكلاء والأذونات

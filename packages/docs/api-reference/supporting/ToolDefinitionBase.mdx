@@ -1,0 +1,26 @@
+---
+title: "ToolDefinitionBase"
+description: "Exact type definition referenced by the public SDK."
+---
+
+This definition is generated from the same source as the SDK. Protocol types describe the runtime HTTP API; prefer the high-level SDK for session ownership and callbacks.
+
+```ts
+export interface ToolDefinitionBase<Input = unknown, Output = unknown> {
+  name: string
+  description?: string
+  execute(args: Input, ctx: ToolContext): Promise<Output> | Output
+  metadata?: {
+    searchHint?: string
+    alwaysLoad?: boolean
+  }
+  annotations?: {
+    readOnly?: boolean
+    destructive?: boolean
+    idempotent?: boolean
+    openWorld?: boolean
+  }
+}
+```
+
+Related types: [ToolContext](/api-reference/supporting/ToolContext).

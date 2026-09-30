@@ -1,0 +1,30 @@
+---
+title: "Subagents"
+description: "Delegate focused work with session-scoped definitions."
+---
+```ts
+import { Agent, defineAgent } from "cognitio-agent-sdk"
+const agent = new Agent({
+  model: "anthropic/claude-sonnet-4-5",
+  agents: {
+    reviewer: defineAgent({
+      description: "Review a change for correctness.",
+      prompt: "Return concrete defects with file references.",
+      tools: ["read", "grep", "glob"],
+      permissionMode: "dontAsk",
+      steps: 5,
+      spawnMode: "fresh",
+    }),
+  },
+})
+```
+
+Definitions are scoped to the parent session. They can select a model, prompt, tool policy, permissions, step budget, temperature and external MCP servers. The `task` tool dispatches to an available subagent; tool policy must allow it.
+
+`spawnMode: "fresh"` starts with new context. `"inherit"` branches the parent's context. A child with its own prompt does not inherit the parent's custom prompt text as an accidental second identity. Parent policy and callback ownership still constrain execution.
+
+Watch `subagent.start` and `subagent.stop` messages for lifecycle and outcomes. Child SDK tools route through the root control channel, so keep the owning Agent/client alive.
+
+`session.setAgents(map)` replaces the session's runtime agent map. Pass every definition you want retained. It does not register a global agent for all other sessions.
+
+V2 tasks run to completion within their parent turn (`backgroundTaskPolicy: { mode: "foreground" }`). Task progress events exist, but durable detached jobs, cron and cross-session team orchestration are outside v2.

@@ -1,0 +1,30 @@
+---
+title: "Lifecycle and failure handling"
+description: "Close what you own and preserve useful errors."
+---
+Use `try/finally` around every owned Agent or client. Session handles, callback dispatchers, MCP servers and spawned runtimes have related but distinct lifetimes.
+
+Default Agents and `query()` share a process-wide runtime. Close each Agent when its work is finished and call `shutdown()` once at application teardown. Closing an Agent does not stop that shared runtime. Explicit connection options such as `spawn` create a dedicated client that the Agent closes. Injected clients are borrowed and must be closed by their creator; `shutdown()` does not close them.
+
+```ts
+import { createAgentClient } from "cognitio-agent-sdk"
+
+const client = await createAgentClient()
+try {
+  const session = await client.sessions.create({ runtimeConfig: { model: "anthropic/claude-sonnet-4-5" } })
+  const result = await session.send("Hello")
+  if (result.subtype !== "success") console.error(result)
+} finally {
+  await client.close()
+}
+```
+
+Calling `close()` repeatedly is safe. Closing during work requests cancellation and waits for cleanup. Cleanup failures can aggregate several underlying errors; inspect their causes rather than assuming the first error is the only one.
+
+The example above owns its low-level client, so `client.close()` stops its local runtime. Closing a remote client only closes local subscriptions and handles; the server stays running. Guide fragments that only show configuration assume your application supplies this surrounding lifecycle.
+
+V2 adds tagged SDK errors for programmatic setup, configuration, lifecycle and transport decisions. Use the exported error guard and `kind` discriminator. Provider/tool result errors may also arrive as unsuccessful terminal messages. Avoid matching human-readable error strings in application logic.
+
+Signal cleanup applies to SDK-owned child processes. Injected `spawnProcess` implementations must implement the documented child-process event and exit contract, including `on`, `once`, `off`, `kill`, streams and exit/signal state. Missing exit properties mean not-yet-known, not already-exited.
+
+Retry only when the operation is safe to repeat. A lost connection does not prove a tool did not execute. Use idempotency keys in your own side-effectful tools and inspect persisted sessions before replaying a task.

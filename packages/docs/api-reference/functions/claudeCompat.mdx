@@ -1,0 +1,35 @@
+---
+title: "Function: claudeCompat()"
+description: "Generated from the public TypeScript API."
+---
+
+
+```ts
+function claudeCompat(path): ClaudePluginSpec;
+```
+
+Describe a local Claude-compatible plugin directory.
+
+## Parameters
+
+### path
+
+`string`
+
+Path resolved by the runtime host.
+
+## Returns
+
+[`ClaudePluginSpec`](../interfaces/ClaudePluginSpec)
+
+A compatible-plugin descriptor.
+
+## Throws
+
+An empty path.
+
+## Example
+
+```ts
+const definition = claudeCompat("/srv/plugins/reviewer")
+```

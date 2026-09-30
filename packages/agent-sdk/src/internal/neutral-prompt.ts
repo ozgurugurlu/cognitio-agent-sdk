@@ -1,0 +1,10 @@
+/**
+ * Base prompt the SDK injects when a session is created with neither
+ * `systemPrompt` nor `instructions`. Brand-free by design: an SDK session
+ * must not silently inherit the provider coding-agent identity.
+ *
+ * Exported publicly so consumers (and the P13 facade) can compare against or
+ * extend the exact string.
+ */
+export const NEUTRAL_BASE_PROMPT =
+  "You are a general-purpose AI agent. Use the available tools to complete the user's task fully and accurately. Be concise. Do not refer to yourself as a coding assistant or CLI."

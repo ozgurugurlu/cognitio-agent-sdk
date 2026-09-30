@@ -1,0 +1,25 @@
+---
+title: "Migrating to v2"
+description: "Package identity, isolated defaults and explicit ownership."
+---
+V2 is published as `cognitio-agent-sdk`. Update imports, lockfiles and deployment manifests together. Internal workspace packages use `@cognitio/*`; consumers install the public agent package only.
+
+The runtime executable is `cognitio`, configuration uses `.cognitio` / `cognitio.json`, and runtime environment variables use `COGNITIO_`. Existing upstream environment names are not a supported fallback. Preserve upstream attribution when redistributing source.
+
+## Defaults that changed
+
+Local `createAgentClient()` now isolates the runtime by default, matching `Agent` and `query()`. Session `settingSources` defaults to an empty list. Pass provider auth explicitly if you previously relied on a host auth file. Choose `spawn.isolated: false` plus explicit setting sources only when host configuration is intended.
+
+Use `systemPrompt: { type: "preset", preset: "default" }` for the coding prompt. The neutral prompt remains the default; the preset does not restore configuration discovery or the facade's hidden tools.
+
+Runtime binaries are exact-pinned optional packages. Do not install an upstream executable as a substitute. `spawn.binaryPath` is an explicit compatibility responsibility, not a way to bypass a failed bundled install unnoticed.
+
+## Session changes
+
+Resume supports explicit runtime overrides with rollback on attachment failure. Runtime fork copies serializable policy; callback capabilities need rebinding in the attaching SDK process. `deleteSessionsOnClose` is opt-in and applies only to sessions owned through creation/fork.
+
+New reasoning, checkpoint and compaction settings are validated. Previously reserved unsupported fields now have concrete schemas; arbitrary records are rejected. Check tagged errors and terminal result subtypes rather than parsing exception text.
+
+An empty `allowedTools` array leaves the allowlist unrestricted. Use `disallowedTools: ["*"]` for a text-only agent, or a nonempty allowlist for selected tools. Custom tool schemas describe arguments; validate callback input in your own `execute` implementation.
+
+Default Agents and `query()` share a process-wide runtime. Closing their handles does not stop it; use `shutdown()` at application teardown. Agents with explicit `spawn` options own dedicated clients, and injected clients remain their creator's responsibility.

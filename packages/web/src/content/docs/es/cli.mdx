@@ -1,0 +1,602 @@
+---
+title: CLI
+description: Opciones y comandos de la CLI de Cognitio.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components"
+
+La CLI de Cognitio de forma predeterminada inicia el [TUI](/docs/tui) cuando se ejecuta sin ningún argumento.
+
+```bash
+cognitio
+```
+
+Pero también acepta comandos como se documenta en esta página. Esto le permite interactuar con Cognitio mediante programación.
+
+```bash
+cognitio run "Explain how closures work in JavaScript"
+```
+
+---
+
+### tui
+
+Inicie la interfaz de usuario del terminal Cognitio.
+
+```bash
+cognitio [project]
+```
+
+#### Opciones
+
+| Opción       | Corta | Descripción                                                           |
+| ------------ | ----- | --------------------------------------------------------------------- |
+| `--continue` | `-c`  | Continuar la última sesión                                            |
+| `--session`  | `-s`  | ID de sesión para continuar                                           |
+| `--fork`     |       | Bifurcar la sesión al continuar (usar con `--continue` o `--session`) |
+| `--prompt`   |       | Aviso de uso                                                          |
+| `--model`    | `-m`  | Modelo a utilizar en forma de proveedor/modelo                        |
+| `--agent`    |       | Agente a utilizar                                                     |
+| `--port`     |       | Puerto para escuchar                                                  |
+| `--hostname` |       | Nombre de host para escuchar                                          |
+
+---
+
+## Comandos
+
+La CLI de Cognitio también tiene los siguientes comandos.
+
+---
+
+### agent
+
+Administrar agentes para Cognitio.
+
+```bash
+cognitio agent [command]
+```
+
+---
+
+### attach
+
+Conecte una terminal a un servidor backend Cognitio que ya se esté ejecutando y iniciado mediante los comandos `serve` o `web`.
+
+```bash
+cognitio attach [url]
+```
+
+Esto permite usar TUI con un backend remoto Cognitio. Por ejemplo:
+
+```bash
+# Start the backend server for web/mobile access
+cognitio web --port 4096 --hostname 0.0.0.0
+
+# In another terminal, attach the TUI to the running backend
+cognitio attach http://10.20.30.40:4096
+```
+
+#### Opciones
+
+| Opción      | Corta | Descripción                               |
+| ----------- | ----- | ----------------------------------------- |
+| `--dir`     |       | Directorio de trabajo para iniciar TUI en |
+| `--session` | `-s`  | ID de sesión para continuar               |
+
+---
+
+#### create
+
+Cree un nuevo agente con configuración personalizada.
+
+```bash
+cognitio agent create
+```
+
+Este comando lo guiará en la creación de un nuevo agente con un mensaje del sistema personalizado y una configuración de herramientas.
+
+---
+
+#### list
+
+Enumere todos los agentes disponibles.
+
+```bash
+cognitio agent list
+```
+
+---
+
+### auth
+
+Comando para administrar credenciales e iniciar sesión para proveedores.
+
+```bash
+cognitio auth [command]
+```
+
+---
+
+#### login
+
+Cognitio funciona con la lista de proveedores en [Models.dev](https://models.dev), por lo que puede usar `cognitio auth login` para configurar las claves API para cualquier proveedor que desee utilizar. Esto se almacena en `~/.local/share/cognitio/auth.json`.
+
+```bash
+cognitio auth login
+```
+
+Cuando se inicia Cognitio, carga los proveedores desde el archivo de credenciales. Y si hay claves definidas en sus entornos o un archivo `.env` en su proyecto.
+
+---
+
+#### list
+
+Enumera todos los proveedores autenticados tal como están almacenados en el archivo de credenciales.
+
+```bash
+cognitio auth list
+```
+
+O la versión corta.
+
+```bash
+cognitio auth ls
+```
+
+---
+
+#### logout
+
+Cierra tu sesión de un proveedor eliminándolo del archivo de credenciales.
+
+```bash
+cognitio auth logout
+```
+
+---
+
+### github
+
+Administre el agente GitHub para la automatización del repositorio.
+
+```bash
+cognitio github [command]
+```
+
+---
+
+#### install
+
+Instale el agente GitHub en su repositorio.
+
+```bash
+cognitio github install
+```
+
+Esto configura el flujo de trabajo de acciones GitHub necesario y lo guía a través del proceso de configuración. [Más información](/docs/github).
+
+---
+
+#### run
+
+Ejecute el agente GitHub. Esto se usa normalmente en acciones GitHub.
+
+```bash
+cognitio github run
+```
+
+##### Opciones
+
+| Opción    | Descripción                                    |
+| --------- | ---------------------------------------------- |
+| `--event` | GitHub evento simulado para ejecutar el agente |
+| `--token` | GitHub token de acceso personal                |
+
+---
+
+### mcp
+
+Administrar servidores de protocolo de contexto modelo.
+
+```bash
+cognitio mcp [command]
+```
+
+---
+
+#### add
+
+Agregue un servidor MCP a su configuración.
+
+```bash
+cognitio mcp add
+```
+
+Este comando lo guiará para agregar un servidor MCP local o remoto.
+
+---
+
+#### list
+
+Enumere todos los servidores MCP configurados y su estado de conexión.
+
+```bash
+cognitio mcp list
+```
+
+O utilice la versión corta.
+
+```bash
+cognitio mcp ls
+```
+
+---
+
+#### auth
+
+Autentíquese con un servidor MCP habilitado para OAuth.
+
+```bash
+cognitio mcp auth [name]
+```
+
+Si no proporciona un nombre de servidor, se le pedirá que seleccione entre los servidores compatibles con OAuth disponibles.
+
+También puede enumerar los servidores compatibles con OAuth y su estado de autenticación.
+
+```bash
+cognitio mcp auth list
+```
+
+O utilice la versión corta.
+
+```bash
+cognitio mcp auth ls
+```
+
+---
+
+#### logout
+
+Elimine las credenciales OAuth para un servidor MCP.
+
+```bash
+cognitio mcp logout [name]
+```
+
+---
+
+#### debug
+
+Depurar problemas de conexión OAuth para un servidor MCP.
+
+```bash
+cognitio mcp debug <name>
+```
+
+---
+
+### models
+
+Enumere todos los modelos disponibles de los proveedores configurados.
+
+```bash
+cognitio models [provider]
+```
+
+Este comando muestra todos los modelos disponibles en sus proveedores configurados en el formato `provider/model`.
+
+Esto es útil para determinar el nombre exacto del modelo que se usará en [su configuración](/docs/config/).
+
+Opcionalmente, puede pasar un ID de proveedor para filtrar modelos por ese proveedor.
+
+```bash
+cognitio models anthropic
+```
+
+#### Opciones
+
+| Opción      | Descripción                                                                 |
+| ----------- | --------------------------------------------------------------------------- |
+| `--refresh` | Actualizar la caché de modelos desde models.dev                             |
+| `--verbose` | Utilice una salida del modelo más detallada (incluye metadatos como costos) |
+
+Utilice el indicador `--refresh` para actualizar la lista de modelos almacenados en caché. Esto es útil cuando se han agregado nuevos modelos a un proveedor y desea verlos en Cognitio.
+
+```bash
+cognitio models --refresh
+```
+
+---
+
+### run
+
+Ejecute cognitio en modo no interactivo pasando un mensaje directamente.
+
+```bash
+cognitio run [message..]
+```
+
+Esto es útil para secuencias de comandos, automatización o cuando desea una respuesta rápida sin iniciar el TUI completo. Por ejemplo.
+
+```bash "cognitio run"
+cognitio run Explain the use of context in Go
+```
+
+También puede conectarse a una instancia `cognitio serve` en ejecución para evitar tiempos de arranque en frío del servidor MCP en cada ejecución:
+
+```bash
+# Start a headless server in one terminal
+cognitio serve
+
+# In another terminal, run commands that attach to it
+cognitio run --attach http://localhost:4096 "Explain async/await in JavaScript"
+```
+
+#### Opciones
+
+| Opción       | Corta | Descripción                                                                         |
+| ------------ | ----- | ----------------------------------------------------------------------------------- |
+| `--command`  |       | El comando a ejecutar, use mensaje para args                                        |
+| `--continue` | `-c`  | Continuar la última sesión                                                          |
+| `--session`  | `-s`  | ID de sesión para continuar                                                         |
+| `--fork`     |       | Bifurcar la sesión al continuar (usar con `--continue` o `--session`)               |
+| `--share`    |       | Comparte la sesión                                                                  |
+| `--model`    | `-m`  | Modelo a utilizar en forma de proveedor/modelo                                      |
+| `--agent`    |       | Agente a utilizar                                                                   |
+| `--file`     | `-f`  | Archivo(s) para adjuntar al mensaje                                                 |
+| `--format`   |       | Formato: predeterminado (formateado) o json (eventos JSON sin formato)              |
+| `--title`    |       | Título de la sesión (utiliza un mensaje truncado si no se proporciona ningún valor) |
+| `--attach`   |       | Adjuntar a un servidor cognitio en ejecución (por ejemplo, http://localhost:4096)   |
+| `--port`     |       | Puerto para el servidor local (el puerto predeterminado es aleatorio)               |
+
+---
+
+### serve
+
+Inicie un servidor Cognitio sin cabeza para acceso API. Consulte los [documentos del servidor](/docs/server) para conocer la interfaz HTTP completa.
+
+```bash
+cognitio serve
+```
+
+Esto inicia un servidor HTTP que proporciona acceso API a la funcionalidad cognitio sin la interfaz TUI. Configure `COGNITIO_SERVER_PASSWORD` para habilitar la autenticación básica HTTP (el nombre de usuario predeterminado es `cognitio`).
+
+#### Opciones
+
+| Opción       | Descripción                                          |
+| ------------ | ---------------------------------------------------- |
+| `--port`     | Puerto para escuchar                                 |
+| `--hostname` | Nombre de host para escuchar                         |
+| `--mdns`     | Habilitar el descubrimiento de mDNS                  |
+| `--cors`     | Orígenes de navegador adicionales para permitir CORS |
+
+---
+
+### session
+
+Administrar Cognitio sesiones.
+
+```bash
+cognitio session [command]
+```
+
+---
+
+#### list
+
+Enumere todas las sesiones Cognitio.
+
+```bash
+cognitio session list
+```
+
+##### Opciones
+
+| Opción        | Corta | Descripción                             |
+| ------------- | ----- | --------------------------------------- |
+| `--max-count` | `-n`  | Limitar a N sesiones más recientes      |
+| `--format`    |       | Formato de salida: tabla o json (tabla) |
+
+---
+
+### stats
+
+Muestre el uso de tokens y las estadísticas de costos para sus sesiones Cognitio.
+
+```bash
+cognitio stats
+```
+
+#### Opciones
+
+| Opción      | Descripción                                                                                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `--days`    | Mostrar estadísticas de los últimos N días (todo el tiempo)                                                              |
+| `--tools`   | Número de herramientas para mostrar (todas)                                                                              |
+| `--models`  | Mostrar el desglose del uso del modelo (oculto de forma predeterminada). Pase un número para mostrar la parte superior N |
+| `--project` | Filtrar por proyecto (todos los proyectos, cadena vacía: proyecto actual)                                                |
+
+---
+
+### export
+
+Exportar datos de la sesión como JSON.
+
+```bash
+cognitio export [sessionID]
+```
+
+Si no proporciona una ID de sesión, se le pedirá que seleccione entre las sesiones disponibles.
+
+---
+
+### import
+
+Importe datos de sesión desde un archivo JSON o una URL compartida Cognitio.
+
+```bash
+cognitio import <file>
+```
+
+Puede importar desde un archivo local o una URL compartida Cognitio.
+
+```bash
+cognitio import session.json
+cognitio import https://opncd.ai/s/abc123
+```
+
+---
+
+### web
+
+Inicie un servidor Cognitio sin cabeza con una interfaz web.
+
+```bash
+cognitio web
+```
+
+Esto inicia un servidor HTTP y abre un navegador web para acceder a Cognitio a través de una interfaz web. Configure `COGNITIO_SERVER_PASSWORD` para habilitar la autenticación básica HTTP (el nombre de usuario predeterminado es `cognitio`).
+
+#### Opciones
+
+| Opción       | Descripción                                          |
+| ------------ | ---------------------------------------------------- |
+| `--port`     | Puerto para escuchar                                 |
+| `--hostname` | Nombre de host para escuchar                         |
+| `--mdns`     | Habilitar el descubrimiento de mDNS                  |
+| `--cors`     | Orígenes de navegador adicionales para permitir CORS |
+
+---
+
+### acp
+
+Inicie un servidor ACP (Agent Client Protocol).
+
+```bash
+cognitio acp
+```
+
+Este comando inicia un servidor ACP que se comunica a través de stdin/stdout usando nd-JSON.
+
+#### Opciones
+
+| Opción       | Descripción                  |
+| ------------ | ---------------------------- |
+| `--cwd`      | Directorio de trabajo        |
+| `--port`     | Puerto para escuchar         |
+| `--hostname` | Nombre de host para escuchar |
+
+---
+
+### uninstall
+
+Desinstale Cognitio y elimine todos los archivos relacionados.
+
+```bash
+cognitio uninstall
+```
+
+#### Opciones
+
+| Opción          | Corta | Descripción                               |
+| --------------- | ----- | ----------------------------------------- |
+| `--keep-config` | `-c`  | Mantener archivos de configuración        |
+| `--keep-data`   | `-d`  | Conservar datos de sesión e instantáneas  |
+| `--dry-run`     |       | Mostrar lo que se eliminaría sin eliminar |
+| `--force`       | `-f`  | Saltar mensajes de confirmación           |
+
+---
+
+### upgrade
+
+Actualiza cognitio a la última versión o a una versión específica.
+
+```bash
+cognitio upgrade [target]
+```
+
+Para actualizar a la última versión.
+
+```bash
+cognitio upgrade
+```
+
+Para actualizar a una versión específica.
+
+```bash
+cognitio upgrade v0.1.48
+```
+
+#### Opciones
+
+| Opción     | Corta | Descripción                                                         |
+| ---------- | ----- | ------------------------------------------------------------------- |
+| `--method` | `-m`  | El método de instalación que se utilizó; curl, npm, pnpm, bun, brew |
+
+---
+
+## Opciones globales
+
+La CLI de Cognitio toma las siguientes banderas globales.
+
+| Opción         | Corta | Descripción                                  |
+| -------------- | ----- | -------------------------------------------- |
+| `--help`       | `-h`  | Mostrar ayuda                                |
+| `--version`    | `-v`  | Número de versión de impresión               |
+| `--print-logs` |       | Imprimir registros en stderr                 |
+| `--log-level`  |       | Nivel de registro (DEBUG, INFO, WARN, ERROR) |
+
+---
+
+## Variables de entorno
+
+Cognitio se puede configurar mediante variables de entorno.
+
+| Variable                              | Type     | Description                                                                     |
+| ------------------------------------- | -------- | ------------------------------------------------------------------------------- |
+| `COGNITIO_AUTO_SHARE`                 | booleano | Compartir sesiones automáticamente                                              |
+| `COGNITIO_GIT_BASH_PATH`              | cadena   | Ruta al ejecutable de Git Bash en Windows                                       |
+| `COGNITIO_CONFIG`                     | cadena   | Ruta al archivo de configuración                                                |
+| `COGNITIO_CONFIG_DIR`                 | cadena   | Ruta al directorio de configuración                                             |
+| `COGNITIO_CONFIG_CONTENT`             | cadena   | Contenido de configuración json en línea                                        |
+| `COGNITIO_DISABLE_AUTOUPDATE`         | booleano | Deshabilitar las comprobaciones automáticas de actualizaciones                  |
+| `COGNITIO_DISABLE_PRUNE`              | booleano | Deshabilitar la poda de datos antiguos                                          |
+| `COGNITIO_DISABLE_TERMINAL_TITLE`     | booleano | Deshabilitar las actualizaciones automáticas de títulos de terminal             |
+| `COGNITIO_PERMISSION`                 | cadena   | Configuración de permisos json incorporados                                     |
+| `COGNITIO_DISABLE_DEFAULT_PLUGINS`    | booleano | Deshabilitar complementos predeterminados                                       |
+| `COGNITIO_DISABLE_LSP_DOWNLOAD`       | booleano | Deshabilitar las descargas automáticas del servidor LSP                         |
+| `COGNITIO_ENABLE_EXPERIMENTAL_MODELS` | booleano | Habilitar modelos experimentales                                                |
+| `COGNITIO_DISABLE_AUTOCOMPACT`        | booleano | Deshabilitar la compactación automática de contexto                             |
+| `COGNITIO_DISABLE_CLAUDE_CODE`        | booleano | Deshabilitar la lectura desde `.claude` (mensaje + habilidades)                 |
+| `COGNITIO_DISABLE_CLAUDE_CODE_PROMPT` | booleano | Desactivar lectura `~/.claude/CLAUDE.md`                                        |
+| `COGNITIO_DISABLE_CLAUDE_CODE_SKILLS` | booleano | Deshabilitar la carga `.claude/skills`                                          |
+| `COGNITIO_DISABLE_MODELS_FETCH`       | booleano | Deshabilitar la recuperación de modelos desde fuentes remotas                   |
+| `COGNITIO_FAKE_VCS`                   | cadena   | Proveedor de VCS falso para fines de prueba                                     |
+| `COGNITIO_CLIENT`                     | cadena   | Identificador de cliente (por defecto `cli`)                                    |
+| `COGNITIO_ENABLE_EXA`                 | booleano | Habilitar las herramientas de búsqueda web de Exa                               |
+| `COGNITIO_SERVER_PASSWORD`            | cadena   | Habilite la autenticación básica para `serve`/`web`                             |
+| `COGNITIO_SERVER_USERNAME`            | cadena   | Anular el nombre de usuario de autenticación básica (predeterminado `cognitio`) |
+| `COGNITIO_MODELS_URL`                 | cadena   | URL personalizada para buscar la configuración de modelos                       |
+
+---
+
+### Experimental
+
+Estas variables de entorno habilitan funciones experimentales que pueden cambiar o eliminarse.
+
+| Variable                                        | Type     | Description                                                |
+| ----------------------------------------------- | -------- | ---------------------------------------------------------- |
+| `COGNITIO_EXPERIMENTAL`                         | booleano | Habilitar todas las funciones experimentales               |
+| `COGNITIO_EXPERIMENTAL_ICON_DISCOVERY`          | booleano | Habilitar descubrimiento de íconos                         |
+| `COGNITIO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT`  | booleano | Deshabilitar copia al seleccionar en TUI                   |
+| `COGNITIO_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS` | número   | Tiempo de espera predeterminado para comandos bash en ms   |
+| `COGNITIO_EXPERIMENTAL_OUTPUT_TOKEN_MAX`        | número   | Tokens de salida máximos para respuestas LLM               |
+| `COGNITIO_EXPERIMENTAL_FILEWATCHER`             | booleano | Habilite el observador de archivos para todo el directorio |
+| `COGNITIO_EXPERIMENTAL_OXFMT`                   | booleano | Habilitar el formateador oxfmt                             |
+| `COGNITIO_EXPERIMENTAL_LSP_TOOL`                | booleano | Habilitar herramienta experimental LSP                     |
+| `COGNITIO_EXPERIMENTAL_DISABLE_FILEWATCHER`     | booleano | Deshabilitar el observador de archivos                     |
+| `COGNITIO_EXPERIMENTAL_EXA`                     | booleano | Habilitar funciones experimentales de Exa                  |
+| `COGNITIO_EXPERIMENTAL_LSP_TY`                  | booleano | Habilitar Habilitar TY LSP para archivos python            |
+| `COGNITIO_EXPERIMENTAL_MARKDOWN`                | booleano | Habilitar funciones de Markdown experimentales             |
+| `COGNITIO_EXPERIMENTAL_PLAN_MODE`               | booleano | Habilitar modo de plan                                     |
